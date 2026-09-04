@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
-import type { TicketCategory, TicketItem, TicketStatus } from '../types/helpdesk';
-import { TicketStatusBadge } from '../components/TicketStatusBadge';
-import { TicketCategoryBadge } from '../components/TicketCategoryBadge';
-import {
-  TicketFilterBottomSheet,
-  type FilterState,
-} from '../components/TicketFilterBottomSheet';
-import Button from '../../../components/ui/Button';
+import React, { useState } from "react";
+import type { TicketCategory, TicketItem, TicketStatus } from "../types/helpdesk";
+import { TicketStatusBadge } from "../components/TicketStatusBadge";
+import { TicketCategoryBadge } from "../components/TicketCategoryBadge";
+import { TicketFilterBottomSheet, type FilterState } from "../components/TicketFilterBottomSheet";
+import Button from "../../../components/ui/Button";
 
 interface HelpdeskListPageProps {
   onSelectTicket?: (id: string) => void;
@@ -15,73 +12,71 @@ interface HelpdeskListPageProps {
 
 const MOCK_TICKETS: TicketItem[] = [
   {
-    id: '1',
-    code: 'TK-2023-001',
-    title: 'Jaringan Wi-Fi Lantai 3 Mati Total',
+    id: "1",
+    code: "TK-2023-001",
+    title: "Jaringan Wi-Fi Lantai 3 Mati Total",
     description:
-      'Koneksi internet di seluruh area lantai 3 terputus sejak pagi ini. Sudah coba restart router tapi tetap tidak bisa.',
-    category: 'TIK',
-    status: 'Baru',
-    reporter: { name: 'Dr. Andi Santoso', unit: 'Poli Umum' },
-    createdAt: '24 Okt 2023, 08:30',
+      "Koneksi internet di seluruh area lantai 3 terputus sejak pagi ini. Sudah coba restart router tapi tetap tidak bisa.",
+    category: "TIK",
+    status: "Baru",
+    reporter: { name: "Dr. Andi Santoso", unit: "Poli Umum" },
+    createdAt: "24 Okt 2023, 08:30",
   },
   {
-    id: '2',
-    code: 'TK-2023-002',
-    title: 'AC ruang tunggu IGD bocor',
+    id: "2",
+    code: "TK-2023-002",
+    title: "AC ruang tunggu IGD bocor",
     description:
-      'Terdapat tetesan air yang cukup deras dari unit AC di ruang tunggu keluarga pasien IGD.',
-    category: 'Sarpras',
-    status: 'Diproses',
-    reporter: { name: 'Ns. Siti Rahma', unit: 'IGD' },
-    createdAt: '24 Okt 2023, 09:15',
+      "Terdapat tetesan air yang cukup deras dari unit AC di ruang tunggu keluarga pasien IGD.",
+    category: "Sarpras",
+    status: "Diproses",
+    reporter: { name: "Ns. Siti Rahma", unit: "IGD" },
+    createdAt: "24 Okt 2023, 09:15",
   },
   {
-    id: '3',
-    code: 'TK-2023-003',
-    title: 'Monitor Pasien Kamar 4 Blank Screen',
-    description:
-      'Monitor tanda vital di bed 4 mati layar hitam meskipun indikator daya menyala.',
-    category: 'Sarpras',
-    status: 'Diproses',
-    reporter: { name: 'Ns. Siti Rahma', unit: 'Rawat Inap' },
-    createdAt: '24 Okt 2023, 09:15',
+    id: "3",
+    code: "TK-2023-003",
+    title: "Monitor Pasien Kamar 4 Blank Screen",
+    description: "Monitor tanda vital di bed 4 mati layar hitam meskipun indikator daya menyala.",
+    category: "Sarpras",
+    status: "Diproses",
+    reporter: { name: "Ns. Siti Rahma", unit: "Rawat Inap" },
+    createdAt: "24 Okt 2023, 09:15",
   },
   {
-    id: '4',
-    code: 'TK-2023-004',
-    title: 'Printer Resep Rawat Jalan Tidak Merespon',
-    description:
-      'Dokumen resep obat tertahan di antrean print spooler dan tidak tercetak.',
-    category: 'Sarpras',
-    status: 'Diproses',
-    reporter: { name: 'Ns. Siti Rahma', unit: 'Farmasi' },
-    createdAt: '24 Okt 2023, 09:15',
+    id: "4",
+    code: "TK-2023-004",
+    title: "Printer Resep Rawat Jalan Tidak Merespon",
+    description: "Dokumen resep obat tertahan di antrean print spooler dan tidak tercetak.",
+    category: "Sarpras",
+    status: "Diproses",
+    reporter: { name: "Ns. Siti Rahma", unit: "Farmasi" },
+    createdAt: "24 Okt 2023, 09:15",
   },
 ];
 
 const borderAccentMap: Record<TicketStatus, string> = {
-  Baru: 'border-l-amber-500',
-  Diproses: 'border-l-blue-600',
-  Selesai: 'border-l-emerald-500',
+  Baru: "border-l-amber-500",
+  Diproses: "border-l-blue-600",
+  Selesai: "border-l-emerald-500",
 };
 
 export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
   onSelectTicket,
-  desktopSearchQuery = '',
+  desktopSearchQuery = "",
 }) => {
-  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const [activeMobileTab, setActiveMobileTab] = useState<'Semua' | TicketStatus>('Semua');
+  const [mobileSearchQuery, setMobileSearchQuery] = useState("");
+  const [activeMobileTab, setActiveMobileTab] = useState<"Semua" | TicketStatus>("Semua");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   // Filter state yang dipakai bersama oleh Dropdown Desktop dan Bottom Sheet Mobile
   const [filters, setFilters] = useState<FilterState>({
     category: null,
     status: null,
-    date: '',
+    date: "",
   });
 
-  const mobileTabs: Array<'Semua' | TicketStatus> = ['Semua', 'Baru', 'Diproses', 'Selesai'];
+  const mobileTabs: Array<"Semua" | TicketStatus> = ["Semua", "Baru", "Diproses", "Selesai"];
 
   const filteredTickets = MOCK_TICKETS.filter((ticket) => {
     // Pencarian mobile memakai input lokal, pencarian desktop memakai prop dari navbar
@@ -91,7 +86,7 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
       ticket.code.toLowerCase().includes(effectiveSearch.toLowerCase()) ||
       ticket.reporter.name.toLowerCase().includes(effectiveSearch.toLowerCase());
 
-    const matchQuickTab = activeMobileTab === 'Semua' || ticket.status === activeMobileTab;
+    const matchQuickTab = activeMobileTab === "Semua" || ticket.status === activeMobileTab;
     const matchCategory = !filters.category || ticket.category === filters.category;
     const matchStatus = !filters.status || ticket.status === filters.status;
 
@@ -119,7 +114,12 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
 
@@ -149,8 +149,8 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
               onClick={() => setActiveMobileTab(tab)}
               className={`rounded-full text-xs px-4 h-8 whitespace-nowrap border transition ${
                 activeMobileTab === tab
-                  ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                  ? "bg-blue-900 text-white border-blue-900 shadow-xs"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
               }`}
             >
               {tab}
@@ -166,8 +166,18 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
         <div className="flex items-center gap-3">
           {/* Label Filter */}
           <div className="flex items-center gap-2 text-slate-600 text-sm font-semibold">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            <svg
+              className="w-4 h-4 text-slate-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
             </svg>
             <span>Filters</span>
           </div>
@@ -177,7 +187,7 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
           {/* Dropdown Kategori */}
           <div className="relative">
             <select
-              value={filters.category || ''}
+              value={filters.category || ""}
               onChange={(e) =>
                 setFilters((prev) => ({
                   ...prev,
@@ -196,14 +206,19 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
 
           {/* Dropdown Status */}
           <div className="relative">
             <select
-              value={filters.status || ''}
+              value={filters.status || ""}
               onChange={(e) =>
                 setFilters((prev) => ({
                   ...prev,
@@ -223,7 +238,12 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
 
@@ -242,7 +262,7 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
           {(filters.category || filters.status || filters.date) && (
             <button
               type="button"
-              onClick={() => setFilters({ category: null, status: null, date: '' })}
+              onClick={() => setFilters({ category: null, status: null, date: "" })}
               className="text-xs text-rose-600 hover:text-rose-700 font-medium ml-1"
             >
               Reset
@@ -323,9 +343,24 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
                     className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 transition cursor-pointer"
                     title="Lihat Detail"
                   >
-                    <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <svg
+                      className="w-5 h-5 inline-block"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
                   </button>
                 </td>
@@ -350,9 +385,7 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
             <button className="w-7 h-7 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition">
               3
             </button>
-            <button className="px-2 py-1 text-slate-600 hover:text-slate-800">
-              &gt;
-            </button>
+            <button className="px-2 py-1 text-slate-600 hover:text-slate-800">&gt;</button>
           </div>
         </div>
       </div>

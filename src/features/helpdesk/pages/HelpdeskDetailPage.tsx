@@ -1,8 +1,8 @@
-import React from 'react';
-import type { TicketItem } from '../types/helpdesk';
-import { TicketStatusBadge } from '../components/TicketStatusBadge';
-import { TicketCategoryBadge } from '../components/TicketCategoryBadge';
-import { AttachmentItem } from '../components/AttachmentItem';
+import React from "react";
+import type { TicketItem } from "../types/helpdesk";
+import { TicketStatusBadge } from "../components/TicketStatusBadge";
+import { TicketCategoryBadge } from "../components/TicketCategoryBadge";
+import { AttachmentItem } from "../components/AttachmentItem";
 
 interface Props {
   ticket?: TicketItem;
@@ -10,50 +10,50 @@ interface Props {
 }
 
 const MOCK_DETAIL_TICKET: TicketItem = {
-  id: '1',
-  code: 'TIK-2023-045',
-  title: 'Jaringan Wi-Fi Lantai 3 Mati Total',
+  id: "1",
+  code: "TIK-2023-045",
+  title: "Jaringan Wi-Fi Lantai 3 Mati Total",
   description:
-    'Koneksi internet di seluruh area lantai 3 terputus sejak pagi ini. Sudah coba restart router tapi tetap tidak bisa.',
-  category: 'TIK',
-  status: 'Diproses',
+    "Koneksi internet di seluruh area lantai 3 terputus sejak pagi ini. Sudah coba restart router tapi tetap tidak bisa.",
+  category: "TIK",
+  status: "Diproses",
   reporter: {
-    name: 'Ahmad Subagyo',
-    unit: 'Poli Umum',
-    avatarInitials: 'AS',
+    name: "Ahmad Subagyo",
+    unit: "Poli Umum",
+    avatarInitials: "AS",
   },
   assignee: {
-    name: 'Budi Santoso',
-    role: 'IT Support',
-    avatarInitials: 'BS',
+    name: "Budi Santoso",
+    role: "IT Support",
+    avatarInitials: "BS",
   },
-  createdAt: '10 Okt 2023, 08:30 WIB',
-  finishedAt: '-',
+  createdAt: "10 Okt 2023, 08:30 WIB",
+  finishedAt: "-",
   attachments: [
     {
-      id: 'att-1',
-      name: 'sebelum_perbaikan.jpg',
-      size: '920 KB',
-      url: '#',
+      id: "att-1",
+      name: "sebelum_perbaikan.jpg",
+      size: "920 KB",
+      url: "#",
     },
   ],
   history: [
     {
-      id: 'log-1',
-      action: 'Petugas melakukan pengecekan router di lokasi.',
-      timestamp: '24 Okt 09:15',
+      id: "log-1",
+      action: "Petugas melakukan pengecekan router di lokasi.",
+      timestamp: "24 Okt 09:15",
       isCompleted: true,
     },
     {
-      id: 'log-2',
-      action: 'Petugas ditugaskan (Budi Santoso).',
-      timestamp: '24 Okt 09:00',
+      id: "log-2",
+      action: "Petugas ditugaskan (Budi Santoso).",
+      timestamp: "24 Okt 09:00",
       isCompleted: false,
     },
     {
-      id: 'log-3',
-      action: 'Tiket dibuat oleh sistem.',
-      timestamp: '24 Okt 08:30',
+      id: "log-3",
+      action: "Tiket dibuat oleh sistem.",
+      timestamp: "24 Okt 08:30",
       isCompleted: false,
     },
   ],
@@ -61,9 +61,9 @@ const MOCK_DETAIL_TICKET: TicketItem = {
 
 export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKET, onBack }) => {
   const statusSteps = [
-    { label: 'Baru', active: true },
-    { label: 'Diproses', active: ticket.status === 'Diproses' || ticket.status === 'Selesai' },
-    { label: 'Selesai', active: ticket.status === 'Selesai' },
+    { label: "Baru", active: true },
+    { label: "Diproses", active: ticket.status === "Diproses" || ticket.status === "Selesai" },
+    { label: "Selesai", active: ticket.status === "Selesai" },
   ];
 
   return (
@@ -78,7 +78,12 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
             title="Kembali"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </button>
           <h1 className="text-base md:text-lg font-bold text-slate-900">
@@ -100,13 +105,13 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
               <div
                 className={`w-4 h-4 rounded-full border-2 ${
                   step.active
-                    ? 'bg-amber-500 border-amber-500 ring-4 ring-amber-100'
-                    : 'bg-slate-300 border-white'
+                    ? "bg-amber-500 border-amber-500 ring-4 ring-amber-100"
+                    : "bg-slate-300 border-white"
                 }`}
               />
               <span
                 className={`text-[11px] mt-1.5 font-medium ${
-                  step.active ? 'text-amber-600 font-semibold' : 'text-slate-400'
+                  step.active ? "text-amber-600 font-semibold" : "text-slate-400"
                 }`}
               >
                 {step.label}
@@ -140,13 +145,13 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
                 <span className="text-xs text-slate-400 font-medium">Petugas Menangani</span>
                 <div className="flex items-center gap-3 mt-1.5">
                   <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                    {ticket.assignee?.avatarInitials || ticket.assignee?.name.charAt(0) || '-'}
+                    {ticket.assignee?.avatarInitials || ticket.assignee?.name.charAt(0) || "-"}
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-slate-900">
-                      {ticket.assignee?.name || 'Belum ditugaskan'}
+                      {ticket.assignee?.name || "Belum ditugaskan"}
                     </h4>
-                    <p className="text-xs text-slate-500">{ticket.assignee?.role || '-'}</p>
+                    <p className="text-xs text-slate-500">{ticket.assignee?.role || "-"}</p>
                   </div>
                 </div>
               </div>
@@ -159,7 +164,7 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
               </div>
               <div>
                 <span className="text-slate-400">Tanggal Selesai</span>
-                <p className="font-semibold text-slate-700 mt-0.5">{ticket.finishedAt || '-'}</p>
+                <p className="font-semibold text-slate-700 mt-0.5">{ticket.finishedAt || "-"}</p>
               </div>
             </div>
           </div>
@@ -167,8 +172,18 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
           {/* Card Deskripsi & Lampiran Awal */}
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-4 h-4 text-slate-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               Deskripsi Masalah
             </h3>
@@ -178,7 +193,9 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
 
             {ticket.attachments && ticket.attachments.length > 0 && (
               <div className="pt-2">
-                <span className="text-xs font-semibold text-slate-700 mb-2 block">Lampiran Awal</span>
+                <span className="text-xs font-semibold text-slate-700 mb-2 block">
+                  Lampiran Awal
+                </span>
                 <div className="flex flex-wrap gap-2">
                   {ticket.attachments.map((att) => (
                     <AttachmentItem key={att.id} attachment={att} />
@@ -192,8 +209,18 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
         {/* Kolom Kanan: Riwayat Penanganan & Bukti Selesai */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm h-fit space-y-4">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-slate-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             Riwayat Penanganan
           </h3>
@@ -203,10 +230,12 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
               <div key={log.id} className="relative">
                 <div
                   className={`absolute -left-6 top-1 w-2.5 h-2.5 rounded-full ${
-                    log.isCompleted ? 'bg-amber-500 ring-4 ring-amber-100' : 'bg-slate-400'
+                    log.isCompleted ? "bg-amber-500 ring-4 ring-amber-100" : "bg-slate-400"
                   }`}
                 />
-                <span className={`text-[11px] font-bold ${log.isCompleted ? 'text-amber-600' : 'text-slate-500'}`}>
+                <span
+                  className={`text-[11px] font-bold ${log.isCompleted ? "text-amber-600" : "text-slate-500"}`}
+                >
                   {log.timestamp}
                 </span>
                 <p className="text-xs font-medium text-slate-800 mt-0.5">{log.action}</p>
@@ -215,13 +244,15 @@ export const HelpdeskDetailPage: React.FC<Props> = ({ ticket = MOCK_DETAIL_TICKE
           </div>
 
           <div className="pt-4 border-t border-slate-100">
-            <span className="text-xs font-semibold text-slate-700 mb-2 block">Bukti Hasil Penanganan</span>
+            <span className="text-xs font-semibold text-slate-700 mb-2 block">
+              Bukti Hasil Penanganan
+            </span>
             <AttachmentItem
               attachment={{
-                id: 'att-after',
-                name: 'sesudah_perbaikan.jpg',
-                size: '920 KB',
-                url: '#',
+                id: "att-after",
+                name: "sesudah_perbaikan.jpg",
+                size: "920 KB",
+                url: "#",
               }}
             />
           </div>

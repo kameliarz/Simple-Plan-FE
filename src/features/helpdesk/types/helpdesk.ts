@@ -1,5 +1,5 @@
-export type TicketStatus = 'Baru' | 'Diproses' | 'Selesai';
-export type TicketCategory = 'TIK' | 'Sarpras';
+export type TicketStatus = "Baru" | "Diproses" | "Selesai";
+export type TicketCategory = "TIK" | "Sarpras";
 
 export interface TicketLog {
   id: string;

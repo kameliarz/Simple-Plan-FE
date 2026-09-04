@@ -5,10 +5,7 @@ interface DropdownProps {
   options: string[];
 }
 
-function Dropdown({
-  label,
-  options,
-}: DropdownProps) {
+function Dropdown({ label, options }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState("");
 
@@ -26,11 +23,7 @@ function Dropdown({
       >
         <span>{selected || label}</span>
 
-        <span
-          className={`text-text-secondary transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        >
+        <span className={`text-text-secondary transition-transform ${isOpen ? "rotate-180" : ""}`}>
           ⌄
         </span>
       </button>

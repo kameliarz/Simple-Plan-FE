@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import type { TicketCategory, TicketStatus } from '../types/helpdesk';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
+import React, { useState } from "react";
+import type { TicketCategory, TicketStatus } from "../types/helpdesk";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
 
-export type ExtendedTicketStatus = TicketStatus | 'Ditolak';
+export type ExtendedTicketStatus = TicketStatus | "Ditolak";
 
 export interface FilterState {
   category: TicketCategory | null;
@@ -22,26 +22,26 @@ export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = (
   isOpen,
   onClose,
   onApply,
-  initialFilters = { category: null, status: null, date: '' },
+  initialFilters = { category: null, status: null, date: "" },
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(
-    initialFilters.category
+    initialFilters.category,
   );
   const [selectedStatus, setSelectedStatus] = useState<ExtendedTicketStatus | null>(
-    initialFilters.status
+    initialFilters.status,
   );
   const [selectedDate, setSelectedDate] = useState<string>(initialFilters.date);
 
   if (!isOpen) return null;
 
-  const categories: TicketCategory[] = ['TIK', 'Sarpras'];
-  const statuses: ExtendedTicketStatus[] = ['Baru', 'Diproses', 'Selesai', 'Ditolak'];
+  const categories: TicketCategory[] = ["TIK", "Sarpras"];
+  const statuses: ExtendedTicketStatus[] = ["Baru", "Diproses", "Selesai", "Ditolak"];
 
   const handleReset = () => {
     setSelectedCategory(null);
     setSelectedStatus(null);
-    setSelectedDate('');
-    onApply({ category: null, status: null, date: '' });
+    setSelectedDate("");
+    onApply({ category: null, status: null, date: "" });
     onClose();
   };
 
@@ -72,7 +72,12 @@ export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = (
             className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -90,8 +95,8 @@ export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = (
                   onClick={() => setSelectedCategory(isSelected ? null : cat)}
                   className={`px-4 py-1.5 rounded-xl text-xs font-medium border transition ${
                     isSelected
-                      ? 'bg-blue-100/70 border-blue-400 text-blue-900 font-semibold'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? "bg-blue-100/70 border-blue-400 text-blue-900 font-semibold"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   {cat}
@@ -114,8 +119,8 @@ export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = (
                   onClick={() => setSelectedStatus(isSelected ? null : st)}
                   className={`px-4 py-1.5 rounded-xl text-xs font-medium border transition ${
                     isSelected
-                      ? 'bg-blue-100/70 border-blue-400 text-blue-900 font-semibold'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? "bg-blue-100/70 border-blue-400 text-blue-900 font-semibold"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   {st}
@@ -137,12 +142,7 @@ export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = (
 
         {/* Tombol Aksi Menggunakan Global UI Button */}
         <div className="flex items-center gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            className="flex-1"
-          >
+          <Button type="button" variant="outline" onClick={handleReset} className="flex-1">
             Reset
           </Button>
           <Button

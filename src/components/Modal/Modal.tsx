@@ -7,12 +7,7 @@ interface ModalProps {
   children: ReactNode;
 }
 
-function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: ModalProps) {
+function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) {
     return null;
   }
@@ -27,9 +22,7 @@ function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-text">
-            {title}
-          </h2>
+          <h2 className="text-xl font-semibold text-text">{title}</h2>
 
           <button
             type="button"
@@ -40,9 +33,7 @@ function Modal({
           </button>
         </div>
 
-        <div className="text-text-secondary">
-          {children}
-        </div>
+        <div className="text-text-secondary">{children}</div>
       </div>
     </div>
   );

@@ -12,7 +12,9 @@ export default function HelpdeskTab() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2 w-full ${
-          isActive ? "border-blue-700 text-blue-700" : "border-transparent text-gray-600 hover:bg-gray-100"
+          isActive
+            ? "border-blue-700 text-blue-700"
+            : "border-transparent text-gray-600 hover:bg-gray-100"
         }`}
       >
         <div className="flex items-center gap-3">
@@ -35,7 +37,7 @@ export default function HelpdeskTab() {
             <Monitor className="h-4 w-4" />
             <span>Helpdesk TIK</span>
           </NavLink>
-          
+
           <NavLink
             to="/helpdesk/sarpras"
             className={({ isActive }) =>
