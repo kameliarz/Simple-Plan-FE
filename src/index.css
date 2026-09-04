@@ -4,7 +4,7 @@
 
 @theme {
   --font-poppins: "Poppins", sans-serif;
-  
+
   --color-background: var(--app-background);
   --color-sidebar: var(--app-sidebar);
 

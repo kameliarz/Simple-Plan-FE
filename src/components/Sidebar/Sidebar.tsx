@@ -17,7 +17,6 @@ export default function Sidebar() {
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
-      
       {/* 1. Header Sidebar */}
       <div className="flex items-center gap-3 p-4 border-b border-gray-100">
         <button className="text-gray-600 hover:text-gray-900">
@@ -61,7 +60,6 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-
     </aside>
   );
 }

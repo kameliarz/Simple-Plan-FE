@@ -31,9 +31,7 @@ function Tabs({ tabs }: TabsProps) {
         ))}
       </div>
 
-      <div className="py-4 text-text">
-        {tabs[activeTab].content}
-      </div>
+      <div className="py-4 text-text">{tabs[activeTab].content}</div>
     </div>
   );
 }

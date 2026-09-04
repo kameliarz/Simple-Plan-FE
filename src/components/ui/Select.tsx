@@ -5,11 +5,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 function Select({ children, ...props }: SelectProps) {
-  return (
-    <select {...props}>
-      {children}
-    </select>
-  );
+  return <select {...props}>{children}</select>;
 }
 
 export default Select;

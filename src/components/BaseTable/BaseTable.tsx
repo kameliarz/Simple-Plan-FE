@@ -13,11 +13,7 @@ interface BaseTableProps<T> {
   itemsPerPage?: number;
 }
 
-function BaseTable<T>({
-  columns,
-  data,
-  itemsPerPage = 4,
-}: BaseTableProps<T>) {
+function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,9 +58,7 @@ function BaseTable<T>({
 
   const handleSort = (key: keyof T) => {
     if (sortKey === key) {
-      setSortDirection((currentDirection) =>
-        currentDirection === "asc" ? "desc" : "asc",
-      );
+      setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
       setSortDirection("asc");
@@ -78,29 +72,18 @@ function BaseTable<T>({
   };
 
   const handleNextPage = () => {
-    setCurrentPage((page) =>
-      Math.min(page + 1, totalPages),
-    );
+    setCurrentPage((page) => Math.min(page + 1, totalPages));
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  const startEntry =
-    sortedData.length === 0
-      ? 0
-      : (currentPage - 1) * itemsPerPage + 1;
+  const startEntry = sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
 
-  const endEntry = Math.min(
-    currentPage * itemsPerPage,
-    sortedData.length,
-  );
+  const endEntry = Math.min(currentPage * itemsPerPage, sortedData.length);
 
-  const visiblePages = Array.from(
-    { length: Math.min(totalPages, 3) },
-    (_, index) => index + 1,
-  );
+  const visiblePages = Array.from({ length: Math.min(totalPages, 3) }, (_, index) => index + 1);
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-sidebar">
@@ -122,11 +105,7 @@ function BaseTable<T>({
                       {column.label}
 
                       <span className="text-[10px]">
-                        {sortKey === column.key
-                          ? sortDirection === "asc"
-                            ? "↑"
-                            : "↓"
-                          : "↕"}
+                        {sortKey === column.key ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
                       </span>
                     </button>
                   ) : (
@@ -140,21 +119,13 @@ function BaseTable<T>({
           <tbody className="divide-y divide-gray-200">
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => (
-                <tr
-                  key={rowIndex}
-                  className="transition hover:bg-background"
-                >
+                <tr key={rowIndex} className="transition hover:bg-background">
                   {columns.map((column) => {
                     const value = row[column.key];
 
                     return (
-                      <td
-                        key={String(column.key)}
-                        className="px-5 py-3 text-sm text-text"
-                      >
-                        {column.render
-                          ? column.render(value, row)
-                          : String(value ?? "-")}
+                      <td key={String(column.key)} className="px-5 py-3 text-sm text-text">
+                        {column.render ? column.render(value, row) : String(value ?? "-")}
                       </td>
                     );
                   })}
@@ -176,8 +147,7 @@ function BaseTable<T>({
 
       <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3">
         <p className="text-xs text-text-secondary">
-          Showing {startEntry} to {endEntry} of{" "}
-          {sortedData.length} entries
+          Showing {startEntry} to {endEntry} of {sortedData.length} entries
         </p>
 
         <div className="flex items-center gap-1">
@@ -197,9 +167,7 @@ function BaseTable<T>({
               type="button"
               onClick={() => handlePageChange(page)}
               aria-label={`Page ${page}`}
-              aria-current={
-                currentPage === page ? "page" : undefined
-              }
+              aria-current={currentPage === page ? "page" : undefined}
               className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition ${
                 currentPage === page
                   ? "bg-primary text-white"
@@ -213,9 +181,7 @@ function BaseTable<T>({
           <button
             type="button"
             onClick={handleNextPage}
-            disabled={
-              currentPage === totalPages || totalPages === 0
-            }
+            disabled={currentPage === totalPages || totalPages === 0}
             aria-label="Next page"
             className="flex h-8 w-8 items-center justify-center text-2xl text-text-secondary transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
           >

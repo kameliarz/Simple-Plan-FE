@@ -8,11 +8,11 @@ Repository ini berisi pengembangan frontend yang dikerjakan secara kolaboratif o
 
 ## Teknologi
 
-* React
-* Vite
-* TypeScript
-* Tailwind CSS
-* shadcn/ui
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
 
 ## Persiapan dan Menjalankan Project
 
@@ -73,5 +73,5 @@ src/
 
 ## Dokumentasi
 
-* [CONTRIBUTING.md](./CONTRIBUTING.md) - Panduan workflow, branch, dan commit.
-* [ADR-001: Strategi Branch Git](./docs/decisions/001-git-workflow.md) - Alasan pemilihan workflow Git project.
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - Panduan workflow, branch, dan commit.
+- [ADR-001: Strategi Branch Git](./docs/decisions/001-git-workflow.md) - Alasan pemilihan workflow Git project.

@@ -6,10 +6,7 @@ interface ProtectedRouteProps {
   userRole: Role | null;
 }
 
-function ProtectedRoute({
-  allowedRoles,
-  userRole,
-}: ProtectedRouteProps) {
+function ProtectedRoute({ allowedRoles, userRole }: ProtectedRouteProps) {
   if (!userRole) {
     return <Navigate to="/unauthorized" replace />;
   }
