@@ -1,5 +1,5 @@
-export type TicketStatus = "Baru" | "Diproses" | "Selesai";
-export type TicketCategory = "TIK" | "Sarpras";
+export type TicketStatus = "Baru" | "Terverifikasi" | "Diproses" | "Selesai" | "Ditolak";
+export type TicketCategory = "TIK" | "Sarpras" | "Ketidakstabilan System" | string;
 
 export interface TicketLog {
   id: string;
@@ -13,6 +13,7 @@ export interface TicketAttachment {
   name: string;
   size: string;
   url: string;
+  previewUrl?: string;
 }
 
 export interface TicketItem {
@@ -26,6 +27,7 @@ export interface TicketItem {
     name: string;
     unit: string;
     avatarInitials?: string;
+    avatarUrl?: string;
   };
   assignee?: {
     name: string;
