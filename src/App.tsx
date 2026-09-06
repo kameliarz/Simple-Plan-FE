@@ -156,7 +156,7 @@ function App() {
           </section>
 
         </div>
-      </main>
+    </main>
     </div>
   );
 }
