@@ -2,6 +2,7 @@ import React from "react";
 import { Calendar } from "lucide-react";
 import type { TicketItem, TicketStatus } from "../types/helpdesk";
 import { Avatar } from "../../../components/ui/Avatar";
+import Badge, { type BadgeVariant } from "../../../components/ui/Badge";
 import { cn } from "../../../lib/utils";
 
 interface TicketCardMobileProps {
@@ -18,14 +19,12 @@ const borderAccentMap: Record<TicketStatus, string> = {
   Ditolak: "border-l-rose-500",
 };
 
-const badgeStyleMap: Record<TicketStatus, string> = {
-  Baru: "border-blue-900/60 text-blue-950 dark:border-blue-400 dark:text-blue-200",
-  Terverifikasi:
-    "border-amber-400 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-300",
-  Diproses: "border-blue-500 text-blue-600 bg-blue-50/40 dark:bg-blue-950/20 dark:text-blue-300",
-  Selesai:
-    "border-emerald-400 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 dark:text-emerald-300",
-  Ditolak: "border-rose-400 text-rose-600 bg-rose-50/50 dark:bg-rose-950/20 dark:text-rose-300",
+const statusVariantMap: Record<TicketStatus, BadgeVariant> = {
+  Baru: "primary",
+  Terverifikasi: "warning",
+  Diproses: "info",
+  Selesai: "success",
+  Ditolak: "danger",
 };
 
 export const TicketCardMobile: React.FC<TicketCardMobileProps> = ({
@@ -56,14 +55,9 @@ export const TicketCardMobile: React.FC<TicketCardMobileProps> = ({
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{ticket.code}</p>
         </div>
 
-        <span
-          className={cn(
-            "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border",
-            badgeStyleMap[ticket.status] || "border-slate-300 text-slate-600",
-          )}
-        >
+        <Badge variant={statusVariantMap[ticket.status] || "default"} size="sm">
           {ticket.status}
-        </span>
+        </Badge>
       </div>
 
       {/* Baris 2: Profil Pelapor & Tanggal */}

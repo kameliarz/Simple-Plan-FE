@@ -13,8 +13,8 @@ export default function HelpdeskTab() {
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2 w-full ${
           isActive
-            ? "border-blue-700 text-blue-700"
-            : "border-transparent text-gray-600 hover:bg-gray-100"
+            ? "border-blue-700 text-blue-700 dark:text-blue-400 dark:border-blue-500"
+            : "border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50"
         }`}
       >
         <div className="flex items-center gap-3">
@@ -25,12 +25,14 @@ export default function HelpdeskTab() {
       </button>
 
       {isOpen && (
-        <div className="flex flex-col bg-gray-50/50 py-1">
+        <div className="flex flex-col bg-gray-50/50 dark:bg-slate-800/30 py-1">
           <NavLink
             to="/helpdesk/tik"
             className={({ isActive }) =>
               `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors ${
-                isActive ? "text-blue-700 font-medium" : "text-gray-500 hover:text-gray-700"
+                isActive
+                  ? "text-blue-700 dark:text-blue-400 font-medium"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
               }`
             }
           >
@@ -42,7 +44,9 @@ export default function HelpdeskTab() {
             to="/helpdesk/sarpras"
             className={({ isActive }) =>
               `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors ${
-                isActive ? "text-blue-700 font-medium" : "text-gray-500 hover:text-gray-700"
+                isActive
+                  ? "text-blue-700 dark:text-blue-400 font-medium"
+                  : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
               }`
             }
           >

@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { ArrowLeft, User, Calendar, Tag, Clock, ImageIcon, Download, X, Check } from "lucide-react";
+import { ArrowLeft, User, Calendar, Tag, Clock, X, Check } from "lucide-react";
 import type { TicketItem } from "../types/helpdesk";
 import { RejectTicketModal } from "../components/RejectTicketModal";
 import { Toast } from "../../../components/ui/Toast";
-import { cn } from "../../../lib/utils";
+import Badge from "../../../components/ui/Badge";
+import InfoCard from "../../../components/ui/InfoCard";
+import AttachmentCard from "../../../components/ui/AttachmentCard";
+import Timeline, { type TimelineEntry } from "../../../components/ui/Timeline";
+import BottomActionBar from "../../../components/ui/BottomActionBar";
 
 interface HelpdeskDetailPageProps {
   ticket?: TicketItem;
@@ -97,6 +101,14 @@ export const HelpdeskDetailPage: React.FC<HelpdeskDetailPageProps> = ({
   const isRejected = currentTicket.status === "Ditolak";
   const isVerified = currentTicket.status === "Terverifikasi";
 
+  const timelineItems: TimelineEntry[] = (currentTicket.history || []).map((log, index) => ({
+    id: log.id,
+    timestamp: log.timestamp,
+    action: log.action,
+    isCompleted: log.isCompleted,
+    variant: index === 0 && isRejected ? "danger" : index === 0 ? "warning" : "default",
+  }));
+
   return (
     <div className="w-full pb-24 px-4 pt-2 space-y-3.5">
       {/* Toast Feedback */}
@@ -132,30 +144,26 @@ export const HelpdeskDetailPage: React.FC<HelpdeskDetailPageProps> = ({
         {/* Dynamic Status Badge */}
         <div>
           {isRejected ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <Badge variant="danger" dot>
               Ditolak
-            </span>
+            </Badge>
           ) : isVerified ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <Badge variant="warning" dot>
               Terverifikasi
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100/90 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
-              {currentTicket.status}
-            </span>
+            <Badge variant="warning">{currentTicket.status}</Badge>
           )}
         </div>
       </div>
 
       {/* 2. Card 1: Informasi Pelapor & Kategori */}
-      <div className="bg-white dark:bg-[#1e293b] rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 shadow-xs">
+      <InfoCard>
         <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           {/* Pelapor */}
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
-              <User className="w-3.5 h-3.5 text-blue-900 dark:text-blue-400" />
+              <User className="w-3.5 h-3.5 text-[#003178] dark:text-blue-400" />
               <span>Pelapor</span>
             </div>
             <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
@@ -183,15 +191,14 @@ export const HelpdeskDetailPage: React.FC<HelpdeskDetailPageProps> = ({
             <span>Kategori:</span>
           </div>
 
-          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border border-blue-900/30 text-blue-950 dark:border-blue-400/40 dark:text-blue-300 bg-blue-50/40 dark:bg-blue-950/20">
+          <Badge variant="primary" size="sm">
             {currentTicket.category}
-          </span>
+          </Badge>
         </div>
-      </div>
+      </InfoCard>
 
       {/* 3. Card 2: Deskripsi & Lampiran */}
-      <div className="bg-white dark:bg-[#1e293b] rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 shadow-xs">
-        <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100">Deskripsi</h2>
+      <InfoCard title="Deskripsi">
         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
           &ldquo;{currentTicket.description}&rdquo;
         </p>
@@ -202,93 +209,20 @@ export const HelpdeskDetailPage: React.FC<HelpdeskDetailPageProps> = ({
             <span className="text-[11px] text-slate-400 font-medium block">Foto Bukti Awal</span>
 
             {currentTicket.attachments.map((att) => (
-              <div
-                key={att.id}
-                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-900/40"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-[#003178] dark:bg-blue-900 flex items-center justify-center text-white shrink-0 shadow-xs">
-                    <ImageIcon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                      {att.name}
-                    </p>
-                    <span className="text-[10px] text-slate-400">{att.size}</span>
-                  </div>
-                </div>
-
-                <a
-                  href={att.url}
-                  download
-                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 transition shrink-0"
-                  title="Unduh Lampiran"
-                >
-                  <Download className="w-4 h-4" />
-                </a>
-              </div>
+              <AttachmentCard key={att.id} name={att.name} size={att.size} url={att.url} />
             ))}
           </div>
         )}
-      </div>
+      </InfoCard>
 
       {/* 4. Card 3: Riwayat Penanganan (Timeline) */}
-      <div className="bg-white dark:bg-[#1e293b] rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3.5 shadow-xs">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
-          <Clock className="w-4 h-4 text-slate-500" />
-          <span>Riwayat Penanganan</span>
-        </div>
-
-        <div className="pl-1 pt-1 space-y-4">
-          {currentTicket.history?.map((log, index) => {
-            const isLatest = index === 0;
-            const isLastItem = index === (currentTicket.history?.length ?? 1) - 1;
-
-            return (
-              <div key={log.id} className="relative flex items-start gap-3">
-                {/* Timeline vertical connector line */}
-                {!isLastItem && (
-                  <div className="absolute left-1.5 top-3.5 bottom-[-16px] w-[1.5px] bg-slate-200 dark:bg-slate-700" />
-                )}
-
-                {/* Dot */}
-                <div
-                  className={cn(
-                    "w-3 h-3 rounded-full mt-0.5 shrink-0 z-10 ring-2 ring-white dark:ring-[#1e293b]",
-                    isLatest
-                      ? isRejected
-                        ? "bg-rose-500"
-                        : "bg-amber-500"
-                      : "bg-slate-300 dark:bg-slate-600",
-                  )}
-                />
-
-                <div className="min-w-0 flex-1 text-xs">
-                  <span
-                    className={cn(
-                      "font-semibold block",
-                      isLatest
-                        ? isRejected
-                          ? "text-rose-600 dark:text-rose-400"
-                          : "text-amber-700 dark:text-amber-400"
-                        : "text-slate-400 dark:text-slate-500",
-                    )}
-                  >
-                    {log.timestamp}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300 font-medium mt-0.5">
-                    {log.action}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <InfoCard title="Riwayat Penanganan" icon={<Clock className="w-4 h-4 text-slate-500" />}>
+        <Timeline items={timelineItems} />
+      </InfoCard>
 
       {/* 5. Sticky Action Bar di Bawah */}
       {!isRejected && (
-        <div className="flex items-center gap-3 pt-2">
+        <BottomActionBar>
           <button
             type="button"
             onClick={() => setIsRejectModalOpen(true)}
@@ -306,7 +240,7 @@ export const HelpdeskDetailPage: React.FC<HelpdeskDetailPageProps> = ({
             <Check className="w-4 h-4" />
             <span>Verifikasi</span>
           </button>
-        </div>
+        </BottomActionBar>
       )}
 
       {/* Modal Tolak Tiket */}

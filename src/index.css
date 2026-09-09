@@ -116,3 +116,32 @@ code,
     font-size: 16px;
   }
 }
+
+/* =========================
+   CUSTOM SCROLLBAR
+   ========================= */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #a5b4fc; /* indigo-300 for slightly blue/purple tint */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #818cf8; /* indigo-400 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #314a7a; /* custom dark muted blue */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #405d94; /* slightly lighter custom muted blue */
+}
