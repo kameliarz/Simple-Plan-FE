@@ -1,4 +1,4 @@
-import { Menu, Sun, Moon } from "lucide-react";
+import { Menu } from "lucide-react";
 import SwitchToggle from "../ui/SwitchToggle";
 import DashboardTab from "./DashboardTab";
 import MasterDataTab from "./MasterDataTab";
@@ -7,8 +7,8 @@ import HelpdeskTab from "./HelpdeskTab";
 import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
-import NotifikasiTab from "./NotifikasiTab";
 import LogoutTab from "./LogoutTab";
+import { User } from "lucide-react";
 
 interface SidebarProps {
   isDarkMode?: boolean;
@@ -43,7 +43,6 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         <MaintenanceTab />
         <CadanganDataTab />
         <LaporanTab />
-        <NotifikasiTab />
         <LogoutTab onLogout={handleLogout} />
       </nav>
 
@@ -51,21 +50,20 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
       <div className="border-t border-gray-100 dark:border-slate-800 p-4 space-y-4">
         {/* Toggle Mode */}
         <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
-          </div>
+          <span>Mode</span>
           <SwitchToggle checked={isDarkMode} onChange={toggleDarkMode} />
         </div>
 
         {/* User Card */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold">
-            🏥
+          <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+            <User className="h-5 w-5" />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-bold text-gray-800 dark:text-slate-200">Super Admin</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">Administrator</p>
+            <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
+              Koordinator Sarpas
+            </p>
+            <p className="text-xs text-gray-500 dark:text-slate-400">Nur Colis</p>
           </div>
         </div>
       </div>

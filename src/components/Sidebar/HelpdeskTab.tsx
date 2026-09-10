@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Headset, ChevronDown, Monitor, Wrench } from "lucide-react";
+import { Headset, ChevronDown, Wrench } from "lucide-react";
 
 export default function HelpdeskTab() {
   const location = useLocation();
@@ -27,21 +27,28 @@ export default function HelpdeskTab() {
       {isOpen && (
         <div className="flex flex-col bg-gray-50/50 dark:bg-slate-800/30 py-1">
           <NavLink
-            to="/helpdesk/tik"
+            to="/helpdesk/sarpras"
             className={({ isActive }) =>
-              `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors ${
+              `flex items-center justify-between pl-12 pr-4 py-2 text-sm transition-colors ${
                 isActive
                   ? "text-blue-700 dark:text-blue-400 font-medium"
                   : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
               }`
             }
           >
-            <Monitor className="h-4 w-4" />
-            <span>Helpdesk TIK</span>
+            {({ isActive }) => (
+              <>
+                <div className="flex items-center gap-3">
+                  <Wrench className="h-4 w-4" />
+                  <span>Helpdesk Sarpras</span>
+                </div>
+                {isActive && <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>}
+              </>
+            )}
           </NavLink>
 
           <NavLink
-            to="/helpdesk/sarpras"
+            to="/helpdesk/sarpras/buat"
             className={({ isActive }) =>
               `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors ${
                 isActive
@@ -50,8 +57,8 @@ export default function HelpdeskTab() {
               }`
             }
           >
-            <Wrench className="h-4 w-4" />
-            <span>Helpdesk Sarpras</span>
+            <span className="text-lg leading-none font-medium mr-1">+</span>
+            <span>Buat Tiket</span>
           </NavLink>
         </div>
       )}
