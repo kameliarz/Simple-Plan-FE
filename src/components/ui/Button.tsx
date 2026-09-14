@@ -17,15 +17,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'border-transparent bg-primary-600 text-white hover:bg-primary-700',
   secondary:
-    'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
-  danger: 'border-transparent bg-danger-500 text-white hover:bg-danger-700',
+    'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
+  danger: 'border-transparent bg-danger-500 text-white hover:bg-danger-600',
   ghost:
     'border-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: 'min-h-9 px-3 py-2 text-xs',
-  md: 'min-h-11 px-4 py-2.5 text-sm',
+  md: 'min-h-11 px-4 py-2 text-sm',
   icon: 'size-10 p-0',
 }
 
@@ -41,7 +41,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    'inline-flex items-center justify-center gap-2 rounded-md border font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex items-center justify-center gap-2 rounded-xl border font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
     variantClasses[variant],
     sizeClasses[size],
     className,

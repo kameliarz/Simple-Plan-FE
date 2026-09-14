@@ -1,7 +1,9 @@
 import type { HTMLAttributes } from 'react'
+
 import { cn } from '@/utils/cn'
 
-export interface InputErrorProps extends HTMLAttributes<HTMLParagraphElement> {
+export interface InputErrorProps
+  extends HTMLAttributes<HTMLParagraphElement> {
   message?: string
 }
 
@@ -15,7 +17,13 @@ export default function InputError({
   }
 
   return (
-    <p className={cn('text-sm text-danger-500', className)} {...props}>
+    <p
+      className={cn(
+        'text-xs font-normal text-danger-500',
+        className,
+      )}
+      {...props}
+    >
       {message}
     </p>
   )

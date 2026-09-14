@@ -32,6 +32,12 @@ const UnitsPage = lazy(() => import('@/pages/units/UnitsPage'))
 const UsersPage = lazy(() => import('@/pages/users/UsersPage'))
 const VerifyEmailPage = lazy(() => import('@/pages/auth/VerifyEmailPage'))
 
+
+const UIComponentsPage = lazy(
+  () => import('@/pages/UIComponents'),
+)
+
+
 function PageLoader() {
   return (
     <div className="flex min-h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
@@ -73,6 +79,7 @@ function App() {
               <Route path="/roles" element={<RolesPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/units" element={<UnitsPage />} />
+              <Route path="/ui-components" element={<UIComponentsPage />} />
             </Route>
             <Route path="/confirm-password" element={<ConfirmPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />

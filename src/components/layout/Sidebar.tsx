@@ -18,8 +18,8 @@ export default function Sidebar({ sidebarOpen }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 flex h-screen w-[260px] flex-col overflow-hidden border-r border-slate-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900 md:sticky md:top-0 md:translate-x-0 md:self-stretch',
-        sidebarOpen ? 'translate-x-0 md:w-[260px]' : '-translate-x-full md:w-20',
+        'fixed inset-y-0 left-0 z-40 flex h-screen w-65 flex-col overflow-hidden border-r border-slate-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900 md:sticky md:top-0 md:translate-x-0 md:self-stretch',
+        sidebarOpen ? 'translate-x-0 md:w-65' : '-translate-x-full md:w-20',
       )}
     >
       <div className="flex h-16 items-center justify-center border-b border-slate-100 dark:border-slate-800">

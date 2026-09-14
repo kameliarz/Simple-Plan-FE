@@ -1,4 +1,9 @@
-import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react'
+import {
+  Listbox,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
+} from '@headlessui/react'
 import {
   IconChevronDown,
   IconCircle,
@@ -44,7 +49,9 @@ export default function InputSelect<TOption extends SelectOption>({
 
   const buttonLabel = multiple
     ? Array.isArray(selected) && selected.length > 0
-      ? selected.map((item) => String(item[displayKey] ?? '')).join(', ')
+      ? selected
+          .map((item) => String(item[displayKey] ?? ''))
+          .join(', ')
       : placeholder
     : selected && !Array.isArray(selected)
       ? String(selected[displayKey] ?? '')
@@ -52,48 +59,121 @@ export default function InputSelect<TOption extends SelectOption>({
 
   return (
     <div className="flex flex-col gap-2">
-      {label ? <label className="text-sm text-slate-600">{label}</label> : null}
+      {label ? (
+        <label className="block text-base font-semibold text-slate-700">
+          {label}
+        </label>
+      ) : null}
+
       <Listbox
         by="id"
         multiple={multiple}
         onChange={setSelected}
         value={selected ?? undefined}
       >
-        <ListboxButton className="flex w-full items-center justify-between gap-8 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-slate-300 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-          <span className="truncate">{buttonLabel}</span>
-          <IconChevronDown size={20} strokeWidth={1.5} />
+        <ListboxButton
+          className="
+            flex h-11 w-full items-center justify-between gap-4
+            rounded-xl border border-[#DCE4EF] bg-white
+            px-4 text-sm text-slate-700
+            transition
+            focus:border-bluersch
+            focus:outline-none
+            focus:ring-2 focus:ring-bluersch/10
+          "
+        >
+          <span
+            className={
+              selected
+                ? 'truncate text-slate-700'
+                : 'truncate text-[#91A4C3]'
+            }
+          >
+            {buttonLabel}
+          </span>
+
+          <IconChevronDown
+            size={20}
+            strokeWidth={1.5}
+            className="shrink-0 text-slate-400"
+          />
         </ListboxButton>
-        <ListboxOptions className="mt-1 flex max-h-72 flex-col gap-2 overflow-auto rounded-lg border border-slate-200 bg-slate-100 p-4 dark:border-slate-800 dark:bg-slate-950">
+
+        <ListboxOptions
+          className="
+            mt-2 flex max-h-72 flex-col gap-2
+            overflow-auto rounded-xl
+            border border-[#DCE4EF]
+            bg-white p-3 shadow-lg
+            focus:outline-none
+          "
+        >
           {searchable ? (
             <input
-              className="mb-2 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-slate-300 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+              className="
+                mb-1 h-11 w-full
+                rounded-xl border border-[#DCE4EF]
+                bg-white px-4
+                text-base text-slate-700
+                placeholder:text-[#91A4C3]
+                focus:border-bluersch
+                focus:outline-none
+                focus:ring-2 focus:ring-bluersch/10
+              "
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search..."
+              placeholder="Cari..."
               type="text"
               value={search}
             />
           ) : null}
+
           {filteredData.map((item) => (
             <ListboxOption key={item.id} value={item}>
               {({ selected: isSelected }) => (
-                <div className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800">
+                <div
+                  className="
+                    flex cursor-pointer items-center gap-3
+                    rounded-lg px-3 py-2.5
+                    text-sm text-slate-700
+                    transition
+                    hover:bg-slate-50
+                  "
+                >
                   {isSelected ? (
                     <IconCircleFilled
-                      className="text-primary-500"
+                      className="shrink-0 text-bluersch"
                       size={15}
                       strokeWidth={1.5}
                     />
                   ) : (
-                    <IconCircle size={15} strokeWidth={1.5} />
+                    <IconCircle
+                      className="shrink-0 text-slate-400"
+                      size={15}
+                      strokeWidth={1.5}
+                    />
                   )}
-                  {String(item[displayKey] ?? '')}
+
+                  <span className="truncate">
+                    {String(item[displayKey] ?? '')}
+                  </span>
                 </div>
               )}
             </ListboxOption>
           ))}
+
+          {filteredData.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-slate-400">
+              Data tidak ditemukan.
+            </p>
+          ) : null}
         </ListboxOptions>
       </Listbox>
-      {error ? <small className="text-xs text-danger-500">{error}</small> : null}
+
+      {error ? (
+        <small className="text-xs font-normal text-danger-500">
+          {error}
+        </small>
+      ) : null}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { IconSearch, IconX } from '@tabler/icons-react'
+import { IconSearch } from '@tabler/icons-react'
 
 export interface SearchProps {
   onChange: (value: string) => void
@@ -8,31 +8,44 @@ export interface SearchProps {
 
 export default function Search({
   onChange,
-  placeholder = 'Cari...',
+  placeholder = 'Cari data...',
   value,
 }: SearchProps) {
   return (
-    <div className="relative">
-      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-        <IconSearch className="text-slate-400" size={18} strokeWidth={1.5} />
-      </div>
+    <div className="relative w-full">
       <input
-        className="block h-11 w-full rounded-md border border-slate-200 bg-white py-2 pl-10 pr-10 text-sm text-slate-800 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+        className="
+          block
+          h-12
+          w-full
+          rounded-lg
+          border
+          border-slate-300
+          bg-white
+          px-4
+          pr-14
+          text-sm
+          text-slate-700
+          outline-none
+          transition
+          placeholder:text-slate-600
+          focus:border-slate-400
+          focus:ring-2
+          focus:ring-slate-200
+        "
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        type="search"
+        type="text"
         value={value}
       />
-      {value ? (
-        <button
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-200"
-          onClick={() => onChange('')}
-          title="Bersihkan pencarian"
-          type="button"
-        >
-          <IconX size={18} strokeWidth={1.5} />
-        </button>
-      ) : null}
+
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-5">
+        <IconSearch
+          className="text-slate-700"
+          size={18}
+          strokeWidth={2.5}
+        />
+      </div>
     </div>
   )
 }
