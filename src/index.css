@@ -8,13 +8,54 @@
   --color-background: var(--app-background);
   --color-sidebar: var(--app-sidebar);
 
+  --color-tablencard: var(--app-tablencard);
+
   --color-text: var(--app-text);
+  --color-text-title: var(--app-text-title);
   --color-text-secondary: var(--app-text-secondary);
 
-  --color-primary: #003178;
   --color-selected: var(--app-selected);
 
-  --color-danger: #ef4444;
+  --color-button: var(--app-button);
+
+  --color-primary-50: #e6f0ff;
+  --color-primary-100: #b8d4ff;
+  --color-primary-500: #0041a3;
+  --color-primary-600: #003178; /*main primary*/
+  --color-primary-700: #001d47;
+
+  --color-success-50: #ecfdf5;
+  --color-success-500: #10b981;
+  --color-success-700: #047857;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fff1f2;
+  --color-danger-500: #e11d48;
+  --color-danger-600: #b9183b;
+  --color-danger-700: #90132e;
+
+  --color-badge-verified-text: #f59e0b;
+  --color-badge-verified-stroke: #f59e0b33;
+  --color-badge-verified-fill: #f59e0b1a;
+
+  --color-badge-process-text: #0d47a1;
+  --color-badge-process-stroke: #bae6fd;
+  --color-badge-process-fill: #e0f2fe;
+
+  --color-badge-done-text: #10b981;
+  --color-badge-done-stroke: #10b98133;
+  --color-badge-done-fill: #10b9811a;
+
+  --color-badge-denied-text: #dc2626;
+  --color-badge-denied-stroke: #dc262633;
+  --color-badge-denied-fill: #dc26261a;
+
+  --color-badge-new-text: #64748b;
+  --color-badge-new-stroke: #c8d5e1;
+  --color-badge-new-fill: #f1f5f9;
 }
 
 /* =========================
@@ -25,10 +66,15 @@
   --app-background: #f8f9ff;
   --app-sidebar: #ffffff;
 
+  --app-tablencard: #ffffff;
+
   --app-text: #0b1c30;
+  --app-text-title: #434652;
   --app-text-secondary: #434652;
 
   --app-selected: #e5eeff;
+
+  --app-button: #eff4ff;
 
   --border: #e5e4e7;
 
@@ -54,10 +100,15 @@
   --app-background: #0f172a;
   --app-sidebar: #1e293b;
 
+  --app-tablencard: #1e293b;
+
   --app-text: #bcc7de;
-  --app-text-secondary: #a1bbff;
+  --app-text-title: #003178;
+  --app-text-secondary: #bcc7de;
 
   --app-selected: #00317833;
+
+  --button: #003178;
 }
 
 /* =========================
