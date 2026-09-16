@@ -33,14 +33,16 @@ export default function Pagination({ meta, onPageChange }: PaginationProps) {
         w-full
         items-center
         justify-between
+        border-t
         border-slate-200
-        bg-white
+        dark:border-slate-600
+        bg-table-card
         px-6
-        py-1
+        py-4
       "
     >
       {/* Text kiri */}
-      <p className="text-sm text-slate-600">
+      <p className="text-xs text-text-secondary">
         Showing {meta.from ?? 0} to {meta.to ?? 0} of {meta.total} entries
       </p>
 
