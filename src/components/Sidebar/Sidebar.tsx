@@ -1,5 +1,7 @@
 import { Menu, Sun, Moon } from "lucide-react";
+
 import SwitchToggle from "../ui/SwitchToggle";
+
 import DashboardTab from "./DashboardTab";
 import MasterDataTab from "./MasterDataTab";
 import InventarisAsetTab from "./InventarisAsetTab";
@@ -15,26 +17,34 @@ interface SidebarProps {
   toggleDarkMode?: () => void;
 }
 
-export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
+export default function Sidebar({ isDarkMode = false, toggleDarkMode }: SidebarProps) {
   const handleLogout = () => {
     // Logika logout kamu
     console.log("User logged out");
   };
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
-      {/* 1. Header Sidebar */}
-      <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-slate-800">
-        <button className="text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200">
+    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-sidebar transition-colors dark:border-slate-800">
+      {/* Header Sidebar */}
+      <div className="flex items-center gap-3 border-b border-gray-200 p-4 dark:border-slate-800">
+        {/* Tombol Menu */}
+        <button
+          type="button"
+          className="text-text-secondary transition-colors hover:text-text-title"
+          aria-label="Menu"
+        >
           <Menu className="h-5 w-5" />
         </button>
+
+        {/* Logo / Nama Aplikasi */}
         <div>
-          <h1 className="text-sm font-bold text-blue-950 dark:text-blue-300">Simple-Plan</h1>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400">Rumah Sakit Citra Husada</p>
+          <h1 className="text-sm font-bold text-text-title">Simple-Plan</h1>
+
+          <p className="text-[11px] text-text-secondary">Rumah Sakit Citra Husada</p>
         </div>
       </div>
 
-      {/* 2. List Menu / Navigasi (Tinggal panggil komponennya) */}
+      {/* List Menu / Navigasi */}
       <nav className="flex-1 space-y-1 overflow-y-auto py-3">
         <DashboardTab />
         <MasterDataTab />
@@ -44,28 +54,33 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         <CadanganDataTab />
         <LaporanTab />
         <NotifikasiTab />
+
         <LogoutTab onLogout={handleLogout} />
       </nav>
 
-      {/* 3. Footer Sidebar (Mode Switch & Profil) */}
-      <div className="border-t border-gray-100 dark:border-slate-800 p-4 space-y-4">
+      {/* Footer Sidebar */}
+      <div className="space-y-4 border-t border-gray-200 p-4 dark:border-slate-800">
         {/* Toggle Mode */}
-        <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-slate-400">
+        <div className="flex items-center justify-between text-xs font-medium text-text-secondary">
           <div className="flex items-center gap-2">
             {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+
             <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
           </div>
+
           <SwitchToggle checked={isDarkMode} onChange={toggleDarkMode} />
         </div>
 
         {/* User Card */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
             🏥
           </div>
+
           <div className="leading-tight">
-            <p className="text-sm font-bold text-gray-800 dark:text-slate-200">Super Admin</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">Administrator</p>
+            <p className="text-sm font-bold text-text-title">Super Admin</p>
+
+            <p className="text-xs text-text-secondary">Administrator</p>
           </div>
         </div>
       </div>

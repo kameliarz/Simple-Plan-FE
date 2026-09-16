@@ -74,8 +74,7 @@ function Card({ children, className, icon, title, ...props }: TableCardProps) {
       <div
         className="
         rounded-b-lg
-        bg-white
-        dark:bg-slate-950
+        bg-table-card
         "
       >
         {children}
@@ -90,10 +89,9 @@ function Thead({ children, className, ...props }: HTMLAttributes<HTMLTableSectio
       className={cn(
         `
         border-b
+        bg-table-head
         border-slate-200
-        bg-blue-50
         dark:border-slate-800
-        dark:bg-slate-900
         `,
         className,
       )}
@@ -111,9 +109,8 @@ function Tbody({ children, className, ...props }: HTMLAttributes<HTMLTableSectio
         `
         divide-y
         divide-slate-200
-        bg-white
-        dark:divide-slate-800
-        dark:bg-slate-950
+        dark:divide-slate-600
+        bg-table-card
         `,
         className,
       )}
@@ -134,8 +131,7 @@ function Td({ children, className, ...props }: TdHTMLAttributes<HTMLTableCellEle
         py-3
         align-middle
         text-sm
-        text-slate-600
-        dark:text-slate-400
+        text-text-secondary
         `,
         className,
       )}
@@ -159,8 +155,7 @@ function Th({ children, className, ...props }: ThHTMLAttributes<HTMLTableCellEle
         font-semibold
         uppercase
         tracking-wide
-        text-slate-600
-        dark:text-slate-300
+        text-text-secondary
         `,
         className,
       )}

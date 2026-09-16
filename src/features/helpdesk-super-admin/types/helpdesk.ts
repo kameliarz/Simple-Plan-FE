@@ -1,5 +1,5 @@
 export type TicketStatus = "Baru" | "Terverifikasi" | "Diproses" | "Selesai" | "Ditolak";
-export type TicketCategory = "TIK" | "Sarpras" | "Ketidakstabilan System" | string;
+export type TicketCategory = "TIK" | "Sarpras" | string;
 
 export interface TicketLog {
   id: string;

@@ -2,13 +2,16 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-poppins: "Poppins", sans-serif;
 
   --color-background: var(--app-background);
   --color-sidebar: var(--app-sidebar);
 
-  --color-tablencard: var(--app-tablencard);
+  --color-table-card: var(--app-table-card);
+  --color-table-head: var(--app-table-head);
 
   --color-text: var(--app-text);
   --color-text-title: var(--app-text-title);
@@ -66,7 +69,8 @@
   --app-background: #f8f9ff;
   --app-sidebar: #ffffff;
 
-  --app-tablencard: #ffffff;
+  --app-table-card: #ffffff;
+  --app-table-head: #eff4ff;
 
   --app-text: #0b1c30;
   --app-text-title: #434652;
@@ -100,7 +104,8 @@
   --app-background: #0f172a;
   --app-sidebar: #1e293b;
 
-  --app-tablencard: #1e293b;
+  --app-table-card: #1e293b;
+  --app-table-head: #182b47;
 
   --app-text: #bcc7de;
   --app-text-title: #003178;
@@ -108,7 +113,7 @@
 
   --app-selected: #00317833;
 
-  --button: #003178;
+  --app-button: #003178;
 }
 
 /* =========================
