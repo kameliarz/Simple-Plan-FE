@@ -24,15 +24,15 @@ export default function Dropdown({
       <button
         className="
           flex
-          h-12
+          h-10
           w-full
           items-center
           justify-between
           rounded-md
-          bg-blue-50
+          bg-button
           px-4
           text-sm
-          text-slate-600
+          text-text-secondary
           transition
         "
         onClick={() => setOpen(!open)}
@@ -56,7 +56,8 @@ export default function Dropdown({
             rounded-lg
             border
             border-slate-200
-            bg-blue-50
+            dark:border-slate-600
+            bg-button
             "
         >
           {options.map((option, index) => (
@@ -71,12 +72,14 @@ export default function Dropdown({
                 items-center
                 border-b
                 border-slate-200
+                dark:border-slate-600
                 px-4
                 text-left
                 text-sm
-                text-slate-500
+                text-text-secondary
                 transition
                 hover:bg-blue-100
+                dark:hover:bg-blue-800
                 `,
                 index === options.length - 1 && "border-b-0",
                 value === option && "text-slate-700",
