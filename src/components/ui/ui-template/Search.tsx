@@ -12,16 +12,16 @@ export default function Search({ onChange, placeholder = "Cari data...", value }
       <input
         className="
           block
-          h-12
+          h-10
           w-full
           rounded-lg
           border
-          border-slate-300
-          bg-white
+          border-cborder
+          bg-table-card
           px-4
           pr-14
           text-sm
-          text-slate-700
+          text-text-secondary
           outline-none
           transition
           placeholder:text-slate-600

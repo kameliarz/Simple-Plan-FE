@@ -21,7 +21,7 @@ export default function DateInput({ value, onChange }: DateInputProps) {
           pl-4
         "
       >
-        <IconCalendar size={17} strokeWidth={1.8} className="text-slate-600" />
+        <IconCalendar size={17} strokeWidth={1.8} className="text-text-secondary" />
       </div>
 
       <input
@@ -34,11 +34,11 @@ export default function DateInput({ value, onChange }: DateInputProps) {
             cursor-pointer
             rounded-md
             border-0
-            bg-blue-50
+            bg-button
             pl-11
             pr-3
             text-sm
-            text-slate-600
+            text-text-secondary
             outline-none
             focus:ring-0
 

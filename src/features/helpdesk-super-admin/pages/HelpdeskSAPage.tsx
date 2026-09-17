@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { IconFilter } from "@tabler/icons-react";
-import { IconFolder } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+
+import { IconFilter, IconFolder } from "@tabler/icons-react";
+
 import { useNavigate } from "react-router-dom";
 
 import Table from "@/components/ui/ui-template/Table";
@@ -8,62 +9,80 @@ import Pagination from "@/components/ui/ui-template/Pagination";
 import Search from "@/components/ui/ui-template/Search";
 import Dropdown from "@/components/ui/ui-template/Dropdown";
 import DateInput from "@/components/ui/ui-template/DateInput";
+
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
 
-import type { ApiMeta } from "@/types/api";
-
-import { MOCK_TICKETS } from "../data/mockTickets";
+import { getTickets } from "../services/ticketApi";
+import type { ApiTicket, ApiTicketStatus, TicketCollectionResponse } from "../types/ticket";
 
 const ITEMS_PER_PAGE = 3;
 
-export default function HelpdeskSAPage() {
-  // Menyimpan halaman yang sedang aktif
-  const [currentPage, setCurrentPage] = useState(1);
+// Status dari backend menggunakan lowercase,
+// sedangkan TicketStatusBadge saat ini menggunakan format UI.
+const statusLabelMap: Record<ApiTicketStatus, string> = {
+  baru: "Baru",
+  terverifikasi: "Terverifikasi",
+  diproses: "Diproses",
+  selesai: "Selesai",
+  ditolak: "Ditolak",
+};
 
-  // Menyimpan nilai filter
+export default function HelpdeskSAPage() {
+  const navigate = useNavigate();
+
+  // Data tiket yang diterima dari backend
+  const [tickets, setTickets] = useState<ApiTicket[]>([]);
+
+  // Pagination dari backend
+  const [meta, setMeta] = useState<TicketCollectionResponse["meta"] | null>(null);
+
+  // Filter
+  const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
 
-  // Filter data berdasarkan search, status, dan tanggal
-  const filteredTickets = useMemo(() => {
-    return MOCK_TICKETS.filter((ticket) => {
-      const matchesSearch =
-        search.trim() === "" ||
-        ticket.code.toLowerCase().includes(search.toLowerCase()) ||
-        ticket.reporter.name.toLowerCase().includes(search.toLowerCase()) ||
-        ticket.reporter.unit.toLowerCase().includes(search.toLowerCase());
+  // State loading dan error
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-      const matchesStatus = status === "" || ticket.status === status;
+  // Ambil data tiket dari backend setiap kali
+  // halaman atau filter berubah.
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const matchesDate = date === "" || ticket.createdAt === date;
+        const response = await getTickets({
+          page: currentPage,
+          per_page: ITEMS_PER_PAGE,
 
-      return matchesSearch && matchesStatus && matchesDate;
-    });
-  }, [search, status, date]);
+          // Halaman ini khusus Helpdesk TIK
+          service: "tik",
 
-  // Menghitung total halaman berdasarkan hasil filter
-  const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
+          // Filter dikirim ke backend
+          status: status ? (status as ApiTicketStatus) : undefined,
 
-  const navigate = useNavigate();
+          search: search.trim() || undefined,
 
-  // Mengambil data sesuai halaman aktif
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+          // Kalau DateInput memilih satu tanggal,
+          // kita kirim sebagai tanggal awal dan akhir.
+          date_from: date || undefined,
+          date_to: date || undefined,
+        });
 
-  const endIndex = startIndex + ITEMS_PER_PAGE;
+        setTickets(response.data);
+        setMeta(response.meta);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Gagal mengambil data tiket.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const currentTickets = filteredTickets.slice(startIndex, endIndex);
-
-  // Metadata pagination
-  const meta: ApiMeta = {
-    current_page: currentPage,
-    from: filteredTickets.length === 0 ? null : startIndex + 1,
-    last_page: totalPages,
-    path: "/helpdesk/tik",
-    per_page: ITEMS_PER_PAGE,
-    to: filteredTickets.length === 0 ? null : Math.min(endIndex, filteredTickets.length),
-    total: filteredTickets.length,
-  };
+    fetchTickets();
+  }, [currentPage, search, status, date]);
 
   // Ketika search berubah, kembali ke halaman pertama
   const handleSearchChange = (value: string) => {
@@ -83,7 +102,7 @@ export default function HelpdeskSAPage() {
     setCurrentPage(1);
   };
 
-  // Ketika halaman pagination berubah
+  // Ketika pagination berubah
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -103,10 +122,24 @@ export default function HelpdeskSAPage() {
 
             {/* Status */}
             <Dropdown
-              value={status}
-              options={["Semua status", "Baru", "Diproses", "Selesai", "Ditolak"]}
+              value={status ? statusLabelMap[status as ApiTicketStatus] : ""}
+              options={["Semua status", "Baru", "Terverifikasi", "Diproses", "Selesai", "Ditolak"]}
               onChange={(value) => {
-                handleStatusChange(value === "Semua status" ? "" : value);
+                if (value === "Semua status") {
+                  handleStatusChange("");
+                  return;
+                }
+
+                // Ubah label UI menjadi status yang dimengerti backend
+                const statusValue: Record<string, ApiTicketStatus> = {
+                  Baru: "baru",
+                  Terverifikasi: "terverifikasi",
+                  Diproses: "diproses",
+                  Selesai: "selesai",
+                  Ditolak: "ditolak",
+                };
+
+                handleStatusChange(statusValue[value]);
               }}
               placeholder="Semua status"
             />
@@ -135,29 +168,51 @@ export default function HelpdeskSAPage() {
             </Table.Thead>
 
             <Table.Tbody>
-              {currentTickets.length > 0 ? (
-                currentTickets.map((ticket) => (
+              {/* Loading */}
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-sm text-text-secondary">
+                    Memuat data tiket...
+                  </td>
+                </tr>
+              ) : /* Error */
+              error ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-sm text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              ) : /* Data tersedia */
+              tickets.length > 0 ? (
+                tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
                     onClick={() => navigate(`/helpdesk/tik/${ticket.id}`)}
                     className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
                   >
                     <Table.Td>
-                      <span className="font-medium text-text-secondary">{ticket.code}</span>
+                      <span className="font-medium text-text-secondary">
+                        {ticket.ticket_number}
+                      </span>
                     </Table.Td>
 
                     <Table.Td>{ticket.reporter.name}</Table.Td>
 
-                    <Table.Td>{ticket.reporter.unit}</Table.Td>
+                    <Table.Td>{ticket.unit.name}</Table.Td>
 
-                    <Table.Td>{ticket.createdAt}</Table.Td>
+                    <Table.Td>{ticket.created_at}</Table.Td>
 
                     <Table.Td>
-                      <TicketStatusBadge status={ticket.status} />
+                      <TicketStatusBadge
+                        status={
+                          statusLabelMap[ticket.status] as import("../types/helpdesk").TicketStatus
+                        }
+                      />
                     </Table.Td>
                   </tr>
                 ))
               ) : (
+                /* Tidak ada data */
                 <Table.Empty
                   colSpan={5}
                   message="Tiket Tidak Ditemukan"
@@ -192,8 +247,8 @@ export default function HelpdeskSAPage() {
             </Table.Tbody>
           </Table>
 
-          {/* Pagination */}
-          <Pagination meta={meta} onPageChange={handlePageChange} />
+          {/* Pagination menggunakan meta dari backend */}
+          {meta && <Pagination meta={meta} onPageChange={handlePageChange} />}
         </div>
       </div>
     </div>
