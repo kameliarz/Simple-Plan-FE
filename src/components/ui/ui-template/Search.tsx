@@ -12,7 +12,7 @@ export default function Search({ onChange, placeholder = "Cari data...", value }
       <input
         className="
           block
-          h-10
+          h-11
           w-full
           rounded-lg
           border

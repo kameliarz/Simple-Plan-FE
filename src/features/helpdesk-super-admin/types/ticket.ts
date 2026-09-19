@@ -1,6 +1,8 @@
 import type { ApiMeta } from "@/types/api";
 
-export type ApiTicketStatus = "baru" | "terverifikasi" | "diproses" | "selesai" | "ditolak";
+export type ApiTicketStatus =
+  "baru" | "terverifikasi" | "diproses" | "selesai" | "ditolak" | "diklasifikasi" | "eskalasi";
+export type ApiTicketPriority = "low" | "medium" | "high" | "critical";
 
 export interface ApiTicket {
   id: number;
@@ -10,7 +12,7 @@ export interface ApiTicket {
   description: string;
   status: ApiTicketStatus;
   rejection_reason: string | null;
-  priority: "critical" | "high" | "medium" | "low" | null;
+  priority: ApiTicketPriority | null;
 
   reporter: {
     id: number;

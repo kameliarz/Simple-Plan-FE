@@ -1,6 +1,8 @@
 import type { TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
+import { IconAlertCircle } from "@tabler/icons-react";
+
 export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
   label?: string;
@@ -21,14 +23,14 @@ export default function TextArea({
     <div className="flex flex-col gap-2">
       {label ? (
         <div className="flex items-center justify-between">
-          <label className="text-base font-semibold text-slate-700" htmlFor={inputId}>
+          <label className="text-base font-semibold text-text-secondary" htmlFor={inputId}>
             {label}
             {required ? <span className="ml-1 text-red-500">*</span> : null}
           </label>
 
-          {required ? (
+          {/* {required ? (
             <span className="text-xs font-normal text-[#91A4C3]">Wajib diisi</span>
-          ) : null}
+          ) : null} */}
         </div>
       ) : null}
       <textarea
@@ -41,7 +43,13 @@ export default function TextArea({
         rows={rows}
         {...props}
       />
-      {error ? <small className="text-xs text-danger-500">{error}</small> : null}
+
+      {error ? (
+        <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+          <IconAlertCircle size={14} strokeWidth={2} />
+          <span>{error}</span>
+        </small>
+      ) : null}
     </div>
   );
 }

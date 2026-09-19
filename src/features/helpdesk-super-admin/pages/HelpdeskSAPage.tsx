@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { IconFilter, IconFolder } from "@tabler/icons-react";
-
 import { useNavigate } from "react-router-dom";
 
 import Table from "@/components/ui/ui-template/Table";
@@ -11,43 +10,95 @@ import Dropdown from "@/components/ui/ui-template/Dropdown";
 import DateInput from "@/components/ui/ui-template/DateInput";
 
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
+import { TicketPriorityBadge } from "../components/TicketPriorityBadge";
 
 import { getTickets } from "../services/ticketApi";
-import type { ApiTicket, ApiTicketStatus, TicketCollectionResponse } from "../types/ticket";
 
-const ITEMS_PER_PAGE = 3;
+import type { TicketPriority, TicketStatus } from "../types/helpdesk";
+import type {
+  ApiTicket,
+  ApiTicketStatus,
+  ApiTicketPriority,
+  TicketCollectionResponse,
+} from "../types/ticket";
 
-// Status dari backend menggunakan lowercase,
-// sedangkan TicketStatusBadge saat ini menggunakan format UI.
-const statusLabelMap: Record<ApiTicketStatus, string> = {
+const ITEMS_PER_PAGE = 15;
+
+/* =========================
+   LABEL STATUS
+========================= */
+
+const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
   baru: "Baru",
   terverifikasi: "Terverifikasi",
   diproses: "Diproses",
   selesai: "Selesai",
   ditolak: "Ditolak",
+  diklasifikasi: "Diklasifikasi",
+  eskalasi: "Eskalasi",
+};
+
+/* =========================
+   LABEL PRIORITY
+========================= */
+
+const priorityLabelMap: Record<ApiTicketPriority, TicketPriority> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+/* =========================
+   FORMAT DATE
+========================= */
+
+const formatDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(".", ":");
 };
 
 export default function HelpdeskSAPage() {
   const navigate = useNavigate();
 
-  // Data tiket yang diterima dari backend
+  /* =========================
+     STATE
+  ========================= */
+
   const [tickets, setTickets] = useState<ApiTicket[]>([]);
 
-  // Pagination dari backend
   const [meta, setMeta] = useState<TicketCollectionResponse["meta"] | null>(null);
 
-  // Filter
   const [currentPage, setCurrentPage] = useState(1);
+
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+
+  const [status, setStatus] = useState<ApiTicketStatus | "">("");
+
   const [date, setDate] = useState("");
 
-  // State loading dan error
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
-  // Ambil data tiket dari backend setiap kali
-  // halaman atau filter berubah.
+  /* =========================
+     FETCH TICKETS
+  ========================= */
+
   useEffect(() => {
     const fetchTickets = async () => {
       try {
@@ -57,20 +108,32 @@ export default function HelpdeskSAPage() {
         const response = await getTickets({
           page: currentPage,
           per_page: ITEMS_PER_PAGE,
-
-          // Halaman ini khusus Helpdesk TIK
           service: "tik",
 
-          // Filter dikirim ke backend
-          status: status ? (status as ApiTicketStatus) : undefined,
+          status: status || undefined,
 
           search: search.trim() || undefined,
 
-          // Kalau DateInput memilih satu tanggal,
-          // kita kirim sebagai tanggal awal dan akhir.
           date_from: date || undefined,
           date_to: date || undefined,
         });
+
+        /*
+         * DEBUG SEMENTARA
+         *
+         * Ini penting untuk memastikan data priority
+         * benar-benar masuk dari API.
+         */
+        console.log("GET /tickets response:", response);
+
+        console.log(
+          "Ticket priorities:",
+          response.data.map((ticket) => ({
+            id: ticket.id,
+            ticket_number: ticket.ticket_number,
+            priority: ticket.priority,
+          })),
+        );
 
         setTickets(response.data);
         setMeta(response.meta);
@@ -84,36 +147,53 @@ export default function HelpdeskSAPage() {
     fetchTickets();
   }, [currentPage, search, status, date]);
 
-  // Ketika search berubah, kembali ke halaman pertama
+  /* =========================
+     FILTER HANDLERS
+  ========================= */
+
   const handleSearchChange = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
   };
 
-  // Ketika status berubah, kembali ke halaman pertama
   const handleStatusChange = (value: string) => {
-    setStatus(value);
+    const statusValueMap: Record<string, ApiTicketStatus | ""> = {
+      "Semua status": "",
+      Baru: "baru",
+      Terverifikasi: "terverifikasi",
+      Diproses: "diproses",
+      Selesai: "selesai",
+      Ditolak: "ditolak",
+    };
+
+    setStatus(statusValueMap[value] ?? "");
     setCurrentPage(1);
   };
 
-  // Ketika tanggal berubah, kembali ke halaman pertama
   const handleDateChange = (value: string) => {
     setDate(value);
     setCurrentPage(1);
   };
 
-  // Ketika pagination berubah
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
+  /* =========================
+     RENDER
+  ========================= */
+
   return (
     <div className="min-h-full bg-background p-4 text-text lg:p-5">
       <div className="mx-auto max-w-350">
-        {/* Filter Card */}
+        {/* =========================
+            FILTER CARD
+        ========================= */}
+
         <div className="mb-4 overflow-visible rounded-lg border border-slate-200 bg-table-card dark:border-slate-700">
           <div className="flex flex-wrap items-center gap-3 p-4">
             {/* Filter label */}
+
             <div className="flex items-center gap-2 border-r border-slate-200 pr-4 dark:border-slate-700">
               <IconFilter size={16} strokeWidth={2} className="text-text-secondary" />
 
@@ -121,40 +201,30 @@ export default function HelpdeskSAPage() {
             </div>
 
             {/* Status */}
+
             <Dropdown
-              value={status ? statusLabelMap[status as ApiTicketStatus] : ""}
+              value={status ? statusLabelMap[status] : ""}
               options={["Semua status", "Baru", "Terverifikasi", "Diproses", "Selesai", "Ditolak"]}
-              onChange={(value) => {
-                if (value === "Semua status") {
-                  handleStatusChange("");
-                  return;
-                }
-
-                // Ubah label UI menjadi status yang dimengerti backend
-                const statusValue: Record<string, ApiTicketStatus> = {
-                  Baru: "baru",
-                  Terverifikasi: "terverifikasi",
-                  Diproses: "diproses",
-                  Selesai: "selesai",
-                  Ditolak: "ditolak",
-                };
-
-                handleStatusChange(statusValue[value]);
-              }}
+              onChange={handleStatusChange}
               placeholder="Semua status"
             />
 
             {/* Date */}
+
             <DateInput value={date} onChange={handleDateChange} />
 
             {/* Search */}
+
             <div className="ml-auto w-full lg:w-64">
               <Search value={search} onChange={handleSearchChange} placeholder="Cari data..." />
             </div>
           </div>
         </div>
 
-        {/* Table Card */}
+        {/* =========================
+            TABLE CARD
+        ========================= */}
+
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-table-card dark:border-slate-700">
           <Table>
             <Table.Thead>
@@ -164,25 +234,33 @@ export default function HelpdeskSAPage() {
                 <Table.Th>Unit</Table.Th>
                 <Table.Th>Tanggal Masuk</Table.Th>
                 <Table.Th>Status</Table.Th>
+                <Table.Th>Prioritas</Table.Th>
               </tr>
             </Table.Thead>
 
             <Table.Tbody>
-              {/* Loading */}
+              {/* =========================
+                  LOADING
+              ========================= */}
+
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-sm text-text-secondary">
+                  <td colSpan={6} className="py-10 text-center text-sm text-text-secondary">
                     Memuat data tiket...
                   </td>
                 </tr>
-              ) : /* Error */
+              ) : /* =========================
+                   ERROR
+               ========================= */
               error ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-sm text-red-500">
+                  <td colSpan={6} className="py-10 text-center text-sm text-red-500">
                     {error}
                   </td>
                 </tr>
-              ) : /* Data tersedia */
+              ) : /* =========================
+                   DATA
+               ========================= */
               tickets.length > 0 ? (
                 tickets.map((ticket) => (
                   <tr
@@ -190,31 +268,48 @@ export default function HelpdeskSAPage() {
                     onClick={() => navigate(`/helpdesk/tik/${ticket.id}`)}
                     className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
                   >
+                    {/* Nomor tiket */}
+
                     <Table.Td>
                       <span className="font-medium text-text-secondary">
-                        {ticket.ticket_number}
+                        #{ticket.ticket_number}
                       </span>
                     </Table.Td>
 
+                    {/* Pelapor */}
+
                     <Table.Td>{ticket.reporter.name}</Table.Td>
+
+                    {/* Unit */}
 
                     <Table.Td>{ticket.unit.name}</Table.Td>
 
-                    <Table.Td>{ticket.created_at}</Table.Td>
+                    {/* Tanggal masuk */}
+
+                    <Table.Td>{formatDateTime(ticket.created_at)}</Table.Td>
+
+                    {/* Status */}
 
                     <Table.Td>
-                      <TicketStatusBadge
-                        status={
-                          statusLabelMap[ticket.status] as import("../types/helpdesk").TicketStatus
-                        }
+                      <TicketStatusBadge status={statusLabelMap[ticket.status]} />
+                    </Table.Td>
+
+                    {/* Prioritas */}
+
+                    <Table.Td>
+                      <TicketPriorityBadge
+                        priority={ticket.priority ? priorityLabelMap[ticket.priority] : null}
                       />
                     </Table.Td>
                   </tr>
                 ))
               ) : (
-                /* Tidak ada data */
+                /* =========================
+                   EMPTY
+               ========================= */
+
                 <Table.Empty
-                  colSpan={5}
+                  colSpan={6}
                   message="Tiket Tidak Ditemukan"
                   description={
                     search
@@ -247,7 +342,8 @@ export default function HelpdeskSAPage() {
             </Table.Tbody>
           </Table>
 
-          {/* Pagination menggunakan meta dari backend */}
+          {/* Pagination */}
+
           {meta && <Pagination meta={meta} onPageChange={handlePageChange} />}
         </div>
       </div>

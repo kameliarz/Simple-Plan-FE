@@ -1,4 +1,6 @@
-export type TicketStatus = "Baru" | "Terverifikasi" | "Diproses" | "Selesai" | "Ditolak";
+export type TicketStatus =
+  "Baru" | "Terverifikasi" | "Diproses" | "Selesai" | "Ditolak" | "Diklasifikasi" | "Eskalasi";
+export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
 export type TicketCategory = "TIK" | "Sarpras" | string;
 
 export interface TicketLog {

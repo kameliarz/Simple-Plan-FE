@@ -1,4 +1,5 @@
 import { Menu, Sun, Moon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import SwitchToggle from "../ui/SwitchToggle";
 
@@ -12,15 +13,19 @@ import LaporanTab from "./LaporanTab";
 import NotifikasiTab from "./NotifikasiTab";
 import LogoutTab from "./LogoutTab";
 
+import { clearAuth } from "@/features/auth-login/services/authStorage";
+
 interface SidebarProps {
   isDarkMode?: boolean;
   toggleDarkMode?: () => void;
 }
 
 export default function Sidebar({ isDarkMode = false, toggleDarkMode }: SidebarProps) {
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    // Logika logout kamu
-    console.log("User logged out");
+    clearAuth();
+    navigate("/login", { replace: true });
   };
 
   return (
