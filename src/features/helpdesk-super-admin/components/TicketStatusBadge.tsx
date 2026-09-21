@@ -11,6 +11,8 @@ const statusStyles: Record<TicketStatus, string> = {
   Diproses: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
   Selesai: "bg-badge-done-fill text-badge-done-text border-badge-done-stroke",
   Ditolak: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
+  Diklasifikasi: "bg-badge-verified-fill text-badge-verified-text border-badge-verified-stroke",
+  Eskalasi: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
 };
 
 export const TicketStatusBadge: React.FC<Props> = ({ status }) => (

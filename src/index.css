@@ -23,6 +23,8 @@
 
   --color-primary-50: #e6f0ff;
   --color-primary-100: #b8d4ff;
+  --color-primary-200: #8ab9ff;
+  --color-primary-300: #5c9dff;
   --color-primary-500: #0041a3;
   --color-primary-600: #003178; /*main primary*/
   --color-primary-700: #001d47;
@@ -61,6 +63,8 @@
   --color-badge-new-fill: #64748b1a;
 
   --color-cborder: #d1d5db;
+
+  --color-soft-border: var(--app-soft-border);
 }
 
 /* =========================
@@ -84,6 +88,8 @@
 
   --app-badge-new-text: #475569;
   --app-badge-process-text: #0d47a1;
+
+  --app-soft-border: #e2e8f0;
 
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --heading: system-ui, "Segoe UI", Roboto, sans-serif;
@@ -112,7 +118,7 @@
   --app-table-head: #182b47;
 
   --app-text: #bcc7de;
-  --app-text-title: #003178;
+  --app-text-title: #d2e0f5;
   --app-text-secondary: #bcc7de;
 
   --app-selected: #00317833;
@@ -121,6 +127,8 @@
 
   --app-badge-new-text: #bcc7de;
   --app-badge-process-text: #1a61cf;
+
+  --app-soft-border: #314158;
 }
 
 /* =========================

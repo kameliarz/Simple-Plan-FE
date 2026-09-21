@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { IconAlertCircle } from "@tabler/icons-react";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
@@ -23,14 +24,14 @@ export default function Input({
     <div className="flex flex-col gap-2">
       {label ? (
         <div className="flex items-center justify-between">
-          <label className="text-base font-semibold text-slate-700" htmlFor={inputId}>
+          <label className="text-base font-semibold text-text-secondary" htmlFor={inputId}>
             {label}
             {required ? <span className="ml-1 text-red-500">*</span> : null}
           </label>
 
-          {required ? (
+          {/* {required ? (
             <span className="text-xs font-normal text-[#91A4C3]">Wajib diisi</span>
-          ) : null}
+          ) : null} */}
         </div>
       ) : null}
 
@@ -41,9 +42,9 @@ export default function Input({
 
         <input
           className={cn(
-            "h-11 w-full rounded-md border border-[#DCE4EF] bg-white px-4 text-sm text-slate-700 transition",
+            "h-11 w-full rounded-md border border-cborder bg-table-card px-4 text-sm dark:text-white transition",
             "placeholder:text-[#91A4C3]",
-            "focus:border-bluersch focus:outline-none focus:ring-2 focus:ring-bluersch/10",
+            "focus:border-primary-600 dark:focus:border-white  focus:outline-none focus:ring-2  focus:ring-primary-600/10 dark:focus:ring-white/10",
             icon ? "pl-11" : "",
             error && "border-danger-500 focus:border-danger-500 focus:ring-danger-500/10",
             className,
@@ -55,7 +56,12 @@ export default function Input({
         />
       </div>
 
-      {error ? <small className="text-xs font-normal text-danger-500">{error}</small> : null}
+      {error ? (
+        <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+          <IconAlertCircle size={14} strokeWidth={2} />
+          <span>{error}</span>
+        </small>
+      ) : null}
     </div>
   );
 }

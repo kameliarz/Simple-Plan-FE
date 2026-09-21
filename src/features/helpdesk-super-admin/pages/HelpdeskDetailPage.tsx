@@ -1,56 +1,274 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ArrowLeft, Calendar, Check, Clock, Info, Tag, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Check,
+  Clock,
+  FileText,
+  Image as ImageIcon,
+  Info,
+  Monitor,
+  X,
+} from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
+import type { ApiTicket } from "../types/ticket";
 import type { TicketItem } from "../types/helpdesk";
 
-import { MOCK_TICKETS } from "../data/mockTickets";
+import { getTicket } from "../services/ticketApi";
 
 import { RejectTicketModal } from "../components/RejectTicketModal";
+import { TicketStatusBadge } from "../components/TicketStatusBadge";
+import { TicketHistoryItem } from "../components/TicketHistoryItem";
 
 import { Toast } from "../../../components/ui/Toast";
+import Dropdown from "../../../components/ui/ui-template/Dropdown";
 
-import Badge from "../../../components/ui/Badge";
+// ==========================================
+// STATUS
+// ==========================================
 
-import AttachmentCard from "../../../components/ui/AttachmentCard";
+const mapStatus = (status: ApiTicket["status"]): TicketItem["status"] => {
+  const statusMap: Record<ApiTicket["status"], TicketItem["status"]> = {
+    baru: "Baru",
+    terverifikasi: "Terverifikasi",
+    diproses: "Diproses",
+    selesai: "Selesai",
+    ditolak: "Ditolak",
+    diklasifikasi: "Diklasifikasi",
+    eskalasi: "Eskalasi",
+  };
 
-import Timeline, { type TimelineEntry } from "../../../components/ui/Timeline";
+  return statusMap[status];
+};
+
+// ==========================================
+// FORMAT TANGGAL
+// ==========================================
+
+const formatDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(".", ",");
+};
+
+const formatHistoryDate = (dateString: string): string => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  const formatted = new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+
+  return formatted.replace(",", " •");
+};
+
+// ==========================================
+// FORMAT FILE
+// ==========================================
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// ==========================================
+// MAPPING API → UI
+// ==========================================
+
+const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
+  return {
+    id: String(ticket.id),
+
+    code: ticket.ticket_number,
+
+    title: ticket.category ?? "-",
+
+    description: ticket.description,
+
+    category: ticket.service === "tik" ? "TIK" : "Sarpras",
+
+    status: mapStatus(ticket.status),
+
+    reporter: {
+      name: ticket.reporter.name,
+      unit: ticket.unit.name,
+    },
+
+    assignee: ticket.assigned_officer
+      ? {
+          name: ticket.assigned_officer.name,
+          role: "Petugas",
+        }
+      : undefined,
+
+    createdAt: ticket.created_at,
+
+    finishedAt: ticket.completed_at ?? undefined,
+
+    attachments: ticket.initial_evidence
+      ? [
+          {
+            id: ticket.initial_evidence.object_key,
+
+            name: ticket.initial_evidence.original_name,
+
+            size: formatFileSize(ticket.initial_evidence.size),
+
+            url: ticket.initial_evidence.object_key.startsWith("http")
+              ? ticket.initial_evidence.object_key
+              : `/storage/${ticket.initial_evidence.object_key}`,
+          },
+        ]
+      : [],
+
+    history: [
+      {
+        id: `created-${ticket.id}`,
+        action: "Tiket Dibuat",
+        timestamp: formatHistoryDate(ticket.created_at),
+        isCompleted: true,
+      },
+    ],
+  };
+};
+
+// ==========================================
+// OPTIONS KLASIFIKASI
+// ==========================================
+
+const kategoriMutuOptions = ["Hardware", "Software", "Jaringan", "Aplikasi", "Lainnya"];
+
+const tagsITOptions = ["Hardware", "Software", "Network", "SIMRS", "Aplikasi"];
+
+// ==========================================
+// COMPONENT
+// ==========================================
 
 export default function HelpdeskDetailPage() {
-  // Mengambil fungsi navigasi dari React Router
   const navigate = useNavigate();
 
-  // Mengambil ID tiket dari URL
-  // Contoh: /helpdesk/tik/1
   const { ticketId } = useParams<{
     ticketId: string;
   }>();
 
-  // Mencari tiket berdasarkan ID dari mock data
-  const ticket = MOCK_TICKETS.find((item) => String(item.id) === ticketId);
+  // ==========================================
+  // STATE
+  // ==========================================
 
-  // Menyimpan data tiket yang sedang ditampilkan
-  const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(ticket ?? null);
+  const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(null);
 
-  // State modal penolakan
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
-  // State toast
   const [showToast, setShowToast] = useState(false);
+
   const [toastMessage, setToastMessage] = useState("");
 
-  // Jika tiket tidak ditemukan
-  if (!currentTicket) {
+  const [isClassifying, setIsClassifying] = useState(false);
+
+  const [kategoriMutu, setKategoriMutu] = useState("");
+
+  const [tagsIT, setTagsIT] = useState("");
+
+  const [kategoriMutuError, setKategoriMutuError] = useState("");
+
+  const [tagsITError, setTagsITError] = useState("");
+
+  const classificationRef = useRef<HTMLDivElement | null>(null);
+
+  // ==========================================
+  // GET DETAIL TICKET
+  // ==========================================
+
+  useEffect(() => {
+    if (!ticketId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchTicketDetail = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await getTicket(ticketId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const mappedTicket = mapApiTicketToTicketItem(data);
+
+        setCurrentTicket(mappedTicket);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error("Gagal mengambil detail tiket:", error);
+
+        setCurrentTicket(null);
+
+        setError(error instanceof Error ? error.message : "Gagal mengambil detail tiket.");
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchTicketDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [ticketId]);
+
+  // ==========================================
+  // NO TICKET ID
+  // ==========================================
+
+  if (!ticketId) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
         <div className="text-center">
-          <h1 className="text-sm font-semibold text-text-title">Tiket Tidak Ditemukan</h1>
+          <h1 className="text-sm font-semibold text-text-title">ID Tiket Tidak Ditemukan</h1>
 
-          <p className="mt-1 text-xs text-text-secondary">
-            Data tiket yang kamu cari tidak tersedia.
-          </p>
+          <p className="mt-1 text-xs text-text-secondary">ID tiket tidak tersedia pada URL.</p>
 
           <button
             type="button"
@@ -62,7 +280,7 @@ export default function HelpdeskDetailPage() {
               bg-primary-600
               px-4
               py-2
-              text-xs
+              text-sm
               font-medium
               text-white
               transition
@@ -76,15 +294,74 @@ export default function HelpdeskDetailPage() {
     );
   }
 
-  // Menangani penolakan tiket
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-full items-center justify-center bg-background p-6">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+
+          <h1 className="text-sm font-semibold text-text-title">Memuat detail tiket...</h1>
+
+          <p className="mt-1 text-xs text-text-secondary">Mengambil data tiket dari server.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ERROR / DATA TIDAK DITEMUKAN
+  // ==========================================
+
+  if (!currentTicket) {
+    return (
+      <div className="flex min-h-full items-center justify-center bg-background p-6">
+        <div className="text-center">
+          <h1 className="text-sm font-semibold text-text-title">Tiket Tidak Ditemukan</h1>
+
+          <p className="mt-1 text-xs text-text-secondary">
+            {error ?? "Data tiket yang kamu cari tidak tersedia."}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/helpdesk/tik")}
+            className="
+              mt-4
+              cursor-pointer
+              rounded-md
+              bg-primary-600
+              px-4
+              py-2
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-primary-700
+            "
+          >
+            Kembali ke Helpdesk
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // REJECT
+  // ==========================================
+
   const handleConfirmReject = (reason: string) => {
     setIsRejectModalOpen(false);
 
     const updatedHistory = [
       {
-        id: `log-${Date.now()}`,
-        action: `Tiket ditolak: ${reason}`,
-        timestamp: "10 Okt 08:50",
+        id: `rejected-${Date.now()}`,
+        action: "Tiket Ditolak",
+        timestamp: formatHistoryDate(new Date().toISOString()),
         isCompleted: true,
       },
       ...(currentTicket.history || []),
@@ -100,343 +377,255 @@ export default function HelpdeskDetailPage() {
 
     setToastMessage("Tiket ditolak");
     setShowToast(true);
+
+    console.log("Alasan penolakan:", reason);
   };
 
-  // Menangani klasifikasi/verifikasi tiket
-  const handleVerify = () => {
+  // ==========================================
+  // OPEN CLASSIFICATION
+  // ==========================================
+
+  const handleOpenClassification = () => {
+    setIsClassifying(true);
+
+    setKategoriMutuError("");
+    setTagsITError("");
+
+    setTimeout(() => {
+      classificationRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+
+  // ==========================================
+  // CANCEL CLASSIFICATION
+  // ==========================================
+
+  const handleCancelClassification = () => {
+    setIsClassifying(false);
+
+    setKategoriMutu("");
+    setTagsIT("");
+
+    setKategoriMutuError("");
+    setTagsITError("");
+  };
+
+  // ==========================================
+  // SAVE CLASSIFICATION
+  // ==========================================
+
+  const handleSaveClassification = () => {
+    let hasError = false;
+
+    if (!kategoriMutu) {
+      setKategoriMutuError("Kategori mutu wajib dipilih.");
+
+      hasError = true;
+    } else {
+      setKategoriMutuError("");
+    }
+
+    if (!tagsIT) {
+      setTagsITError("Tags IT wajib dipilih.");
+
+      hasError = true;
+    } else {
+      setTagsITError("");
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    const updatedHistory = [
+      {
+        id: `verified-${Date.now()}`,
+        action: "Tiket Diklasifikasi",
+        timestamp: formatHistoryDate(new Date().toISOString()),
+        isCompleted: true,
+      },
+      ...(currentTicket.history || []),
+    ];
+
     const updatedTicket: TicketItem = {
       ...currentTicket,
-      status: "Terverifikasi",
+      status: "Diklasifikasi",
+      history: updatedHistory,
     };
 
     setCurrentTicket(updatedTicket);
 
+    setIsClassifying(false);
+
     setToastMessage("Tiket berhasil diklasifikasikan");
+
     setShowToast(true);
+
+    console.log("Kategori Mutu:", kategoriMutu);
+    console.log("Tags IT:", tagsIT);
   };
 
-  // Mengecek status tiket
+  // ==========================================
+  // STATUS
+  // ==========================================
+
   const isRejected = currentTicket.status === "Ditolak";
 
   const isVerified = currentTicket.status === "Terverifikasi";
 
-  // Mengubah history menjadi format Timeline
-  const timelineItems: TimelineEntry[] = (currentTicket.history || []).map((log, index) => ({
-    id: log.id,
-    timestamp: log.timestamp,
-    action: log.action,
-    isCompleted: log.isCompleted,
-    variant: index === 0 && isRejected ? "danger" : index === 0 ? "warning" : "default",
-  }));
+  // ==========================================
+  // UI
+  // ==========================================
 
   return (
     <div
       className="
         min-h-full
-        w-full
         bg-background
-        px-4
-        pb-8
-        pt-5
-        text-text
-        lg:px-8
-        lg:pt-7
+        p-4
+        pb-24
+        lg:p-5
+        lg:pb-28
       "
     >
       <div className="mx-auto max-w-350">
-        {/* =====================================================
-            TOAST
-            ===================================================== */}
-        <Toast
-          show={showToast}
-          message={toastMessage}
-          onClose={() => setShowToast(false)}
-          variant={isRejected ? "danger" : "success"}
-        />
+        {/* ====================================
+            HEADER TIKET
+        ==================================== */}
 
-        {/* =====================================================
-            HEADER DETAIL
-            ===================================================== */}
         <div
           className="
             mb-5
-            flex
-            min-h-16
-            flex-wrap
-            items-center
-            justify-between
-            gap-4
             rounded-lg
             border
             border-slate-200
-            bg-table-card
+            bg-white
             px-4
             py-3
-            shadow-sm
             dark:border-slate-700
+            dark:bg-table-card
           "
         >
-          {/* Kiri: tombol kembali + nomor tiket + status */}
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigate("/helpdesk/tik")}
               className="
-                flex
-                h-8
-                w-8
                 cursor-pointer
-                items-center
-                justify-center
                 rounded-md
-                text-slate-500
+                p-1.5
+                text-text-secondary
                 transition
                 hover:bg-slate-100
-                hover:text-slate-700
-                dark:hover:bg-slate-800
+                dark:hover:bg-slate-700
               "
-              title="Kembali ke Daftar Tiket"
+              title="Kembali"
             >
-              <ArrowLeft className="h-5 w-5" strokeWidth={1.8} />
+              <ArrowLeft size={19} />
             </button>
 
-            <div className="flex items-center gap-3">
-              <h1
-                className="
-                  text-base
-                  font-semibold
-                  text-text-title
-                "
-              >
-                Ticket #{currentTicket.code}
-              </h1>
+            <h1 className="text-base font-semibold text-text-title">
+              Ticket #{currentTicket.code}
+            </h1>
 
-              {isRejected ? (
-                <Badge variant="danger" dot size="sm">
-                  Ditolak
-                </Badge>
-              ) : isVerified ? (
-                <Badge variant="warning" dot size="sm">
-                  Terverifikasi
-                </Badge>
-              ) : (
-                <Badge variant="warning" dot size="sm">
-                  {currentTicket.status}
-                </Badge>
-              )}
-            </div>
+            <TicketStatusBadge status={currentTicket.status} />
           </div>
-
-          {/* Kanan: tombol aksi */}
-          {!isRejected && (
-            <div className="flex items-center gap-3">
-              {/* Tolak */}
-              <button
-                type="button"
-                onClick={() => setIsRejectModalOpen(true)}
-                className="
-                  flex
-                  h-9
-                  cursor-pointer
-                  items-center
-                  gap-2
-                  rounded-md
-                  border
-                  border-rose-200
-                  bg-white
-                  px-4
-                  text-xs
-                  font-medium
-                  text-rose-500
-                  transition
-                  hover:bg-rose-50
-                  dark:border-rose-800
-                  dark:bg-slate-900
-                  dark:text-rose-400
-                "
-              >
-                <X className="h-4 w-4" strokeWidth={1.8} />
-                Tolak
-              </button>
-
-              {/* Klasifikasikan */}
-              <button
-                type="button"
-                onClick={handleVerify}
-                className="
-                  flex
-                  h-9
-                  cursor-pointer
-                  items-center
-                  gap-2
-                  rounded-md
-                  bg-primary-600
-                  px-5
-                  text-xs
-                  font-semibold
-                  text-white
-                  transition
-                  hover:bg-primary-700
-                "
-              >
-                <Check className="h-4 w-4" strokeWidth={2} />
-                Klasifikasikan
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* =====================================================
+        {/* ====================================
             CONTENT
-            KIRI = DETAIL
-            KANAN = RIWAYAT
-            ===================================================== */}
+        ==================================== */}
+
         <div
           className="
             grid
             grid-cols-1
-            gap-4
-            lg:grid-cols-[minmax(0,2fr)_313px]
+            gap-5
+            lg:grid-cols-3
           "
         >
-          {/* ===================================================
-              LEFT COLUMN
-              =================================================== */}
-          <div className="min-w-0 space-y-4">
-            {/* =================================================
-                INFORMASI TIKET
-                ================================================= */}
-            <section
+          {/* ==================================
+              LEFT CONTENT
+          ================================== */}
+
+          <div className="space-y-5 lg:col-span-2">
+            {/* ================================
+                INFORMASI PELAPOR
+            ================================= */}
+
+            <div
               className="
                 overflow-hidden
                 rounded-lg
                 border
                 border-slate-200
-                bg-table-card
-                shadow-sm
+                bg-white
                 dark:border-slate-700
+                dark:bg-table-card
               "
             >
-              {/* Card Header */}
               <div
                 className="
                   flex
-                  h-13
                   items-center
                   gap-2
                   border-b
                   border-slate-200
                   px-5
+                  py-3.5
                   dark:border-slate-700
                 "
               >
-                <Info className="h-5 w-5 text-slate-500" strokeWidth={1.8} />
+                <Info size={18} className="text-text-title" />
 
-                <h2
-                  className="
-                    text-sm
-                    font-semibold
-                    text-text-title
-                  "
-                >
-                  Informasi Tiket
-                </h2>
+                <h2 className="text-sm font-semibold text-text-title">Informasi Pelapor</h2>
               </div>
 
-              {/* Card Body */}
-              <div className="px-6 py-5">
+              <div className="px-12 py-5">
                 <div
                   className="
                     grid
                     grid-cols-1
-                    gap-6
-                    md:grid-cols-2
+                    gap-x-10
+                    gap-y-5
+                    sm:grid-cols-2
                   "
                 >
-                  {/* Pelapor */}
                   <div>
-                    <p
-                      className="
-                        mb-1.5
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      "
-                    >
-                      Nama Pelapor
-                    </p>
+                    <p className="text-sm text-slate-400">Nama Pelapor</p>
 
-                    <p
-                      className="
-                        text-sm
-                        font-medium
-                        text-text-title
-                      "
-                    >
+                    <p className="mt-1 text-sm font-medium text-text-title">
                       {currentTicket.reporter.name}
                     </p>
                   </div>
 
-                  {/* Unit */}
                   <div>
-                    <p
-                      className="
-                        mb-1.5
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      "
-                    >
-                      Unit Pelapor
-                    </p>
+                    <p className="text-sm text-slate-400">Unit Pelapor</p>
 
-                    <p
-                      className="
-                        text-sm
-                        font-medium
-                        text-text-title
-                      "
-                    >
+                    <p className="mt-1 text-sm font-medium text-text-title">
                       {currentTicket.reporter.unit}
                     </p>
                   </div>
                 </div>
 
-                {/* Divider */}
                 <div
                   className="
-                    my-5
+                    mt-5
                     border-t
                     border-slate-100
-                    dark:border-slate-800
-                  "
-                />
-
-                {/* Tanggal + Kategori */}
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    gap-5
-                    md:grid-cols-2
+                    pt-4
+                    dark:border-slate-700
                   "
                 >
-                  {/* Tanggal */}
-                  <div>
-                    <p
-                      className="
-                        mb-1.5
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      "
-                    >
-                      Dibuat pada
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-slate-400">Dibuat pada</p>
 
                     <div
                       className="
-                        inline-flex
+                        flex
                         items-center
                         gap-2
                         rounded-md
@@ -445,259 +634,560 @@ export default function HelpdeskDetailPage() {
                         bg-slate-50
                         px-3
                         py-1.5
-                        text-xs
-                        text-slate-600
                         dark:border-slate-700
                         dark:bg-slate-800
-                        dark:text-slate-300
                       "
                     >
-                      <Calendar className="h-4 w-4 text-slate-500" strokeWidth={1.8} />
+                      <Calendar size={14} className="text-slate-500" />
 
-                      {currentTicket.createdAt}
-                    </div>
-                  </div>
-
-                  {/* Kategori */}
-                  <div>
-                    <p
-                      className="
-                        mb-1.5
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      "
-                    >
-                      Kategori
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-slate-400" strokeWidth={1.8} />
-
-                      <Badge variant="primary" size="sm">
-                        {currentTicket.category}
-                      </Badge>
+                      <span className="text-sm text-text-title">
+                        {formatDateTime(currentTicket.createdAt)}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* =================================================
-                DESKRIPSI
-                ================================================= */}
-            <section
+            {/* ================================
+                DATA INVENTARIS
+            ================================= */}
+
+            <div
               className="
                 overflow-hidden
                 rounded-lg
                 border
                 border-slate-200
-                bg-table-card
-                shadow-sm
+                bg-white
                 dark:border-slate-700
+                dark:bg-table-card
               "
             >
-              {/* Header */}
               <div
                 className="
                   flex
-                  h-13
                   items-center
                   gap-2
                   border-b
                   border-slate-200
                   px-5
+                  py-3.5
                   dark:border-slate-700
                 "
               >
-                <div
-                  className="
-                    flex
-                    h-5
-                    w-5
-                    items-center
-                    justify-center
-                    rounded
-                    border
-                    border-slate-400
-                  "
-                >
-                  <span className="text-[9px] text-slate-500">≡</span>
-                </div>
+                <Monitor size={17} className="text-text-title" />
 
-                <h2
-                  className="
-                    text-sm
-                    font-semibold
-                    text-text-title
-                  "
-                >
-                  Deskripsi
-                </h2>
+                <h2 className="text-sm font-semibold text-text-title">Data Inventaris</h2>
               </div>
 
-              {/* Body */}
-              <div className="px-6 py-5">
-                <p
+              <div className="px-12 py-5">
+                <div
                   className="
-                    mb-2
-                    text-xs
-                    font-medium
-                    text-slate-400
+                    grid
+                    grid-cols-1
+                    gap-x-10
+                    gap-y-5
+                    sm:grid-cols-2
                   "
                 >
-                  Deskripsi Masalah
-                </p>
+                  <div>
+                    <p className="text-sm text-slate-400">No. Inventaris</p>
 
-                {/* Description box */}
+                    <p className="mt-1 text-sm font-medium text-text-title">-</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-400">Nama Inventaris</p>
+
+                    <p className="mt-1 text-sm font-medium text-text-title">-</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-400">Merk Inventaris</p>
+
+                    <p className="mt-1 text-sm font-medium text-text-title">-</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-400">Unit Inventaris</p>
+
+                    <p className="mt-1 text-sm font-medium text-text-title">
+                      {currentTicket.reporter.unit}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-400">Lokasi Inventaris</p>
+
+                    <p className="mt-1 text-sm font-medium text-text-title">-</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ================================
+                DESKRIPSI
+            ================================= */}
+
+            <div
+              className="
+                overflow-hidden
+                rounded-lg
+                border
+                border-slate-200
+                bg-white
+                dark:border-slate-700
+                dark:bg-table-card
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  border-b
+                  border-slate-200
+                  px-5
+                  py-3.5
+                  dark:border-slate-700
+                "
+              >
+                <FileText size={17} className="text-text-title" />
+
+                <h2 className="text-sm font-semibold text-text-title">Deskripsi</h2>
+              </div>
+
+              <div className="px-12 py-5">
+                <p className="mb-2 text-sm text-slate-400">Deskripsi Masalah</p>
+
                 <div
                   className="
                     rounded-lg
                     border
                     border-slate-200
                     bg-slate-50
-                    px-4
-                    py-4
+                    px-3.5
+                    py-3.5
                     dark:border-slate-700
-                    dark:bg-slate-800/50
+                    dark:bg-slate-800
                   "
                 >
-                  <p
-                    className="
-                      text-xs
-                      leading-5
-                      text-text-secondary
-                    "
-                  >
+                  <p className="whitespace-pre-line text-sm leading-5 text-text-secondary">
                     {currentTicket.description}
                   </p>
                 </div>
 
-                {/* Attachment */}
-                {currentTicket.attachments && currentTicket.attachments.length > 0 && (
-                  <div className="mt-4">
-                    <p
+                <div className="mt-4">
+                  <p className="mb-2 text-sm text-slate-400">Foto Bukti Awal</p>
+
+                  {currentTicket.attachments && currentTicket.attachments.length > 0 ? (
+                    currentTicket.attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="
+                            flex
+                            items-center
+                            justify-between
+                            rounded-lg
+                            border
+                            border-slate-200
+                            bg-white
+                            px-3
+                            py-2.5
+                            dark:border-slate-700
+                            dark:bg-slate-800
+                          "
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className="
+                                flex
+                                h-9
+                                w-9
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-md
+                                bg-blue-50
+                                text-primary-600
+                                dark:bg-blue-950/40
+                              "
+                          >
+                            <ImageIcon size={18} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-text-title">
+                              {attachment.name}
+                            </p>
+
+                            <p className="mt-0.5 text-[11px] text-slate-400">{attachment.size}</p>
+                          </div>
+                        </div>
+
+                        {attachment.url && (
+                          <a
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="
+                                ml-4
+                                flex
+                                shrink-0
+                                items-center
+                                gap-1.5
+                                text-sm
+                                font-medium
+                                text-primary-600
+                                transition
+                                hover:text-primary-700
+                              "
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="15"
+                              height="15"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M12 15V3" />
+                              <path d="m7 10 5 5 5-5" />
+                              <path d="M5 21h14" />
+                            </svg>
+                            Unduh
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div
                       className="
-                          mb-2
-                          text-xs
-                          font-medium
-                          text-slate-400
-                        "
+                        rounded-lg
+                        border
+                        border-dashed
+                        border-slate-200
+                        bg-slate-50
+                        px-4
+                        py-4
+                        text-center
+                        dark:border-slate-700
+                        dark:bg-slate-800
+                      "
                     >
-                      Foto Bukti Awal
-                    </p>
+                      <ImageIcon size={22} className="mx-auto mb-2 text-slate-300" />
 
-                    <div className="space-y-2">
-                      {currentTicket.attachments.map((att) => (
-                        <AttachmentCard
-                          key={att.id}
-                          name={att.name}
-                          size={att.size}
-                          url={att.url}
-                        />
-                      ))}
+                      <p className="text-xs text-slate-400">Belum ada foto bukti awal.</p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </section>
-          </div>
-
-          {/* ===================================================
-              RIGHT COLUMN
-              =================================================== */}
-          <section
-            className="
-              h-fit
-              min-h-125
-              overflow-hidden
-              rounded-lg
-              border
-              border-slate-200
-              bg-table-card
-              shadow-sm
-              dark:border-slate-700
-              lg:min-h-130
-            "
-          >
-            {/* Header */}
-            <div
-              className="
-                flex
-                h-13
-                items-center
-                gap-2
-                border-b
-                border-slate-200
-                px-5
-                dark:border-slate-700
-              "
-            >
-              <Clock className="h-5 w-5 text-slate-500" strokeWidth={1.8} />
-
-              <h2
-                className="
-                  text-sm
-                  font-semibold
-                  text-text-title
-                "
-              >
-                Riwayat Penanganan
-              </h2>
             </div>
 
-            {/* Timeline */}
-            <div className="px-5 py-5">
-              {timelineItems.length > 0 ? (
-                <Timeline items={timelineItems} />
-              ) : (
+            {/* ================================
+                KLASIFIKASI TIKET TIK
+            ================================= */}
+
+            {isClassifying && (
+              <div
+                ref={classificationRef}
+                className="
+                  overflow-visible
+                  rounded-lg
+                  border
+                  border-slate-200
+                  bg-white
+                  dark:border-slate-700
+                  dark:bg-table-card
+                "
+              >
                 <div
                   className="
                     flex
-                    min-h-75
                     items-center
-                    justify-center
-                    text-center
+                    gap-2
+                    border-b
+                    border-slate-200
+                    px-5
+                    py-3.5
+                    dark:border-slate-700
                   "
                 >
-                  <div>
-                    <Clock
-                      className="
-                        mx-auto
-                        h-8
-                        w-8
-                        text-slate-300
-                      "
-                      strokeWidth={1.5}
-                    />
+                  <h2 className="text-sm font-semibold text-text-title">Klasifikasi Tiket TIK</h2>
+                </div>
 
-                    <p
-                      className="
-                        mt-3
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      "
-                    >
-                      Belum ada riwayat
-                    </p>
+                <div className="px-6 py-5">
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-sm font-medium text-text-title">
+                      Kategori Mutu
+                      <span className="ml-0.5 text-red-500">*</span>
+                    </label>
+
+                    <Dropdown
+                      value={kategoriMutu}
+                      options={kategoriMutuOptions}
+                      onChange={(value) => {
+                        setKategoriMutu(value);
+
+                        if (value) {
+                          setKategoriMutuError("");
+                        }
+                      }}
+                      placeholder="Pilih kategori mutu"
+                      className="w-full"
+                      error={kategoriMutuError}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-text-title">
+                      Tags IT
+                      <span className="ml-0.5 text-red-500">*</span>
+                    </label>
+
+                    <Dropdown
+                      value={tagsIT}
+                      options={tagsITOptions}
+                      onChange={(value) => {
+                        setTagsIT(value);
+
+                        if (value) {
+                          setTagsITError("");
+                        }
+                      }}
+                      placeholder="Pilih tags IT"
+                      className="w-full"
+                      error={tagsITError}
+                    />
                   </div>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* ==================================
+              RIGHT CONTENT
+          ================================== */}
+
+          <div>
+            <div
+              className="
+                overflow-hidden
+                rounded-lg
+                border
+                border-slate-200
+                bg-white
+                dark:border-slate-700
+                dark:bg-table-card
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  border-b
+                  border-slate-200
+                  px-5
+                  py-3.5
+                  dark:border-slate-700
+                "
+              >
+                <Clock size={18} className="text-text-title" />
+
+                <h2 className="text-sm font-semibold text-text-title">Riwayat Penanganan</h2>
+              </div>
+
+              <div className="px-4 py-4">
+                {currentTicket.history && currentTicket.history.length > 0 ? (
+                  currentTicket.history.map((item, index) => (
+                    <TicketHistoryItem
+                      key={item.id}
+                      action={item.action}
+                      timestamp={item.timestamp}
+                      isLatest={index === 0}
+                      isLast={index === currentTicket.history!.length - 1}
+                    />
+                  ))
+                ) : (
+                  <div className="py-6 text-center">
+                    <Clock size={22} className="mx-auto mb-2 text-slate-300" />
+
+                    <p className="text-xs text-text-secondary">Belum ada riwayat penanganan.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
+          </div>
         </div>
       </div>
 
-      {/* =======================================================
-          MODAL TOLAK
-          ======================================================= */}
+      {/* ======================================
+          FIXED ACTION BAR
+      ====================================== */}
+
+      {!isRejected && !isVerified && (
+        <div
+          className="
+            fixed
+            bottom-0
+            left-0
+            right-0
+            z-40
+            border-t
+            border-slate-200
+            bg-white
+            px-4
+            py-3
+            shadow-[0_-4px_12px_rgba(15,23,42,0.06)]
+            dark:border-slate-700
+            dark:bg-slate-900
+            lg:left-64
+          "
+        >
+          <div className="mx-auto max-w-350">
+            {!isClassifying && (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRejectModalOpen(true)}
+                  className="
+                    flex
+                    cursor-pointer
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-lg
+                    border
+                    border-slate-200
+                    bg-white
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-medium
+                    text-slate-600
+                    transition
+                    hover:bg-slate-50
+                    active:scale-[0.99]
+                    dark:border-slate-700
+                    dark:bg-slate-800
+                    dark:text-slate-300
+                    dark:hover:bg-slate-700
+                  "
+                >
+                  <X size={15} />
+                  Tolak Tiket
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenClassification}
+                  className="
+                    flex
+                    cursor-pointer
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-lg
+                    bg-primary-600
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-primary-700
+                    active:scale-[0.99]
+                  "
+                >
+                  <Check size={15} />
+                  Klasifikasikan
+                </button>
+              </div>
+            )}
+
+            {isClassifying && (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelClassification}
+                  className="
+                    flex
+                    cursor-pointer
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-lg
+                    border
+                    border-slate-200
+                    bg-white
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-medium
+                    text-slate-600
+                    transition
+                    hover:bg-slate-50
+                    active:scale-[0.99]
+                    dark:border-slate-700
+                    dark:bg-slate-800
+                    dark:text-slate-300
+                    dark:hover:bg-slate-700
+                  "
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveClassification}
+                  className="
+                    flex
+                    cursor-pointer
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-lg
+                    bg-primary-600
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-primary-700
+                    active:scale-[0.99]
+                  "
+                >
+                  <Check size={15} />
+                  Simpan
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================
+          REJECT MODAL
+      ====================================== */}
+
       <RejectTicketModal
         isOpen={isRejectModalOpen}
         ticketCode={currentTicket.code}
         onClose={() => setIsRejectModalOpen(false)}
         onConfirmReject={handleConfirmReject}
       />
+
+      {/* ======================================
+          TOAST
+      ====================================== */}
+
+      <Toast show={showToast} message={toastMessage} onClose={() => setShowToast(false)} />
     </div>
   );
 }
