@@ -4,36 +4,19 @@ interface TicketHistoryItemProps {
   action: string;
   timestamp: string;
   isLatest?: boolean;
-  isLast?: boolean;
+  children?: React.ReactNode;
 }
 
 export const TicketHistoryItem: React.FC<TicketHistoryItemProps> = ({
   action,
   timestamp,
   isLatest = false,
-  isLast = false,
+  children,
 }) => {
   return (
-    <div className="relative flex gap-3">
-      {/* ==========================================
-          TIMELINE DOT + LINE
-      ========================================== */}
-      <div className="relative flex w-8 shrink-0 justify-center">
-        {/* Garis hanya dibuat kalau BUKAN item terakhir */}
-        {!isLast && (
-          <div
-            className="
-              absolute
-              top-5
-              bottom-0
-              w-px
-              bg-slate-200
-              dark:bg-slate-700
-            "
-          />
-        )}
-
-        {/* Dot */}
+    <div className="flex min-w-0 gap-3">
+      {/* DOT */}
+      <div className="flex w-8 shrink-0 justify-center">
         <div
           className={`
             relative
@@ -42,14 +25,15 @@ export const TicketHistoryItem: React.FC<TicketHistoryItemProps> = ({
             flex
             h-4
             w-4
+            shrink-0
             items-center
             justify-center
             rounded-full
-            border-[3px]
+            border-4
             ${
               isLatest
-                ? "border-orange-100 bg-orange-500"
-                : "border-slate-200 bg-slate-400 dark:border-slate-700"
+                ? "border-orange-500 bg-white"
+                : "border-slate-400 bg-slate-200 dark:border-slate-700"
             }
           `}
         >
@@ -57,21 +41,22 @@ export const TicketHistoryItem: React.FC<TicketHistoryItemProps> = ({
         </div>
       </div>
 
-      {/* ==========================================
-          HISTORY CONTENT
-      ========================================== */}
+      {/* ACTIVITY */}
       <div className="mb-3 min-w-0 flex-1">
         <div
           className="
             flex
-            min-h-12
+            min-h-10
             items-center
             justify-between
             gap-3
             rounded-lg
+            border
+            border-slate-200
             bg-slate-50
             px-3
             py-2.5
+            dark:border-slate-700
             dark:bg-slate-800
           "
         >
@@ -79,6 +64,8 @@ export const TicketHistoryItem: React.FC<TicketHistoryItemProps> = ({
 
           <span className="shrink-0 text-[11px] text-slate-400">{timestamp}</span>
         </div>
+
+        {children && <div className="mt-2">{children}</div>}
       </div>
     </div>
   );

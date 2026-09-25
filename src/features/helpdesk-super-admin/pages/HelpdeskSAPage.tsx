@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { IconFilter, IconFolder } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Table from "@/components/ui/ui-template/Table";
 import Pagination from "@/components/ui/ui-template/Pagination";
@@ -30,12 +30,13 @@ const ITEMS_PER_PAGE = 15;
 
 const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
   baru: "Baru",
-  terverifikasi: "Terverifikasi",
-  diproses: "Diproses",
-  selesai: "Selesai",
-  ditolak: "Ditolak",
   diklasifikasi: "Diklasifikasi",
+  ditolak: "Ditolak",
+  ditugaskan: "Ditugaskan",
+  diproses: "Diproses",
   eskalasi: "Eskalasi",
+  terselesaikan: "Terselesaikan",
+  ditutup: "Ditutup",
 };
 
 /* =========================
@@ -74,6 +75,9 @@ const formatDateTime = (dateString: string): string => {
 
 export default function HelpdeskSAPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const service = location.pathname.includes("/helpdesk/sarpras") ? "sarpras" : "tik";
 
   /* =========================
      STATE
@@ -88,6 +92,8 @@ export default function HelpdeskSAPage() {
   const [search, setSearch] = useState("");
 
   const [status, setStatus] = useState<ApiTicketStatus | "">("");
+
+  const [priority, setPriority] = useState<ApiTicketPriority | "">("");
 
   const [date, setDate] = useState("");
 
@@ -108,9 +114,11 @@ export default function HelpdeskSAPage() {
         const response = await getTickets({
           page: currentPage,
           per_page: ITEMS_PER_PAGE,
-          service: "tik",
+          service,
 
           status: status || undefined,
+
+          priority: priority || undefined,
 
           search: search.trim() || undefined,
 
@@ -145,7 +153,7 @@ export default function HelpdeskSAPage() {
     };
 
     fetchTickets();
-  }, [currentPage, search, status, date]);
+  }, [currentPage, search, status, priority, date, service]);
 
   /* =========================
      FILTER HANDLERS
@@ -160,13 +168,29 @@ export default function HelpdeskSAPage() {
     const statusValueMap: Record<string, ApiTicketStatus | ""> = {
       "Semua status": "",
       Baru: "baru",
-      Terverifikasi: "terverifikasi",
-      Diproses: "diproses",
-      Selesai: "selesai",
+      Diklasifikasi: "diklasifikasi",
       Ditolak: "ditolak",
+      Ditugaskan: "ditugaskan",
+      Diproses: "diproses",
+      Eskalasi: "eskalasi",
+      Terselesaikan: "terselesaikan",
+      Ditutup: "ditutup",
     };
 
     setStatus(statusValueMap[value] ?? "");
+    setCurrentPage(1);
+  };
+
+  const handlePriorityChange = (value: string) => {
+    const priorityValueMap: Record<string, ApiTicketPriority | ""> = {
+      "Semua prioritas": "",
+      Critical: "critical",
+      High: "high",
+      Medium: "medium",
+      Low: "low",
+    };
+
+    setPriority(priorityValueMap[value] ?? "");
     setCurrentPage(1);
   };
 
@@ -204,9 +228,27 @@ export default function HelpdeskSAPage() {
 
             <Dropdown
               value={status ? statusLabelMap[status] : ""}
-              options={["Semua status", "Baru", "Terverifikasi", "Diproses", "Selesai", "Ditolak"]}
+              options={[
+                "Semua status",
+                "Baru",
+                "Diklasifikasi",
+                "Ditolak",
+                "Ditugaskan",
+                "Diproses",
+                "Eskalasi",
+                "Terselesaikan",
+                "Ditutup",
+              ]}
               onChange={handleStatusChange}
               placeholder="Semua status"
+            />
+
+            <Dropdown
+              value={priority ? priorityLabelMap[priority] : ""}
+              options={["Semua prioritas", "Critical", "High", "Medium", "Low"]}
+              onChange={handlePriorityChange}
+              placeholder="Semua prioritas"
+              className="w-44"
             />
 
             {/* Date */}
@@ -265,7 +307,7 @@ export default function HelpdeskSAPage() {
                 tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    onClick={() => navigate(`/helpdesk/tik/${ticket.id}`)}
+                    onClick={() => navigate(`/helpdesk/${service}/${ticket.id}`)}
                     className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
                   >
                     {/* Nomor tiket */}

@@ -16,8 +16,10 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
+        <Route path="/helpdesk/sarpras" element={<HelpdeskSAPage />} />
 
         <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
+        <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
 
         <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
 

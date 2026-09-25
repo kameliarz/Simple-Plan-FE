@@ -1,21 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 
 import { IconArrowLeft, IconArrowRight, IconCircleCheck, IconX } from "@tabler/icons-react";
 
-import Input from "@/components/ui/ui-template/Input";
 import TextArea from "@/components/ui/ui-template/TextArea";
 import Button from "@/components/ui/ui-template/Button";
 import Modal from "@/components/ui/ui-template/Modal";
 
 import TicketSection from "../components/TicketSection";
-import CategorySelector from "../components/CategorySelector";
+import ReporterSection from "../components/ReporterSection";
 import InventorySection from "../components/InventorySection";
 import EvidenceUpload from "../components/EvidenceUpload";
 
-import type { HelpdeskCategory, HelpdeskTicketForm } from "../types";
+import { getUser } from "@/features/auth-login/services/authStorage";
+
+import type { HelpdeskTicketForm } from "../types";
+
+const loggedInUser = getUser();
 
 const initialForm: HelpdeskTicketForm = {
-  reporterName: "",
+  reporterName: loggedInUser?.name ?? "",
   category: "sarpras",
   inventoryNumber: "",
   inventoryName: "",
@@ -34,22 +37,22 @@ export default function CreateHelpdeskTicketPage() {
   // Mengatur tampilan modal berhasil
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Mengubah nilai field pada form
-  const updateField = <K extends keyof HelpdeskTicketForm>(
-    field: K,
-    value: HelpdeskTicketForm[K],
-  ) => {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+  // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
+  const updateField = useCallback(
+    <K extends keyof HelpdeskTicketForm>(field: K, value: HelpdeskTicketForm[K]) => {
+      setForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
 
-    // Menghapus error ketika field mulai diisi
-    setErrors((previous) => ({
-      ...previous,
-      [field]: undefined,
-    }));
-  };
+      // Menghapus error ketika field mulai diisi
+      setErrors((previous) => ({
+        ...previous,
+        [field]: undefined,
+      }));
+    },
+    [],
+  );
 
   // Validasi form sebelum dikirim
   const validateForm = () => {
@@ -114,18 +117,15 @@ export default function CreateHelpdeskTicketPage() {
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Informasi Pelapor */}
           <TicketSection title="Informasi Pelapor">
-            <Input
-              label="Nama Pelapor"
-              required
-              value={form.reporterName}
-              onChange={(event) => updateField("reporterName", event.target.value)}
-              placeholder="Contoh: dr. Budi Santoso, Sp.PD"
-              error={errors.reporterName}
-            />
-
-            <CategorySelector
-              value={form.category}
-              onChange={(value: HelpdeskCategory) => updateField("category", value)}
+            <ReporterSection
+              reporterName={form.reporterName}
+              unit={form.unit}
+              category={form.category}
+              reporterNameError={errors.reporterName}
+              unitError={errors.unit}
+              onReporterNameChange={(value) => updateField("reporterName", value)}
+              onUnitChange={(value) => updateField("unit", value)}
+              onCategoryChange={(value) => updateField("category", value)}
             />
           </TicketSection>
 
@@ -200,7 +200,7 @@ export default function CreateHelpdeskTicketPage() {
                 transition
                 hover:bg-slate-100
                 hover:text-slate-600
-            "
+              "
               aria-label="Tutup"
             >
               <IconX size={18} strokeWidth={1.7} />

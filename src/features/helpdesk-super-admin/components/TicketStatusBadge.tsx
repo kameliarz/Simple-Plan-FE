@@ -7,12 +7,14 @@ interface Props {
 
 const statusStyles: Record<TicketStatus, string> = {
   Baru: "bg-badge-new-fill text-badge-new-text border-badge-new-stroke",
-  Terverifikasi: "bg-badge-verified-fill text-badge-verified-text border-badge-verified-stroke",
-  Diproses: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
-  Selesai: "bg-badge-done-fill text-badge-done-text border-badge-done-stroke",
+  Diklasifikasi:
+    "bg-badge-classificated-fill text-badge-classificated-text border-badge-classificated-stroke",
   Ditolak: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
-  Diklasifikasi: "bg-badge-verified-fill text-badge-verified-text border-badge-verified-stroke",
-  Eskalasi: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
+  Ditugaskan: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
+  Diproses: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
+  Terselesaikan: "bg-badge-done-fill text-badge-done-text border-badge-done-stroke",
+  Eskalasi: "bg-badge-escalation-fill text-badge-escalation-text border-badge-escalation-stroke",
+  Ditutup: "bg-badge-new-fill text-badge-new-text border-badge-new-stroke",
 };
 
 export const TicketStatusBadge: React.FC<Props> = ({ status }) => (
