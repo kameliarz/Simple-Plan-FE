@@ -12,18 +12,26 @@ interface TicketCardMobileProps {
 }
 
 const borderAccentMap: Record<TicketStatus, string> = {
-  Baru: "border-l-amber-500",
-  Terverifikasi: "border-l-amber-500",
-  Diproses: "border-l-blue-600",
-  Selesai: "border-l-emerald-500",
+  Baru: "border-l-slate-300",
+  Diklasifikasi: "border-l-purple-500",
+  Ditugaskan: "border-l-amber-500",
+  Diproses: "border-l-sky-500",
+  Eskalasi: "border-l-orange-500",
+  Terselesaikan: "border-l-emerald-500",
+  Terverifikasi: "border-l-teal-500",
+  Ditutup: "border-l-slate-400",
   Ditolak: "border-l-rose-500",
 };
 
 const statusVariantMap: Record<TicketStatus, BadgeVariant> = {
-  Baru: "primary",
-  Terverifikasi: "warning",
+  Baru: "default",
+  Diklasifikasi: "outline", // purple outline, wait, outline doesn't look purple by default
+  Ditugaskan: "warning",
   Diproses: "info",
-  Selesai: "success",
+  Eskalasi: "danger",
+  Terselesaikan: "success",
+  Terverifikasi: "outline", // teal outline
+  Ditutup: "default",
   Ditolak: "danger",
 };
 

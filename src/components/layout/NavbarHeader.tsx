@@ -8,7 +8,7 @@ export interface NavbarHeaderProps {
 
 export function NavbarHeader({ breadcrumbs, notificationCount = 0 }: NavbarHeaderProps) {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between px-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800">
       <div className="flex items-center">
         <Breadcrumb items={breadcrumbs} />
       </div>

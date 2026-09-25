@@ -40,7 +40,12 @@ export const RejectTicketModal: React.FC<RejectTicketModalProps> = ({
       />
 
       {/* Modal Dialog Box */}
-      <div className="relative w-full max-w-sm bg-white dark:bg-[#1e293b] rounded-2xl p-5 shadow-2xl z-10 space-y-4 border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full sm:max-w-md bg-white dark:bg-[#1e293b] rounded-t-2xl sm:rounded-2xl p-5 pt-7 sm:pt-5 shadow-2xl z-10 space-y-4 border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        {/* Drag handle for mobile */}
+        <div className="w-full flex justify-center py-2 sm:hidden absolute top-0 left-0 right-0 z-10">
+          <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+        </div>
+
         {/* Header Modal */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">

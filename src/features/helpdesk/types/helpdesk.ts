@@ -1,4 +1,4 @@
-export type TicketStatus = "Baru" | "Terverifikasi" | "Diproses" | "Selesai" | "Ditolak";
+export type TicketStatus = "Baru" | "Diklasifikasi" | "Ditugaskan" | "Diproses" | "Eskalasi" | "Terselesaikan" | "Terverifikasi" | "Ditutup" | "Ditolak";
 export type TicketCategory = "TIK" | "Sarpras" | "Ketidakstabilan System" | string;
 
 export interface TicketLog {
@@ -6,7 +6,7 @@ export interface TicketLog {
   action: string;
   timestamp: string;
   isCompleted?: boolean;
-}
+} 
 
 export interface TicketAttachment {
   id: string;
@@ -34,8 +34,18 @@ export interface TicketItem {
     role: string;
     avatarInitials?: string;
   };
+  inventaris?: {
+    no: string;
+    name: string;
+    merk: string;
+    unit: string;
+    lokasi: string;
+  };
   createdAt: string;
   finishedAt?: string;
   attachments?: TicketAttachment[];
   history?: TicketLog[];
+  priority?: "Critical" | "High" | "Medium" | "Low";
+  resolutionNotes?: string;
+  resolutionAttachments?: TicketAttachment[];
 }

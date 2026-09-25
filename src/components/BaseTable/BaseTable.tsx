@@ -11,9 +11,10 @@ interface BaseTableProps<T> {
   columns: Column<T>[];
   data: T[];
   itemsPerPage?: number;
+  onRowClick?: (row: T) => void;
 }
 
-function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
+function BaseTable<T>({ columns, data, itemsPerPage = 4, onRowClick }: BaseTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -119,7 +120,11 @@ function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
           <tbody className="divide-y divide-gray-200">
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="transition hover:bg-background">
+                <tr 
+                  key={rowIndex} 
+                  className={`transition hover:bg-background ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={() => onRowClick?.(row)}
+                >
                   {columns.map((column) => {
                     const value = row[column.key];
 

@@ -6,7 +6,7 @@ export interface TimelineEntry {
   timestamp: string;
   action: string;
   isCompleted?: boolean;
-  variant?: "default" | "danger" | "warning" | "success";
+  variant?: "default" | "danger" | "warning" | "success" | "primary";
 }
 
 export interface TimelineProps {
@@ -26,18 +26,22 @@ export const Timeline: React.FC<TimelineProps> = ({ items, className }) => {
             ? "bg-rose-500"
             : item.variant === "success"
               ? "bg-emerald-500"
-              : item.variant === "warning" || isLatest
-                ? "bg-amber-500"
-                : "bg-slate-300 dark:bg-slate-600";
+              : item.variant === "primary"
+                ? "bg-blue-600 dark:bg-blue-500"
+                : item.variant === "warning" || isLatest
+                  ? "bg-amber-500"
+                  : "bg-slate-300 dark:bg-slate-600";
 
         const textColor =
           item.variant === "danger"
             ? "text-rose-600 dark:text-rose-400"
             : item.variant === "success"
               ? "text-emerald-600 dark:text-emerald-400"
-              : item.variant === "warning" || isLatest
-                ? "text-amber-700 dark:text-amber-400"
-                : "text-slate-400 dark:text-slate-500";
+              : item.variant === "primary"
+                ? "text-blue-700 dark:text-blue-400"
+                : item.variant === "warning" || isLatest
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "text-slate-400 dark:text-slate-500";
 
         return (
           <div key={item.id} className="relative flex items-start gap-3">

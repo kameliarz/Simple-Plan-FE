@@ -50,15 +50,22 @@ export default function HelpdeskTab() {
           <NavLink
             to="/helpdesk/sarpras/buat"
             className={({ isActive }) =>
-              `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors ${
+              `flex items-center gap-3 pl-12 pr-4 py-2 text-sm transition-colors rounded-lg mx-2 ${
                 isActive
-                  ? "text-blue-700 dark:text-blue-400 font-medium"
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium"
                   : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
               }`
             }
           >
-            <span className="text-lg leading-none font-medium mr-1">+</span>
-            <span>Buat Tiket</span>
+            {({ isActive }) => (
+              <>
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="text-lg leading-none font-medium mr-1">+</span>
+                  <span>Buat Tiket</span>
+                </div>
+                {isActive && <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>}
+              </>
+            )}
           </NavLink>
         </div>
       )}

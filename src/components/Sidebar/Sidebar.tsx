@@ -22,9 +22,9 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
   };
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 dark:border-slate-800 bg-sidebar transition-colors">
       {/* 1. Header Sidebar */}
-      <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-slate-800">
+      <div className="flex h-[72px] items-center gap-3 px-4 border-b border-gray-200 dark:border-slate-800">
         <button className="text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200">
           <Menu className="h-5 w-5" />
         </button>

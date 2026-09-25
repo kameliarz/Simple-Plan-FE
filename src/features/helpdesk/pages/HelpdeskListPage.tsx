@@ -15,8 +15,13 @@ interface HelpdeskListPageProps {
 const filterTabs: Array<"Semua" | TicketStatus> = [
   "Semua",
   "Baru",
+  "Diklasifikasi",
+  "Ditugaskan",
+  "Diproses",
+  "Eskalasi",
+  "Terselesaikan",
   "Terverifikasi",
-  "Selesai",
+  "Ditutup",
   "Ditolak",
 ];
 
@@ -64,7 +69,7 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
       />
 
       {/* 3. Daftar Kartu Tiket */}
-      <div className="space-y-3">
+      <div className="space-y-3 flex-1 flex flex-col">
         {filteredTickets.length > 0 ? (
           filteredTickets.map((ticket) => (
             <TicketCardMobile
@@ -74,9 +79,15 @@ export const HelpdeskListPage: React.FC<HelpdeskListPageProps> = ({
             />
           ))
         ) : (
-          <div className="text-center py-12 px-4 rounded-2xl bg-white dark:bg-[#1e293b] border border-slate-100 dark:border-slate-800 text-slate-400">
-            <p className="text-sm font-semibold">Tidak ada tiket ditemukan</p>
-            <p className="text-xs mt-1">Coba sesuaikan kata kunci atau filter pencarian.</p>
+          <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
+            <div className="flex items-center gap-2 text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>Data tiket tidak ditemukan!</span>
+            </div>
           </div>
         )}
       </div>
