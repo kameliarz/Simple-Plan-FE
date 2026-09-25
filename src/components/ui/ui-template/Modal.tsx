@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
+
 import { IconX } from "@tabler/icons-react";
+
 import { Fragment } from "react";
 
 import { cn } from "@/lib/utils";
@@ -18,7 +20,7 @@ export interface ModalProps {
   onClose?: () => void;
   show?: boolean;
   showHeader?: boolean;
-  title?: string;
+  title?: React.ReactNode;
   type?: ModalType;
 }
 
@@ -133,11 +135,7 @@ export default function Modal({
 
   return (
     <Transition as={Fragment} leave="duration-200" show={show}>
-      <Dialog
-        as="div"
-        className="fixed inset-0 z-50 flex transform items-center overflow-y-auto px-4 py-6 transition-all sm:px-0"
-        onClose={close}
-      >
+      <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={close}>
         {/* Overlay */}
         <TransitionChild
           as={Fragment}
@@ -148,60 +146,62 @@ export default function Modal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="absolute inset-0 z-0 bg-slate-900/60" />
+          <div className="fixed inset-0 z-0 bg-slate-900/60" />
         </TransitionChild>
 
-        {/* Modal panel */}
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-          enterTo="opacity-100 translate-y-0 sm:scale-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-          leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        >
-          <DialogPanel
-            className={cn(
-              "relative z-10 mb-6 w-full transform overflow-hidden rounded-2xl bg-white shadow-xl transition-all dark:bg-slate-950 sm:mx-auto sm:mb-0",
-              maxWidthClasses[maxWidth],
-            )}
+        {/* Modal wrapper */}
+        <div className="flex min-h-full items-center justify-center px-4 py-2 sm:px-0">
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enterTo="opacity-100 translate-y-0 sm:scale-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            {/* ==================================================
-                DEFAULT HEADER
-                Dipakai Modal biasa.
-                Bisa dimatikan dengan showHeader={false}.
-                ================================================== */}
+            <DialogPanel
+              className={cn(
+                "relative z-10 my-2 w-full transform overflow-hidden rounded-2xl bg-white shadow-xl transition-all dark:bg-slate-950",
+                maxWidthClasses[maxWidth],
+              )}
+            >
+              {/* ==================================================
+                  DEFAULT HEADER
+                  Dipakai Modal biasa.
+                  Bisa dimatikan dengan showHeader={false}.
+                  ================================================== */}
 
-            {showHeader ? (
-              <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-base font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                <DialogTitle className="flex items-center gap-2">
-                  {icon ? <span className="text-primary-500">{icon}</span> : null}
+              {showHeader ? (
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-base font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                  <DialogTitle className="flex items-center gap-2">
+                    {icon ? <span className="text-primary-500">{icon}</span> : null}
 
-                  {title}
-                </DialogTitle>
+                    {title}
+                  </DialogTitle>
 
-                {closeable ? (
-                  <button
-                    className="rounded-md bg-transparent text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                    onClick={close}
-                    type="button"
-                  >
-                    <span className="sr-only">Tutup modal</span>
+                  {closeable ? (
+                    <button
+                      className="rounded-md bg-transparent text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                      onClick={close}
+                      type="button"
+                    >
+                      <span className="sr-only">Tutup modal</span>
 
-                    <IconX aria-hidden="true" className="size-5" />
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+                      <IconX aria-hidden="true" className="size-5" />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
 
-            {/* ==================================================
-                BODY
-                ================================================== */}
+              {/* ==================================================
+                  BODY
+                  ================================================== */}
 
-            <div className={showHeader ? "p-4" : "p-0"}>{children}</div>
-          </DialogPanel>
-        </TransitionChild>
+              <div className={showHeader ? "p-4" : "p-0"}>{children}</div>
+            </DialogPanel>
+          </TransitionChild>
+        </div>
       </Dialog>
     </Transition>
   );

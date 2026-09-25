@@ -20,7 +20,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
   danger: "border-transparent bg-danger-500 text-white hover:bg-danger-600",
   ghost:
-    "border-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+    "border-transparent text-slate-600 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

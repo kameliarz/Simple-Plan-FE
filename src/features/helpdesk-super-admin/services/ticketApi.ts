@@ -12,10 +12,26 @@ export interface GetTicketsParams {
   per_page?: number;
   service?: "tik" | "sarpras";
   status?:
-    "baru" | "terverifikasi" | "diproses" | "selesai" | "ditolak" | "diklasifikasi" | "eskalasi";
+    | "baru"
+    | "diklasifikasi"
+    | "ditolak"
+    | "ditugaskan"
+    | "diproses"
+    | "eskalasi"
+    | "terselesaikan"
+    | "ditutup";
+  priority?: "low" | "medium" | "high" | "critical";
   date_from?: string;
   date_to?: string;
   search?: string;
+}
+
+interface AssigneeApiOption {
+  id: string | number;
+  name?: string;
+  nama?: string;
+  role?: string;
+  jabatan?: string;
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -48,6 +64,10 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
 
   if (params.status) {
     query.set("status", params.status);
+  }
+
+  if (params.priority) {
+    query.set("priority", params.priority);
   }
 
   if (params.date_from) {
@@ -130,3 +150,97 @@ export async function getTicket(ticketId: string): Promise<ApiTicket> {
 
   return result.data;
 }
+
+// ==========================================
+// AMBIL PETUGAS TERKAIT
+// GET /api/v1/tickets/{ticketId}/assignee-options
+// ==========================================
+
+export const getTicketAssigneeOptions = async (ticketId: string, search = "") => {
+  const query = new URLSearchParams();
+
+  if (search.trim()) {
+    query.set("search", search.trim());
+  }
+
+  const queryString = query.toString();
+
+  const url = queryString
+    ? `${API_BASE_URL}/tickets/${ticketId}/assignee-options?${queryString}`
+    : `${API_BASE_URL}/tickets/${ticketId}/assignee-options`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+
+    console.error("GET assignee-options gagal:", {
+      ticketId,
+      status: response.status,
+      statusText: response.statusText,
+      body: errorBody,
+    });
+
+    throw new Error(`Gagal mengambil daftar petugas. (${response.status})`);
+  }
+
+  const result = await response.json();
+
+  console.log("GET assignee-options response:", result);
+
+  // Sesuaikan dengan bentuk respons API sebenarnya.
+  const rows: AssigneeApiOption[] = Array.isArray(result)
+    ? result
+    : Array.isArray(result.data)
+      ? result.data
+      : [];
+
+  return rows.map((item) => {
+    const name = item.name ?? item.nama ?? "";
+
+    return {
+      id: Number(item.id),
+      name,
+      role: item.jabatan ?? item.role ?? "Petugas",
+      initials: name
+        .split(" ")
+        .map((part: string) => part[0] ?? "")
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+    };
+  });
+};
+
+// ==========================================
+// KIRIM KLASIFIKASI TIKET
+// POST /api/v1/tickets/{ticket}/classify
+// ==========================================
+
+type ClassifyTicketPayload = {
+  quality_category_id?: number;
+  it_tag_id?: number;
+  custom_it_tag_text?: string;
+};
+
+export const classifyTicket = async (ticketId: string, payload: ClassifyTicketPayload) => {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/classify`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Gagal mengklasifikasikan tiket (${response.status}): ${responseText}`);
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};

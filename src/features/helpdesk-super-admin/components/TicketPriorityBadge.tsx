@@ -8,9 +8,10 @@ interface Props {
 
 const priorityStyles: Record<TicketPriority, string> = {
   Low: "bg-badge-new-fill text-badge-new-text border-badge-new-stroke",
-  Medium: "bg-badge-verified-fill text-badge-verified-text border-badge-verified-stroke",
+  Medium:
+    "bg-badge-classificated-fill text-badge-classificated-text border-badge-classificated-stroke",
   High: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
-  Critical: "bg-badge-done-fill text-badge-done-text border-badge-done-stroke",
+  Critical: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
 };
 
 export const TicketPriorityBadge: React.FC<Props> = ({ priority }) => {

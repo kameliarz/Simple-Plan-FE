@@ -60,12 +60,14 @@ export default function Dropdown({
             left-0
             top-12
             z-50
+            max-h-60
             w-full
-            overflow-hidden
+            overflow-y-auto
             rounded-lg
             border
             border-slate-200
             bg-button
+            shadow-md
             dark:border-slate-600
           "
         >

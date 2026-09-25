@@ -1,7 +1,14 @@
 import type { ApiMeta } from "@/types/api";
 
 export type ApiTicketStatus =
-  "baru" | "terverifikasi" | "diproses" | "selesai" | "ditolak" | "diklasifikasi" | "eskalasi";
+  | "baru"
+  | "diklasifikasi"
+  | "ditolak"
+  | "ditugaskan"
+  | "diproses"
+  | "eskalasi"
+  | "terselesaikan"
+  | "ditutup";
 export type ApiTicketPriority = "low" | "medium" | "high" | "critical";
 
 export interface ApiTicket {
@@ -13,6 +20,18 @@ export interface ApiTicket {
   status: ApiTicketStatus;
   rejection_reason: string | null;
   priority: ApiTicketPriority | null;
+
+  tik_detail?: {
+    quality_category?: {
+      id: number;
+      name: string;
+    } | null;
+    it_tag?: {
+      id: number;
+      name: string;
+    } | null;
+    custom_it_tag_text?: string | null;
+  } | null;
 
   reporter: {
     id: number;

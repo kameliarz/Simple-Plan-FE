@@ -42,9 +42,9 @@
   --color-danger-600: #b9183b;
   --color-danger-700: #90132e;
 
-  --color-badge-verified-text: #f59e0b;
-  --color-badge-verified-stroke: #f59e0b33;
-  --color-badge-verified-fill: #f59e0b1a;
+  --color-badge-classificated-text: #f59e0b;
+  --color-badge-classificated-stroke: #f59e0b33;
+  --color-badge-classificated-fill: #f59e0b1a;
 
   --color-badge-process-text: var(--app-badge-process-text);
   --color-badge-process-stroke: #0d47a133;
@@ -58,6 +58,10 @@
   --color-badge-denied-stroke: #dc262633;
   --color-badge-denied-fill: #dc26261a;
 
+  --color-badge-escalation-text: ##c2410c;
+  --color-badge-escalation-stroke: ##c2410c33;
+  --color-badge-escalation-fill: ##c2410c1a;
+
   --color-badge-new-text: var(--app-badge-new-text);
   --color-badge-new-stroke: #64748b33;
   --color-badge-new-fill: #64748b1a;
@@ -65,6 +69,12 @@
   --color-cborder: #d1d5db;
 
   --color-soft-border: var(--app-soft-border);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-poppins);
+  }
 }
 
 /* =========================
@@ -147,13 +157,6 @@ body {
 
 #root {
   min-height: 100vh;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
 }
 
 button {

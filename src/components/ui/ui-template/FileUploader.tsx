@@ -132,15 +132,15 @@ export default function FileUpload({
           }}
           onDrop={handleDrop}
           className={cn(
-            "flex min-h-34 cursor-pointer flex-col items-center justify-center",
-            "rounded-lg border-2 border-dashed px-6 py-6 text-center",
+            "flex min-h-25 cursor-pointer flex-col items-center justify-center",
+            "rounded-lg border-2 border-dashed px-6 py-4 text-center",
             "transition",
             isDragging
               ? "border-primary-600 bg-blue-50"
               : "border-primary-200 hover:border-primary-300 hover:bg-slate-300/10 ",
           )}
         >
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-button text-text-secondary">
+          <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-button text-text-secondary">
             <IconUpload size={22} strokeWidth={1.7} />
           </div>
 
