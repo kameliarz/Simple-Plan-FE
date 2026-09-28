@@ -17,7 +17,13 @@ interface TicketFilterBottomSheetProps {
   initialFilters?: FilterState;
 }
 
-const statusOptions: TicketStatus[] = ["Baru", "Terverifikasi", "Diproses", "Selesai", "Ditolak"];
+const statusOptions: TicketStatus[] = [
+  "Baru",
+  "Diklasifikasi",
+  "Diproses",
+  "Terselesaikan",
+  "Ditolak",
+];
 
 export const TicketFilterBottomSheet: React.FC<TicketFilterBottomSheetProps> = ({
   isOpen,

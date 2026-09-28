@@ -15,8 +15,8 @@ interface HelpdeskListPageProps {
 const filterTabs: Array<"Semua" | TicketStatus> = [
   "Semua",
   "Baru",
-  "Terverifikasi",
-  "Selesai",
+  "Diklasifikasi",
+  "Terselesaikan",
   "Ditolak",
 ];
 

@@ -9,6 +9,7 @@ export const MOCK_TICKETS: TicketItem[] = [
       "Jaringan Wi-Fi Lantai 3 Mati Total. Koneksi internet di seluruh area lantai 3 terputus sejak pagi ini. Sudah coba restart router tapi tetap tidak bisa.",
     category: "Ketidakstabilan System",
     status: "Baru",
+    priority: "Medium",
     reporter: {
       name: "Ahmad Subagyo",
       unit: "Poli Umum",
@@ -45,6 +46,7 @@ export const MOCK_TICKETS: TicketItem[] = [
     description: "Lampu utama kamar operasi berkedip saat tindakan berlangsung.",
     category: "Sarpras",
     status: "Diproses",
+    priority: "Medium",
     reporter: {
       name: "Dr. Wahyudi",
       unit: "IGD",
@@ -58,7 +60,8 @@ export const MOCK_TICKETS: TicketItem[] = [
     title: "Permintaan Penggantian Tabung Oksigen",
     description: "Tabung oksigen cadangan di poli anak menipis.",
     category: "Sarpras",
-    status: "Selesai",
+    status: "Terselesaikan",
+    priority: "Medium",
     reporter: {
       name: "Siti Rahma",
       unit: "Farmasi",
@@ -72,7 +75,8 @@ export const MOCK_TICKETS: TicketItem[] = [
     title: "Update Master Obat Sistem E-Prescription",
     description: "Penambahan katalog obat baru pada modul apotek.",
     category: "TIK",
-    status: "Terverifikasi",
+    status: "Diklasifikasi",
+    priority: "Medium",
     reporter: {
       name: "Citra Dwi",
       unit: "Farmasi",
@@ -87,6 +91,7 @@ export const MOCK_TICKETS: TicketItem[] = [
     description: "Permintaan instalasi access point baru untuk ruang tunggu rawat jalan.",
     category: "TIK",
     status: "Ditolak",
+    priority: "Medium",
     reporter: {
       name: "Naura Indra",
       unit: "IGD",
