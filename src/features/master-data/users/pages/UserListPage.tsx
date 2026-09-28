@@ -55,7 +55,7 @@ export default function UserListPage() {
 
         setUsers(filtered);
         if (metaObj) {
-          setMeta(metaObj);
+          setMeta(metaObj as unknown as ApiMeta);
         }
       }
     } catch (error) {
