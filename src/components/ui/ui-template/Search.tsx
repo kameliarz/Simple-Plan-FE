@@ -16,7 +16,7 @@ export default function Search({ onChange, placeholder = "Cari data...", value }
           w-full
           rounded-lg
           border
-          border-cborder
+          border-med-border
           bg-table-card
           px-4
           pr-14

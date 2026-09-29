@@ -1151,12 +1151,12 @@ export default function HelpdeskDetailPage() {
   return (
     <div
       className="
-        min-h-full
-        bg-background
-        p-4
-        pb-10
-        lg:p-5
-      "
+      min-h-full
+      bg-background
+      p-4
+      pb-10
+      lg:p-5
+    "
     >
       <div className="mx-auto max-w-350">
         {showAlert && (
@@ -1168,22 +1168,114 @@ export default function HelpdeskDetailPage() {
             />
           </div>
         )}
-        {/* ====================================
-            HEADER TIKET
-        ==================================== */}
 
+        {/* ====================================
+          HEADER MOBILE
+          Khusus layar kecil
+      ==================================== */}
+        <div className="mb-4 lg:hidden">
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(`/helpdesk/${service}`)}
+              className="
+              mt-0.5
+              flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              bg-primary-600
+              text-white
+              shadow-sm
+              transition
+              hover:bg-slate-100
+              dark:hover:bg-slate-700
+            "
+              title="Kembali"
+              aria-label="Kembali ke daftar tiket"
+            >
+              <ArrowLeft size={19} />
+            </button>
+
+            <div className="min-w-0 pt-0.5">
+              <h1 className="text-base font-semibold leading-5 text-text-title">Detail Tiket</h1>
+
+              <p className="mt-0.5 truncate text-sm text-text-secondary">#{currentTicket.code}</p>
+
+              <div className="mt-2 flex gap-2">
+                <TicketStatusBadge status={currentTicket.status} />
+                <TicketPriorityBadge priority={currentTicket.priority} />
+              </div>
+            </div>
+          </div>
+
+          {/* Tombol header pada mobile */}
+          {currentTicket.status === "Diproses" && (
+            <div className="mt-4 flex gap-2">
+              <Button
+                label="Eskalasi"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={() => setIsEscalationModalOpen(true)}
+              />
+
+              <Button
+                label="Tangani"
+                variant="primary"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setIsContinuingHandling(false);
+                  setIsHandleModalOpen(true);
+                }}
+              />
+            </div>
+          )}
+
+          {currentTicket.status === "Eskalasi" && (
+            <div className="mt-4">
+              <Button
+                type="button"
+                label="Lanjutkan Penanganan"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setCurrentTicket((prev) => {
+                    if (!prev) return prev;
+
+                    return {
+                      ...prev,
+                      status: "Diproses",
+                    };
+                  });
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ====================================
+          HEADER DESKTOP
+          Dipertahankan seperti UI awal
+      ==================================== */}
         <div
           className="
-            mb-5
-            rounded-lg
-            border
-            border-slate-200
-            bg-white
-            px-4
-            py-3
-            dark:border-slate-700
-            dark:bg-table-card
-          "
+          mb-5
+          hidden
+          rounded-lg
+          border
+          border-slate-200
+          bg-white
+          px-4
+          py-3
+          dark:border-slate-700
+          dark:bg-table-card
+          lg:block
+        "
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1191,14 +1283,14 @@ export default function HelpdeskDetailPage() {
                 type="button"
                 onClick={() => navigate(`/helpdesk/${service}`)}
                 className="
-                  cursor-pointer
-                  rounded-md
-                  p-1.5
-                  text-text-secondary
-                  transition
-                  hover:bg-slate-100
-                  dark:hover:bg-slate-700
-                "
+                cursor-pointer
+                rounded-md
+                p-1.5
+                text-text-secondary
+                transition
+                hover:bg-slate-100
+                dark:hover:bg-slate-700
+              "
                 title="Kembali"
               >
                 <ArrowLeft size={19} />
@@ -1260,50 +1352,32 @@ export default function HelpdeskDetailPage() {
         </div>
 
         {/* ====================================
-            CONTENT
-        ==================================== */}
-
+          CONTENT
+      ==================================== */}
         <div
           className="
-            grid
-            grid-cols-1
-            gap-5
-            lg:grid-cols-3
-          "
+          grid
+          grid-cols-1
+          gap-5
+          lg:grid-cols-3
+        "
         >
           {/* ==================================
-              LEFT CONTENT
-          ================================== */}
-
-          <div className="space-y-5 lg:col-span-2">
-            {/* =================================
-                INFORMASI PELAPOR
-            ================================= */}
-
+            LEFT CONTENT
+        ================================== */}
+          <div className="min-w-0 space-y-5 lg:col-span-2">
             <ReporterInfoCard
               name={currentTicket.reporter.name}
               unit={currentTicket.reporter.unit}
               createdAt={formatDateTime(currentTicket.createdAt)}
             />
 
-            {/* =================================
-                DATA INVENTARIS
-            ================================= */}
-
             <InventoryCard unit={currentTicket.reporter.unit} />
-
-            {/* =================================
-                DESKRIPSI
-            ================================= */}
 
             <DescriptionCard
               description={currentTicket.description}
               attachments={currentTicket.attachments}
             />
-
-            {/* =================================
-                KLASIFIKASI TIKET
-            ================================= */}
 
             <ClassificationCard
               isClassifying={isClassifying}
@@ -1327,10 +1401,6 @@ export default function HelpdeskDetailPage() {
               setTagsITError={setTagsITError}
             />
 
-            {/* =================================
-                TINGKAT PRIORITAS
-            ================================= */}
-
             <PriorityCard
               isAssignmentMode={isAssignmentMode}
               isAssignmentSaved={isAssignmentSaved}
@@ -1341,9 +1411,6 @@ export default function HelpdeskDetailPage() {
               priorityConfig={priorityConfig}
             />
 
-            {/* =================================
-                PETUGAS
-            ================================= */}
             <OfficerCard
               isAssignmentMode={isAssignmentMode}
               isAssignmentSaved={isAssignmentSaved}
@@ -1352,9 +1419,12 @@ export default function HelpdeskDetailPage() {
               onOpenAssignModal={handleOpenAssignModal}
             />
 
-            {/* ACTION BUTTONS: CLASSIFICATION & ASSIGNMENT */}
+            {/* ==================================
+              AKSI DESKTOP
+              Tetap di bawah kolom kiri
+          ================================== */}
             {!isRejected && !isAssignmentSaved && (
-              <div className="mt-6 flex w-full justify-end">
+              <div className="mt-6 hidden w-full justify-end lg:flex">
                 {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
@@ -1364,6 +1434,7 @@ export default function HelpdeskDetailPage() {
                       label="Tolak Tiket"
                       className="flex-1 sm:min-w-32"
                     />
+
                     <Button
                       type="button"
                       variant="primary"
@@ -1383,6 +1454,7 @@ export default function HelpdeskDetailPage() {
                       label="Batal"
                       className="flex-1 sm:min-w-28"
                     />
+
                     <Button
                       type="button"
                       variant="primary"
@@ -1402,6 +1474,7 @@ export default function HelpdeskDetailPage() {
                       label="Batal"
                       className="flex-1 sm:min-w-28"
                     />
+
                     <Button
                       type="button"
                       variant="primary"
@@ -1414,13 +1487,9 @@ export default function HelpdeskDetailPage() {
               </div>
             )}
 
-            {/* ======================================
-              ACTION BUTTONS
-              BOTTOM RIGHT
-          ====================================== */}
-
+            {/* Aksi verifikasi desktop, posisi lama */}
             {currentTicket.status === "Terselesaikan" && (
-              <div className="mt-5 flex justify-end">
+              <div className="mt-5 hidden justify-end lg:flex">
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -1429,7 +1498,6 @@ export default function HelpdeskDetailPage() {
                     size="sm"
                     onClick={() => {
                       setIsRejectResolutionModalOpen(true);
-                      showAlertMessage("Penyelesaian tiket ditolak.", "error");
                     }}
                   />
 
@@ -1449,16 +1517,110 @@ export default function HelpdeskDetailPage() {
           {/* ==================================
             RIGHT CONTENT
         ================================== */}
-
-          <div>
+          <div className="min-w-0 lg:col-span-1">
             <HistoryCard history={currentTicket.history} />
           </div>
+        </div>
+
+        {/* ====================================
+          AKSI MOBILE
+          Diletakkan setelah grid/riwayat
+          Mengikuti alur halaman, tidak fixed
+      ==================================== */}
+        <div className="mt-5 w-full lg:hidden">
+          {!isRejected && !isAssignmentSaved && (
+            <>
+              {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
+                <div className="flex w-full gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsRejectModalOpen(true)}
+                    label="Tolak Tiket"
+                    className="flex-1"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleOpenClassification}
+                    label="Klasifikasikan"
+                    className="flex-1"
+                  />
+                </div>
+              )}
+
+              {isClassifying && (
+                <div className="flex w-full gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleCancelClassification}
+                    label="Batal"
+                    className="flex-1"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleSaveClassification}
+                    label="Simpan"
+                    className="flex-1"
+                  />
+                </div>
+              )}
+
+              {isAssignmentMode && (
+                <div className="flex w-full gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleCancelAssignment}
+                    label="Batal"
+                    className="flex-1"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleSaveAssignment}
+                    label="Simpan"
+                    className="flex-1"
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {currentTicket.status === "Terselesaikan" && (
+            <div className="flex w-full gap-3">
+              <Button
+                type="button"
+                label="Tolak Penyelesaian"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setIsRejectResolutionModalOpen(true);
+                }}
+              />
+
+              <Button
+                type="button"
+                label={isVerifying ? "Memproses..." : "Setujui Penyelesaian"}
+                variant="primary"
+                size="sm"
+                className="flex-1"
+                onClick={handleApproveResolution}
+                disabled={isVerifying}
+              />
+            </div>
+          )}
         </div>
 
         {/* ======================================
           REJECT MODAL
       ====================================== */}
-
         <RejectTicketModal
           isOpen={isRejectModalOpen}
           ticketCode={currentTicket.code}
@@ -1469,7 +1631,6 @@ export default function HelpdeskDetailPage() {
         {/* ======================================
           ASSIGN OFFICER MODAL
       ====================================== */}
-
         <AssignOfficerModal
           isOpen={isAssignModalOpen}
           ticketId={ticketId}
@@ -1490,6 +1651,9 @@ export default function HelpdeskDetailPage() {
           isSaving={isSavingHandling}
         />
 
+        {/* ======================================
+          REJECT RESOLUTION MODAL
+      ====================================== */}
         <RejectResolutionModal
           isOpen={isRejectResolutionModalOpen}
           onClose={() => setIsRejectResolutionModalOpen(false)}
@@ -1519,6 +1683,9 @@ export default function HelpdeskDetailPage() {
           }}
         />
 
+        {/* ======================================
+          ESCALATION MODAL
+      ====================================== */}
         <EscalationModal
           isOpen={isEscalationModalOpen}
           onClose={() => setIsEscalationModalOpen(false)}

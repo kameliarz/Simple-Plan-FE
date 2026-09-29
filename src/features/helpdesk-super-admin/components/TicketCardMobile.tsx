@@ -1,89 +1,208 @@
 import React from "react";
 import { Calendar } from "lucide-react";
-import type { TicketItem, TicketStatus } from "../types/helpdesk";
-import { Avatar } from "../../../components/ui/Avatar";
-import Badge, { type BadgeVariant } from "../../../components/ui/Badge";
+
+import type { ApiTicket, ApiTicketStatus, ApiTicketPriority } from "../types/ticket";
+
+import type { TicketStatus, TicketPriority } from "../types/helpdesk";
+
+import { TicketStatusBadge } from "./TicketStatusBadge";
+import { TicketPriorityBadge } from "./TicketPriorityBadge";
+
 import { cn } from "../../../lib/utils";
 
+/* =========================
+   PROPS
+========================= */
+
 interface TicketCardMobileProps {
-  ticket: TicketItem;
-  onClick?: (ticket: TicketItem) => void;
+  ticket: ApiTicket;
+  onClick?: (ticket: ApiTicket) => void;
   className?: string;
 }
 
-const borderAccentMap: Record<TicketStatus, string> = {
-  Baru: "border-l-amber-500",
-  Terverifikasi: "border-l-amber-500",
-  Diproses: "border-l-blue-600",
-  Selesai: "border-l-emerald-500",
-  Ditolak: "border-l-rose-500",
+/* =========================
+   STATUS LABEL
+========================= */
+
+const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
+  baru: "Baru",
+  diklasifikasi: "Diklasifikasi",
+  ditolak: "Ditolak",
+  diproses: "Diproses",
+  eskalasi: "Eskalasi",
+  terselesaikan: "Terselesaikan",
+  ditutup: "Ditutup",
 };
 
-const statusVariantMap: Record<TicketStatus, BadgeVariant> = {
-  Baru: "primary",
-  Terverifikasi: "warning",
-  Diproses: "info",
-  Selesai: "success",
-  Ditolak: "danger",
+/* =========================
+   PRIORITY LABEL
+========================= */
+
+const priorityLabelMap: Record<ApiTicketPriority, TicketPriority> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
 };
+
+/* =========================
+   LEFT BORDER COLOR
+   Mengikuti warna border badge status
+========================= */
+
+const borderAccentMap: Record<TicketStatus, string> = {
+  Baru: "border-l-badge-new-text",
+  Diklasifikasi: "border-l-badge-classificated-text",
+  Ditolak: "border-l-badge-denied-text",
+  Diproses: "border-l-badge-process-text",
+  Eskalasi: "border-l-badge-escalation-text",
+  Terselesaikan: "border-l-badge-done-text",
+  Ditutup: "border-l-badge-new-text",
+};
+
+/* =========================
+   DATE FORMAT
+========================= */
+
+const formatDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(".", ":");
+};
+
+/* =========================
+   AVATAR INITIALS
+========================= */
+
+const getInitials = (name: string): string => {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+};
+
+/* =========================
+   COMPONENT
+========================= */
 
 export const TicketCardMobile: React.FC<TicketCardMobileProps> = ({
   ticket,
   onClick,
   className,
 }) => {
+  const status = statusLabelMap[ticket.status];
+
+  const priority = ticket.priority ? priorityLabelMap[ticket.priority] : null;
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={() => onClick?.(ticket)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onClick?.(ticket);
-      }}
       className={cn(
-        "w-full text-left bg-white dark:bg-[#1e293b] rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm p-3.5 space-y-3 transition-all hover:shadow-md active:scale-[0.99] border-l-4",
-        borderAccentMap[ticket.status] || "border-l-slate-300",
+        "relative w-full overflow-hidden",
+        "rounded-lg border border-slate-200",
+        "border-l-4 bg-table-card p-3",
+        "text-left shadow-sm transition-colors",
+        "hover:bg-slate-50 active:bg-slate-100",
+        "focus-visible:outline-none",
+        "focus-visible:ring-2 focus-visible:ring-blue-500",
+        "focus-visible:ring-offset-2",
+        "dark:border-slate-700",
+        "dark:hover:bg-slate-800",
+        "dark:active:bg-slate-700",
+        borderAccentMap[status],
         className,
       )}
     >
-      {/* Baris 1: Nomor Tiket & Badge Status */}
+      {/* =========================
+          ROW 1: TICKET + BADGES
+      ========================= */}
+
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-400 font-semibold block">
+        {/* Ticket number */}
+        <div className="min-w-0">
+          <span
+            className={cn(
+              "block text-[10px] font-semibold",
+              "uppercase tracking-wider",
+              "text-slate-500 dark:text-slate-400",
+            )}
+          >
             Nomor Tiket
           </span>
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{ticket.code}</p>
+
+          <p className={cn("mt-0.5 truncate text-xs font-semibold", "text-text-secondary")}>
+            {ticket.ticket_number}
+          </p>
         </div>
 
-        <Badge variant={statusVariantMap[ticket.status] || "default"} size="sm">
-          {ticket.status}
-        </Badge>
+        {/* Status and priority */}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <TicketStatusBadge status={status} />
+
+          {priority && <TicketPriorityBadge priority={priority} />}
+        </div>
       </div>
 
-      {/* Baris 2: Profil Pelapor & Tanggal */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-50 dark:border-slate-800/80">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar
-            initials={ticket.reporter.avatarInitials}
-            src={ticket.reporter.avatarUrl}
-            size="md"
-          />
+      {/* =========================
+          ROW 2: REPORTER + DATE
+      ========================= */}
+
+      <div
+        className={cn(
+          "mt-3 flex items-center justify-between gap-2",
+          "border-t border-slate-100 pt-2.5",
+          "dark:border-slate-700",
+        )}
+      >
+        {/* Reporter information */}
+        <div className="flex min-w-0 items-center gap-2">
+          {/* Avatar */}
+          <div
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center",
+              "justify-center rounded-full",
+              "bg-blue-100 text-[10px] font-semibold",
+              "text-blue-700",
+              "dark:bg-blue-950 dark:text-blue-300",
+            )}
+          >
+            {getInitials(ticket.reporter.name)}
+          </div>
+
+          {/* Name + unit */}
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+            <p className={cn("truncate text-xs font-semibold", "text-text")}>
               {ticket.reporter.name}
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate">
-              {ticket.reporter.unit}
-            </p>
+
+            <p className={cn("truncate text-[11px]", "text-text-secondary")}>{ticket.unit.name}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>{ticket.createdAt}</span>
+        {/* Date */}
+        <div className={cn("flex shrink-0 items-center gap-1", "text-[10px] text-text-secondary")}>
+          <Calendar size={12} strokeWidth={1.8} className="shrink-0 text-text-secondary" />
+
+          <span>{formatDateTime(ticket.created_at)}</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

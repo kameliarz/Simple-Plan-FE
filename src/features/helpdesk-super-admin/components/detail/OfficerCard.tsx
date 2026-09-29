@@ -95,61 +95,34 @@ export default function OfficerCard({
       )}
 
       {isAssignmentSaved && savedOfficer && (
-        <div
-          className="
-            overflow-hidden
-            rounded-xl
-            border
-            border-slate-100
-            bg-white
-            shadow-sm
-            dark:border-slate-700
-            dark:bg-table-card
-          "
+        <DetailCard
+          title="Petugas"
+          icon={<UserRound size={17} className="text-text-title" />}
+          headerRight={
+            <span
+              className="
+                rounded-md
+                bg-emerald-50
+                px-2 py-1
+                text-[11px] font-medium
+                text-green-600
+                dark:bg-emerald-200/85
+                dark:text-green-700
+              "
+            >
+              Ditugaskan
+            </span>
+          }
         >
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserRound size={17} className="text-text-title" />
-
-                <h2 className="text-base font-semibold text-text-title">Petugas</h2>
-              </div>
-
-              <span
-                className="
-                  rounded-md
-                  border
-                  border-green-200
-                  bg-emerald-50
-                  px-2
-                  py-1
-                  text-[11px]
-                  font-medium
-                  text-green-600
-                  dark:bg-emerald-200
-                  dark:text-green-700
-                "
-              >
-                Ditugaskan
-              </span>
-            </div>
-
-            <div className="my-3 border-t border-slate-100 dark:border-slate-700" />
-
+          <div className="px-4 py-4 sm:px-6">
             <div className="flex items-center gap-3">
               <div
                 className="
-                  flex
-                  h-9
-                  w-9
-                  shrink-0
-                  items-center
-                  justify-center
+                  flex h-9 w-9 shrink-0
+                  items-center justify-center
                   rounded-full
                   bg-primary-600
-                  text-xs
-                  font-semibold
-                  text-white
+                  text-xs font-semibold text-white
                 "
               >
                 {savedOfficer.initials}
@@ -159,12 +132,11 @@ export default function OfficerCard({
                 <p className="truncate text-sm font-semibold text-text-title">
                   {savedOfficer.name}
                 </p>
-
                 <p className="mt-0.5 truncate text-xs text-text-secondary">{savedOfficer.role}</p>
               </div>
             </div>
           </div>
-        </div>
+        </DetailCard>
       )}
     </>
   );

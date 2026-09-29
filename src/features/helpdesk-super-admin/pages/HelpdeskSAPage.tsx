@@ -11,10 +11,15 @@ import DateInput from "@/components/ui/ui-template/DateInput";
 
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
 import { TicketPriorityBadge } from "../components/TicketPriorityBadge";
+import { TicketCardMobile } from "../components/TicketCardMobile";
+import { TicketFilterBottomSheet } from "../components/TicketFilterBottomSheet";
+
+import type { FilterState } from "../components/TicketFilterBottomSheet";
 
 import { getTickets } from "../services/ticketApi";
 
 import type { TicketPriority, TicketStatus } from "../types/helpdesk";
+
 import type {
   ApiTicket,
   ApiTicketStatus,
@@ -72,6 +77,10 @@ const formatDateTime = (dateString: string): string => {
     .replace(".", ":");
 };
 
+/* =========================
+   MAIN PAGE
+========================= */
+
 export default function HelpdeskSAPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -98,14 +107,17 @@ export default function HelpdeskSAPage() {
   const [dateTo, setDateTo] = useState("");
 
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
+
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   /* =========================
      FETCH TICKETS
   ========================= */
 
   useEffect(() => {
+    let isActive = true;
+
     const fetchTickets = async () => {
       try {
         setLoading(true);
@@ -117,7 +129,6 @@ export default function HelpdeskSAPage() {
           service,
 
           status: status || undefined,
-
           priority: priority || undefined,
 
           search: search.trim() || undefined,
@@ -126,12 +137,9 @@ export default function HelpdeskSAPage() {
           date_to: dateTo || undefined,
         });
 
-        /*
-         * DEBUG SEMENTARA
-         *
-         * Ini penting untuk memastikan data priority
-         * benar-benar masuk dari API.
-         */
+        if (!isActive) return;
+
+        // Debug sementara
         console.log("GET /tickets response:", response);
 
         console.log(
@@ -146,13 +154,21 @@ export default function HelpdeskSAPage() {
         setTickets(response.data);
         setMeta(response.meta);
       } catch (error) {
+        if (!isActive) return;
+
         setError(error instanceof Error ? error.message : "Gagal mengambil data tiket.");
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTickets();
+
+    return () => {
+      isActive = false;
+    };
   }, [currentPage, search, status, priority, dateFrom, dateTo, service]);
 
   /* =========================
@@ -193,8 +209,121 @@ export default function HelpdeskSAPage() {
     setCurrentPage(1);
   };
 
+  const handleDateRangeChange = ({ start, end }: { start: string; end: string }) => {
+    setDateFrom(start);
+    setDateTo(end);
+    setCurrentPage(1);
+  };
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleTicketClick = (ticket: ApiTicket) => {
+    navigate(`/helpdesk/${service}/${ticket.id}`);
+  };
+
+  /* =========================
+     MOBILE FILTER
+  ========================= */
+
+  const handleApplyMobileFilters = (filters: FilterState) => {
+    setStatus(filters.status ?? "");
+    setPriority(filters.priority ?? "");
+    setDateFrom(filters.dateFrom);
+    setDateTo(filters.dateTo);
+    setCurrentPage(1);
+  };
+
+  const initialMobileFilters: FilterState = {
+    status,
+    priority,
+    dateFrom,
+    dateTo,
+  };
+
+  /* =========================
+     EMPTY STATE
+  ========================= */
+
+  const emptyMessage = search
+    ? `Pencarian untuk "${search}" tidak membuahkan hasil.`
+    : "Tidak ada tiket yang sesuai dengan filter.";
+
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center px-4 py-10 text-center">
+      <div
+        className="
+          mb-3 flex h-14 w-14 items-center justify-center
+          rounded-2xl border border-slate-200
+          bg-slate-50 text-slate-400 shadow-sm
+          dark:border-slate-700 dark:bg-slate-800
+        "
+      >
+        <IconFolder size={28} strokeWidth={1.5} />
+      </div>
+
+      <p className="text-sm font-medium text-text">Tiket Tidak Ditemukan</p>
+
+      <p className="mt-1 text-xs text-text-secondary">{emptyMessage}</p>
+    </div>
+  );
+
+  /* =========================
+     MOBILE TICKET LIST
+  ========================= */
+
+  const renderMobileTickets = () => {
+    if (loading) {
+      return (
+        <div
+          className="
+            rounded-lg border border-slate-200
+            bg-table-card py-10 text-center
+            text-sm text-text-secondary
+            dark:border-slate-700
+          "
+        >
+          Memuat data tiket...
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div
+          className="
+            rounded-lg border border-slate-200
+            bg-table-card py-10 text-center
+            text-sm text-red-500
+            dark:border-slate-700
+          "
+        >
+          {error}
+        </div>
+      );
+    }
+
+    if (tickets.length === 0) {
+      return (
+        <div
+          className="
+            rounded-lg border border-slate-200
+            bg-table-card dark:border-slate-700
+          "
+        >
+          {renderEmptyState()}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {tickets.map((ticket) => (
+          <TicketCardMobile key={ticket.id} ticket={ticket} onClick={handleTicketClick} />
+        ))}
+      </div>
+    );
   };
 
   /* =========================
@@ -202,74 +331,158 @@ export default function HelpdeskSAPage() {
   ========================= */
 
   return (
-    <div className="min-h-full bg-background p-4 text-text lg:p-5">
+    <div
+      className="
+        min-h-full bg-background
+        px-4 py-3 text-text
+        sm:p-4 lg:p-5
+      "
+    >
       <div className="mx-auto max-w-350">
         {/* =========================
             FILTER CARD
         ========================= */}
 
-        <div className="mb-4 overflow-visible rounded-lg border border-slate-200 bg-table-card dark:border-slate-700">
-          <div className="flex flex-wrap items-center gap-3 p-4">
-            {/* Filter label */}
+        <div
+          className="
+            mb-4 overflow-visible rounded-lg
+            border border-slate-200 bg-table-card
+            dark:border-slate-700
+          "
+        >
+          {/* MOBILE SEARCH + FILTER BUTTON */}
 
-            <div className="flex items-center gap-2 border-r border-slate-200 pr-4 dark:border-slate-700">
-              <IconFilter size={16} strokeWidth={2} className="text-text-secondary" />
-
-              <span className="text-sm font-medium text-text-secondary">Filters</span>
+          <div className="flex items-center gap-2 p-3 md:hidden">
+            <div className="min-w-0 flex-1">
+              <Search
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="Cari ID tiket, pelapor..."
+              />
             </div>
 
-            {/* Status */}
+            <button
+              type="button"
+              onClick={() => setIsFilterSheetOpen(true)}
+              aria-label="Buka filter tiket"
+              aria-haspopup="dialog"
+              aria-expanded={isFilterSheetOpen}
+              className="
+                flex h-10 w-10 shrink-0
+                items-center justify-center
+                rounded-lg border
+                border-slate-200
+                bg-white text-text-secondary
+                transition-colors
+                hover:bg-slate-50
+                focus-visible:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-blue-500
+                dark:border-slate-700
+                dark:bg-slate-800
+              "
+            >
+              <IconFilter size={18} strokeWidth={1.8} />
+            </button>
+          </div>
 
-            <Dropdown
-              value={status ? statusLabelMap[status] : ""}
-              options={[
-                "Semua status",
-                "Baru",
-                "Diklasifikasi",
-                "Ditolak",
-                "Diproses",
-                "Eskalasi",
-                "Terselesaikan",
-                "Ditutup",
-              ]}
-              onChange={handleStatusChange}
-              placeholder="Semua status"
-            />
+          {/* DESKTOP FILTER CONTROLS */}
 
-            <Dropdown
-              value={priority ? priorityLabelMap[priority] : ""}
-              options={["Semua prioritas", "Critical", "High", "Medium", "Low"]}
-              onChange={handlePriorityChange}
-              placeholder="Semua prioritas"
-              className="w-44"
-            />
+          <div
+            className="
+              hidden border-t border-slate-200
+              p-4 dark:border-slate-700
+              md:block md:border-t-0
+            "
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              {/* FILTER LABEL */}
 
-            {/* Date */}
+              <div
+                className="
+                  flex items-center gap-2
+                  border-r border-slate-200 pr-4
+                  dark:border-slate-700
+                "
+              >
+                <IconFilter size={16} strokeWidth={2} className="text-text-secondary" />
 
-            <DateInput
-              variant="range"
-              startValue={dateFrom}
-              endValue={dateTo}
-              onRangeChange={({ start, end }) => {
-                setDateFrom(start);
-                setDateTo(end);
-                setCurrentPage(1);
-              }}
-            />
+                <span className="text-sm font-medium text-text-secondary">Filters</span>
+              </div>
 
-            {/* Search */}
+              {/* STATUS FILTER */}
 
-            <div className="ml-auto w-full lg:w-64">
-              <Search value={search} onChange={handleSearchChange} placeholder="Cari data..." />
+              <Dropdown
+                value={status ? statusLabelMap[status] : ""}
+                options={[
+                  "Semua status",
+                  "Baru",
+                  "Diklasifikasi",
+                  "Ditolak",
+                  "Diproses",
+                  "Eskalasi",
+                  "Terselesaikan",
+                  "Ditutup",
+                ]}
+                onChange={handleStatusChange}
+                placeholder="Semua status"
+              />
+
+              {/* PRIORITY FILTER */}
+
+              <Dropdown
+                value={priority ? priorityLabelMap[priority] : ""}
+                options={["Semua prioritas", "Critical", "High", "Medium", "Low"]}
+                onChange={handlePriorityChange}
+                placeholder="Semua prioritas"
+                className="w-44"
+              />
+
+              {/* DATE FILTER */}
+
+              <DateInput
+                variant="range"
+                startValue={dateFrom}
+                endValue={dateTo}
+                onRangeChange={handleDateRangeChange}
+              />
+
+              {/* DESKTOP SEARCH */}
+
+              <div className="ml-auto w-64">
+                <Search value={search} onChange={handleSearchChange} placeholder="Cari data..." />
+              </div>
             </div>
           </div>
         </div>
 
         {/* =========================
-            TABLE CARD
+            MOBILE TICKET LIST
         ========================= */}
 
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-table-card dark:border-slate-700">
+        <div className="md:hidden">
+          {renderMobileTickets()}
+
+          {/* MOBILE PAGINATION */}
+
+          {meta && (
+            <div className="mt-3">
+              <Pagination meta={meta} onPageChange={handlePageChange} />
+            </div>
+          )}
+        </div>
+
+        {/* =========================
+            DESKTOP TABLE
+        ========================= */}
+
+        <div
+          className="
+            hidden overflow-hidden rounded-lg
+            border border-slate-200 bg-table-card
+            dark:border-slate-700 md:block
+          "
+        >
           <Table>
             <Table.Thead>
               <tr>
@@ -283,36 +496,42 @@ export default function HelpdeskSAPage() {
             </Table.Thead>
 
             <Table.Tbody>
-              {/* =========================
-                  LOADING
-              ========================= */}
-
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-sm text-text-secondary">
+                  <td
+                    colSpan={6}
+                    className="
+                      py-10 text-center
+                      text-sm text-text-secondary
+                    "
+                  >
                     Memuat data tiket...
                   </td>
                 </tr>
-              ) : /* =========================
-                   ERROR
-               ========================= */
-              error ? (
+              ) : error ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-sm text-red-500">
+                  <td
+                    colSpan={6}
+                    className="
+                      py-10 text-center
+                      text-sm text-red-500
+                    "
+                  >
                     {error}
                   </td>
                 </tr>
-              ) : /* =========================
-                   DATA
-               ========================= */
-              tickets.length > 0 ? (
+              ) : tickets.length > 0 ? (
                 tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    onClick={() => navigate(`/helpdesk/${service}/${ticket.id}`)}
-                    className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                    onClick={() => handleTicketClick(ticket)}
+                    className="
+                      cursor-pointer transition-colors
+                      hover:bg-slate-50
+                      dark:hover:bg-slate-700
+                    "
                   >
-                    {/* Nomor tiket */}
+                    {/* NOMOR TIKET */}
 
                     <Table.Td>
                       <span className="font-medium text-text-secondary">
@@ -320,25 +539,25 @@ export default function HelpdeskSAPage() {
                       </span>
                     </Table.Td>
 
-                    {/* Pelapor */}
+                    {/* PELAPOR */}
 
                     <Table.Td>{ticket.reporter.name}</Table.Td>
 
-                    {/* Unit */}
+                    {/* UNIT */}
 
                     <Table.Td>{ticket.unit.name}</Table.Td>
 
-                    {/* Tanggal masuk */}
+                    {/* TANGGAL MASUK */}
 
                     <Table.Td>{formatDateTime(ticket.created_at)}</Table.Td>
 
-                    {/* Status */}
+                    {/* STATUS */}
 
                     <Table.Td>
                       <TicketStatusBadge status={statusLabelMap[ticket.status]} />
                     </Table.Td>
 
-                    {/* Prioritas */}
+                    {/* PRIORITAS */}
 
                     <Table.Td>
                       <TicketPriorityBadge
@@ -348,35 +567,17 @@ export default function HelpdeskSAPage() {
                   </tr>
                 ))
               ) : (
-                /* =========================
-                   EMPTY
-               ========================= */
-
-                <Table.Empty
-                  colSpan={6}
-                  message="Tiket Tidak Ditemukan"
-                  description={
-                    search
-                      ? `Pencarian untuk "${search}" tidak membuahkan hasil.`
-                      : "Tidak ada tiket yang sesuai dengan filter."
-                  }
-                >
+                <Table.Empty colSpan={6} message="Tiket Tidak Ditemukan" description={emptyMessage}>
                   <div
                     className="
-                      flex
-                      h-16
-                      w-16
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      border
+                      flex h-16 w-16
+                      items-center justify-center
+                      rounded-2xl border
                       border-slate-200
-                      bg-slate-50
-                      text-slate-400
+                      bg-slate-50 text-slate-400
                       shadow-sm
                       dark:border-slate-700
                       dark:bg-slate-800
-                      dark:text-slate-400
                     "
                   >
                     <IconFolder size={30} strokeWidth={1.5} />
@@ -386,10 +587,21 @@ export default function HelpdeskSAPage() {
             </Table.Tbody>
           </Table>
 
-          {/* Pagination */}
+          {/* DESKTOP PAGINATION */}
 
           {meta && <Pagination meta={meta} onPageChange={handlePageChange} />}
         </div>
+
+        {/* =========================
+            MOBILE FILTER BOTTOM SHEET
+        ========================= */}
+
+        <TicketFilterBottomSheet
+          isOpen={isFilterSheetOpen}
+          onClose={() => setIsFilterSheetOpen(false)}
+          onApply={handleApplyMobileFilters}
+          initialFilters={initialMobileFilters}
+        />
       </div>
     </div>
   );
