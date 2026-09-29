@@ -35,6 +35,7 @@ export default function DetailCard({
         className="
           flex
           items-center
+          justify-between
           gap-2
           border-b
           border-slate-200

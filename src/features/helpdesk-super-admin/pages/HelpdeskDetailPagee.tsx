@@ -7,7 +7,14 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { ApiTicket } from "../types/ticket";
 import type { TicketItem, TicketPriority } from "../types/helpdesk";
 
-import { getTicket } from "../services/ticketApi";
+import {
+  verifyTicketResolution,
+  getTicket,
+  classifyTicket,
+  assignTicket,
+  rejectTicket,
+  createTicketHandling,
+} from "../services/ticketApi";
 
 import RejectTicketModal from "../components/RejectTicketModal";
 import AssignOfficerModal from "../components/AssignOfficerModal";
@@ -44,7 +51,6 @@ const mapStatus = (status: ApiTicket["status"]): TicketItem["status"] => {
     baru: "Baru",
     diklasifikasi: "Diklasifikasi",
     ditolak: "Ditolak",
-    ditugaskan: "Ditugaskan",
     diproses: "Diproses",
     eskalasi: "Eskalasi",
     terselesaikan: "Terselesaikan",
@@ -116,19 +122,64 @@ const formatFileSize = (bytes: number): string => {
 // ==========================================
 
 const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
+  const getHistoryAction = (fromStatus: string, toStatus: string): string => {
+    const transitions: Record<string, string> = {
+      "baru-diklasifikasi": "Tiket Diklasifikasi",
+      "diklasifikasi-diproses": "Petugas Ditugaskan",
+      "diproses-terselesaikan": "Tiket Selesai",
+      "terselesaikan-ditutup": "Tiket Ditutup",
+      "terselesaikan-diproses": "Pengerjaan Ulang oleh Teknisi",
+      "diproses-eskalasi": "Tiket Dieskalasi",
+      "baru-ditolak": "Tiket Ditolak",
+    };
+
+    return (
+      transitions[`${fromStatus}-${toStatus}`] ?? `Status berubah: ${fromStatus} → ${toStatus}`
+    );
+  };
+
+  const history = [
+    {
+      id: `created-${ticket.id}`,
+      action: "Tiket Dibuat",
+      rawTimestamp: ticket.created_at,
+      isCompleted: true,
+    },
+
+    ...(ticket.status_histories ?? []).map((item) => {
+      const isTicketCompleted =
+        item.from_status === "diproses" && item.to_status === "terselesaikan";
+
+      return {
+        id: `status-${item.id}`,
+        action: getHistoryAction(item.from_status, item.to_status),
+        rawTimestamp: item.created_at,
+        isCompleted: true,
+        ...(!isTicketCompleted && item.notes ? { handlingNote: item.notes } : {}),
+      };
+    }),
+
+    ...(ticket.handlings ?? []).map((item) => ({
+      id: `handling-${item.id}`,
+      action: "Pengerjaan Teknisi",
+      rawTimestamp: item.created_at,
+      isCompleted: true,
+      handlingNote: item.notes ?? undefined,
+    })),
+  ]
+    .sort((a, b) => new Date(b.rawTimestamp).getTime() - new Date(a.rawTimestamp).getTime())
+    .map(({ rawTimestamp, ...item }) => ({
+      ...item,
+      timestamp: formatHistoryDate(rawTimestamp),
+    }));
+
   return {
     id: String(ticket.id),
-
     code: ticket.ticket_number,
-
     title: ticket.category ?? "-",
-
     description: ticket.description,
-
     category: ticket.service === "tik" ? "TIK" : "Sarpras",
-
     status: mapStatus(ticket.status),
-
     priority: ticket.priority
       ? ({
           critical: "Critical",
@@ -137,47 +188,32 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
           low: "Low",
         }[ticket.priority] as TicketPriority)
       : null,
-
     reporter: {
       name: ticket.reporter.name,
       unit: ticket.unit.name,
     },
-
     assignee: ticket.assigned_officer
       ? {
           name: ticket.assigned_officer.name,
           role: "Petugas",
         }
       : undefined,
-
     createdAt: ticket.created_at,
-
+    sla_started_at: ticket.sla_started_at ?? null,
     finishedAt: ticket.completed_at ?? undefined,
-
     attachments: ticket.initial_evidence
       ? [
           {
             id: ticket.initial_evidence.object_key,
-
             name: ticket.initial_evidence.original_name,
-
             size: formatFileSize(ticket.initial_evidence.size),
-
             url: ticket.initial_evidence.object_key.startsWith("http")
               ? ticket.initial_evidence.object_key
               : `/storage/${ticket.initial_evidence.object_key}`,
           },
         ]
       : [],
-
-    history: [
-      {
-        id: `created-${ticket.id}`,
-        action: "Tiket Dibuat",
-        timestamp: formatHistoryDate(ticket.created_at),
-        isCompleted: true,
-      },
-    ],
+    history,
   };
 };
 
@@ -193,6 +229,15 @@ const kategoriMutuOptions = [
   "Waktu Tanggap Kerusakan Hardware",
   "Waktu Tanggap Kerusakan Software",
 ];
+
+const kategoriMutuIdMap: Record<string, number> = {
+  "Kepatuhan Input Operator": 1,
+  "Ketidakstabilan System": 2,
+  "Ketidaksesuaian Program": 3,
+  "Akun dan Hak Akses System": 4,
+  "Waktu Tanggap Kerusakan Hardware": 5,
+  "Waktu Tanggap Kerusakan Software": 6,
+};
 
 const tagsITOptions = [
   "Manage Batal Kunjungan Pasien",
@@ -230,6 +275,43 @@ const tagsITOptions = [
   "Perbaikan Perangkat",
   "Lain-lain",
 ];
+
+const tagsITIdMap: Record<string, number> = {
+  "Manage Batal Kunjungan Pasien": 1,
+  "Edit Asesmen Medis Dokter (Form Perubahan Data)": 2,
+  "Support Apps Hapus Asesmen Medis Dokter": 3,
+  "Edit Asesmen Keperawatan (Form Perubahan Data)": 4,
+  "Support Apps Hapus Asesmen Keperawatan": 5,
+  "Edit Data Operasi dari Modul Operasi": 6,
+  "Hapus Request, Regis dan ID Penjualan LAB": 7,
+  "Hapus Request, Regis dan ID Penjualan RAD": 8,
+  "Manage Edit ID Penjualan LAB": 9,
+  "Manage Edit ID Penjualan RAD": 10,
+  "Manage ACC dan Ticketing Unit": 11,
+  "Hapus Request BMHP Farmasi": 12,
+  "Manage Master Baru (Jasa, Rikjang, Fasilitas)": 13,
+  "Manage Mapping Master (Jasa, Rikjang, Fasilitas)": 14,
+  "Manage Mapping untuk Bridging IT": 15,
+  "Manage Master LAB Test": 16,
+  "Manage Master RAD Test": 17,
+  "Manage Casemix Tidak Muncul": 18,
+  "Manage Unvalidasi RPP": 19,
+  "Manage Program Reham Medik Poli Fisioterapi": 20,
+  "Manage Master Barang Medis Farmasi": 21,
+  "Manage Tambah Hak Akses User NUHA": 22,
+  "Manage Edit Hak Akses User NUHA": 23,
+  "Manage Hapus Hak Akses User NUHA": 24,
+  "Manage Pelatihan Modul ke Unit": 25,
+  "Manage Input Diagnostik Medis": 26,
+  "Manage Input Tindakan Kunjungan di Modul Vaksin": 27,
+  "Manage Tambah Master Jam Kerja + Mapping Unit": 28,
+  "Manage Transfer Mutasi Saldo di Kas V3": 29,
+  "Manage Master Tenaga Medis": 30,
+  "Manage Mapping Master Ruangan Operasi": 31,
+  "Pergantian Sparepart": 32,
+  "Perbaikan Perangkat": 33,
+  "Lain-lain": 34,
+};
 
 const kategoriSarprasOptions = ["Sarpras", "Elektronik", "Alkes"];
 
@@ -364,6 +446,7 @@ export default function HelpdeskDetailPage() {
 
   const [isRejectResolutionModalOpen, setIsRejectResolutionModalOpen] = useState(false);
 
+  const [isRejecting, setIsRejecting] = useState(false);
   // ==========================================
   // Escalation
   // ==========================================
@@ -392,7 +475,7 @@ export default function HelpdeskDetailPage() {
   // CLASSIFICATION
   // ==========================================
 
-  const [isClassifying] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
 
   const [isClassificationSaved, setIsClassificationSaved] = useState(false);
 
@@ -443,6 +526,10 @@ export default function HelpdeskDetailPage() {
 
   const [isContinuingHandling, setIsContinuingHandling] = useState(false);
 
+  const [isSavingHandling, setIsSavingHandling] = useState(false);
+
+  const [isVerifying, setIsVerifying] = useState(false);
+
   // ==========================================
   // GET DETAIL TICKET
   // ==========================================
@@ -476,14 +563,13 @@ export default function HelpdeskDetailPage() {
 
         const classifiedStatuses = [
           "diklasifikasi",
-          "ditugaskan",
           "diproses",
           "eskalasi",
           "terselesaikan",
           "ditutup",
         ];
 
-        const assignedStatuses = ["ditugaskan", "diproses", "eskalasi", "terselesaikan", "ditutup"];
+        const assignedStatuses = ["diproses", "eskalasi", "terselesaikan", "ditutup"];
 
         const isClassified = classifiedStatuses.includes(status);
         const isAssigned = assignedStatuses.includes(status);
@@ -632,30 +718,171 @@ export default function HelpdeskDetailPage() {
   // REJECT
   // ==========================================
 
-  const handleConfirmReject = (reason: string) => {
-    setIsRejectModalOpen(false);
+  const handleConfirmReject = async (reason: string) => {
+    const trimmedReason = reason.trim();
 
-    const updatedHistory = [
-      {
-        id: `rejected-${Date.now()}`,
-        action: "Tiket Ditolak",
-        timestamp: formatHistoryDate(new Date().toISOString()),
-        isCompleted: true,
-      },
-      ...(currentTicket.history || []),
-    ];
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
 
-    const updatedTicket: TicketItem = {
-      ...currentTicket,
-      status: "Ditolak",
-      history: updatedHistory,
-    };
+    if (!trimmedReason) {
+      showAlertMessage("Masukkan alasan penolakan terlebih dahulu.", "error");
+      return;
+    }
 
-    setCurrentTicket(updatedTicket);
+    if (isRejecting) return;
 
-    showAlertMessage("Tiket ditolak", "error");
+    setIsRejecting(true);
 
-    console.log("Alasan penolakan:", reason);
+    try {
+      // Kirim permintaan penolakan ke backend
+      await rejectTicket(ticketId, {
+        reason: trimmedReason,
+      });
+
+      // Hanya perbarui tampilan jika API berhasil
+      const updatedHistory = [
+        {
+          id: `rejected-${Date.now()}`,
+          action: "Tiket Ditolak",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+        },
+        ...(currentTicket.history || []),
+      ];
+
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Ditolak",
+        history: updatedHistory,
+      });
+
+      setIsRejectModalOpen(false);
+      showAlertMessage("Tiket berhasil ditolak.", "success");
+    } catch (error) {
+      console.error("Gagal menolak tiket:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Terjadi kesalahan saat menolak tiket.",
+        "error",
+      );
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  // ==========================================
+  // OPEN CLASSIFICATION
+  // ==========================================
+
+  const handleOpenClassification = () => {
+    setIsClassifying(true);
+
+    setKategoriMutuError("");
+    setTagsITError("");
+
+    setTimeout(() => {
+      classificationRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+
+  // ==========================================
+  // CANCEL CLASSIFICATION
+  // ==========================================
+
+  const handleCancelClassification = () => {
+    setIsClassifying(false);
+
+    setKategoriMutu("");
+    setTagsIT("");
+
+    setKategoriMutuError("");
+    setTagsITError("");
+  };
+
+  // ==========================================
+  // SAVE CLASSIFICATION
+  // ==========================================
+
+  const handleSaveClassification = async () => {
+    let hasError = false;
+
+    if (isSarpras) {
+      if (!kategoriSarpras) {
+        setKategoriSarprasError("Kategori Sarpras wajib dipilih.");
+        hasError = true;
+      } else {
+        setKategoriSarprasError("");
+      }
+    } else {
+      if (!kategoriMutu) {
+        setKategoriMutuError("Kategori mutu wajib dipilih.");
+        hasError = true;
+      } else {
+        setKategoriMutuError("");
+      }
+
+      if (!tagsIT) {
+        setTagsITError("Tags IT wajib dipilih.");
+        hasError = true;
+      } else {
+        setTagsITError("");
+      }
+    }
+
+    if (hasError) return;
+
+    const qualityCategoryId = kategoriMutuIdMap[kategoriMutu];
+    const itTagId = tagsITIdMap[tagsIT];
+
+    if (!isSarpras && (!qualityCategoryId || !itTagId)) {
+      showAlertMessage("ID kategori atau tag IT tidak valid.", "error");
+      return;
+    }
+
+    try {
+      if (!isSarpras) {
+        await classifyTicket(ticketId, {
+          quality_category_id: qualityCategoryId,
+          it_tag_id: itTagId,
+          custom_it_tag_text: tagsIT === "Lain-lain" ? "Lain-lain" : "",
+        });
+      }
+
+      const updatedHistory = [
+        {
+          id: `classified-${Date.now()}`,
+          action: "Tiket Diklasifikasi",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+        },
+        ...(currentTicket.history || []),
+      ];
+
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Diklasifikasi",
+        history: updatedHistory,
+      });
+
+      setIsClassifying(false);
+      setIsClassificationSaved(true);
+      setIsAssignmentMode(true);
+      setIsAssignmentSaved(false);
+
+      showAlertMessage("Tiket berhasil diklasifikasikan", "success");
+    } catch (error) {
+      console.error("Error klasifikasi tiket:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Gagal mengklasifikasikan tiket",
+        "error",
+      );
+    }
   };
 
   // ==========================================
@@ -680,60 +907,241 @@ export default function HelpdeskDetailPage() {
   };
 
   // ==========================================
-  // HANDLE TICKET
+  // SAVE ASSIGNMENT
   // ==========================================
-  const handleSaveHandling = (data: HandleTicketFormData) => {
-    console.log("Data penanganan:", data);
 
-    const wasContinuing = isContinuingHandling;
-
-    // Buat foto khusus untuk aktivitas ini
-    let handlingPhoto;
-
-    if (data.photo) {
-      const photoUrl = URL.createObjectURL(data.photo);
-
-      handlingPhoto = {
-        name: data.photo.name,
-        size: formatFileSize(data.photo.size),
-        url: photoUrl,
-      };
+  const handleSaveAssignment = async () => {
+    if (!priority) {
+      showAlertMessage("Tingkat prioritas wajib dipilih.", "error");
+      return;
     }
 
-    // Buat history baru.
-    // Catatan + foto disimpan DI DALAM history item ini.
-    const newHistoryItem = {
-      id: `handling-${Date.now()}`,
-      action: "Pengerjaan Teknisi",
-      timestamp: formatHistoryDate(new Date().toISOString()),
-      isCompleted: true,
+    if (!assignedOfficer) {
+      showAlertMessage("Petugas wajib dipilih.", "error");
+      return;
+    }
 
-      handlingNote: data.notes,
+    try {
+      // Kirim assignment ke backend
+      await assignTicket(ticketId, {
+        assigned_officer_id: assignedOfficer.id,
+        priority: priority,
+      });
 
-      ...(handlingPhoto && {
-        handlingPhoto,
-      }),
-    };
+      // Simpan sebagai data final setelah API berhasil
+      setSavedPriority(priority);
+      setSavedOfficer(assignedOfficer);
+      setIsAssignmentMode(false);
+      setIsAssignmentSaved(true);
 
-    const updatedHistory = [newHistoryItem, ...(currentTicket.history || [])];
+      // Perbarui riwayat di tampilan
+      const updatedHistory = [
+        {
+          id: `assigned-${Date.now()}`,
+          action: "Petugas Ditugaskan",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+        },
+        ...(currentTicket.history || []),
+      ];
 
-    setCurrentTicket({
-      ...currentTicket,
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Diproses",
+        priority:
+          priority === "critical"
+            ? "Critical"
+            : priority === "high"
+              ? "High"
+              : priority === "medium"
+                ? "Medium"
+                : "Low",
+        history: updatedHistory,
+      });
 
-      status: wasContinuing ? "Diproses" : "Terselesaikan",
+      showAlertMessage("Prioritas dan petugas berhasil disimpan.", "success");
+    } catch (error) {
+      console.error("Gagal menyimpan assignment:", error);
 
-      history: updatedHistory,
-    });
+      showAlertMessage(
+        error instanceof Error ? error.message : "Gagal menyimpan petugas.",
+        "error",
+      );
+    }
+  };
 
-    setIsHandleModalOpen(false);
-    setIsContinuingHandling(false);
+  // ==========================================
+  // CANCEL ASSIGNMENT
+  // ==========================================
 
-    showAlertMessage(
-      wasContinuing
-        ? "Penanganan dilanjutkan. Tiket kembali ke status diproses."
-        : "Pengerjaan teknisi berhasil disimpan.",
-      "success",
-    );
+  const handleCancelAssignment = () => {
+    /*
+     * Kalau belum pernah ada data final:
+     * kembali ke kondisi setelah klasifikasi.
+     */
+    if (!isAssignmentSaved) {
+      setPriority(null);
+      setAssignedOfficer(null);
+
+      setIsAssignmentMode(false);
+
+      return;
+    }
+
+    /*
+     * Kalau suatu saat mode edit final dipakai,
+     * kembalikan ke data yang sudah disimpan.
+     */
+    setPriority(savedPriority);
+    setAssignedOfficer(savedOfficer);
+
+    setIsAssignmentMode(false);
+  };
+
+  // ==========================================
+  // STATUS
+  // ==========================================
+
+  const isRejected = currentTicket.status === "Ditolak";
+
+  // ==========================================
+  // HANDLE TICKET
+  // ==========================================
+
+  const handleSaveHandling = async (data: HandleTicketFormData) => {
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
+
+    const notes = data.notes.trim();
+    const startedAt = data.startedAt;
+    const completedAt = data.completedAt;
+
+    // Status dari modal: "diproses" | "selesai"
+    // Status API: "diproses" | "terselesaikan"
+    const apiStatus = isContinuingHandling
+      ? "diproses"
+      : data.status === "terselesaikan"
+        ? "terselesaikan"
+        : "diproses";
+
+    if (!notes) {
+      showAlertMessage("Catatan penanganan wajib diisi.", "error");
+      return;
+    }
+
+    if (!startedAt) {
+      showAlertMessage("Waktu mulai penanganan wajib diisi.", "error");
+      return;
+    }
+
+    if (!completedAt) {
+      showAlertMessage("Waktu selesai penanganan wajib diisi.", "error");
+      return;
+    }
+
+    if (new Date(completedAt) < new Date(startedAt)) {
+      showAlertMessage("Waktu selesai tidak boleh lebih awal dari waktu mulai.", "error");
+      return;
+    }
+
+    try {
+      setIsSavingHandling(true);
+
+      await createTicketHandling(ticketId, {
+        notes,
+        status: apiStatus,
+        started_at: startedAt,
+        completed_at: completedAt,
+        result_photo: data.photo ?? null,
+      });
+
+      const updatedStatus = apiStatus === "terselesaikan" ? "Terselesaikan" : "Diproses";
+
+      const photoUrl = data.photo ? URL.createObjectURL(data.photo) : undefined;
+
+      setCurrentTicket((prev) => {
+        if (!prev) return prev;
+
+        const newHistoryItem = {
+          id: `handling-${Date.now()}`,
+          action: "Penanganan tiket",
+          timestamp: new Date().toISOString(),
+          status: updatedStatus,
+          handlingNote: notes,
+          handlingPhoto: data.photo
+            ? {
+                name: data.photo.name,
+                size: formatFileSize(data.photo.size),
+                url: photoUrl!,
+              }
+            : undefined,
+        };
+
+        return {
+          ...prev,
+          status: updatedStatus,
+          history: [...(prev.history ?? []), newHistoryItem],
+        };
+      });
+
+      setIsHandleModalOpen(false);
+      showAlertMessage("Penanganan tiket berhasil disimpan.", "success");
+    } catch (error) {
+      console.error("Gagal menyimpan penanganan tiket:", error);
+      showAlertMessage("Gagal menyimpan penanganan tiket. Silakan coba lagi.", "error");
+    } finally {
+      setIsSavingHandling(false);
+    }
+  };
+
+  const handleApproveResolution = async () => {
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
+
+    if (isVerifying) return;
+
+    setIsVerifying(true);
+
+    try {
+      // Kirim permintaan verifikasi ke backend.
+      await verifyTicketResolution(ticketId);
+
+      // Perbarui tampilan hanya setelah API berhasil.
+      setCurrentTicket((prev) => {
+        if (!prev) return prev;
+
+        const updatedHistory = [
+          {
+            id: `closed-${Date.now()}`,
+            action: "Tiket Ditutup",
+            timestamp: formatHistoryDate(new Date().toISOString()),
+            isCompleted: true,
+          },
+          ...(prev.history ?? []),
+        ];
+
+        return {
+          ...prev,
+          status: "Ditutup",
+          history: updatedHistory,
+        };
+      });
+
+      showAlertMessage("Penyelesaian tiket disetujui. Tiket telah ditutup.", "success");
+    } catch (error) {
+      console.error("Gagal menyetujui penyelesaian:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Gagal menyetujui penyelesaian tiket.",
+        "error",
+      );
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   // ==========================================
@@ -837,8 +1245,14 @@ export default function HelpdeskDetailPage() {
                 variant="primary"
                 size="sm"
                 onClick={() => {
-                  setIsContinuingHandling(true);
-                  setIsHandleModalOpen(true);
+                  setCurrentTicket((prev) => {
+                    if (!prev) return prev;
+
+                    return {
+                      ...prev,
+                      status: "Diproses",
+                    };
+                  });
                 }}
               />
             )}
@@ -938,28 +1352,24 @@ export default function HelpdeskDetailPage() {
               onOpenAssignModal={handleOpenAssignModal}
             />
 
-            {/* ======================================
-    ACTION BUTTONS
-    BOTTOM RIGHT
-====================================== */}
-
+            {/* ACTION BUTTONS: CLASSIFICATION & ASSIGNMENT */}
             {!isRejected && !isAssignmentSaved && (
               <div className="mt-6 flex w-full justify-end">
                 {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
                       type="button"
-                      label="Tolak Tiket"
                       variant="secondary"
-                      size="sm"
                       onClick={() => setIsRejectModalOpen(true)}
+                      label="Tolak Tiket"
+                      className="flex-1 sm:min-w-32"
                     />
                     <Button
                       type="button"
-                      label="Klasifikasikan"
                       variant="primary"
-                      size="sm"
                       onClick={handleOpenClassification}
+                      label="Klasifikasikan"
+                      className="flex-1 sm:min-w-28"
                     />
                   </div>
                 )}
@@ -968,17 +1378,17 @@ export default function HelpdeskDetailPage() {
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
                       type="button"
-                      label="Batal"
                       variant="secondary"
-                      size="sm"
                       onClick={handleCancelClassification}
+                      label="Batal"
+                      className="flex-1 sm:min-w-28"
                     />
                     <Button
                       type="button"
-                      label="Simpan"
                       variant="primary"
-                      size="sm"
                       onClick={handleSaveClassification}
+                      label="Simpan"
+                      className="flex-1 sm:min-w-28"
                     />
                   </div>
                 )}
@@ -987,22 +1397,27 @@ export default function HelpdeskDetailPage() {
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
                       type="button"
-                      label="Batal"
                       variant="secondary"
-                      size="sm"
                       onClick={handleCancelAssignment}
+                      label="Batal"
+                      className="flex-1 sm:min-w-28"
                     />
                     <Button
                       type="button"
-                      label="Simpan"
                       variant="primary"
-                      size="sm"
                       onClick={handleSaveAssignment}
+                      label="Simpan"
+                      className="flex-1 sm:min-w-28"
                     />
                   </div>
                 )}
               </div>
             )}
+
+            {/* ======================================
+              ACTION BUTTONS
+              BOTTOM RIGHT
+          ====================================== */}
 
             {currentTicket.status === "Terselesaikan" && (
               <div className="mt-5 flex justify-end">
@@ -1020,35 +1435,11 @@ export default function HelpdeskDetailPage() {
 
                   <Button
                     type="button"
-                    label="Setujui Penyelesaian"
+                    label={isVerifying ? "Memproses..." : "Setujui Penyelesaian"}
                     variant="primary"
                     size="sm"
-                    onClick={() => {
-                      const updatedHistory = [
-                        {
-                          id: `closed-${Date.now()}`,
-                          action: "Tiket Ditutup",
-                          timestamp: new Date().toLocaleString("id-ID", {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }),
-                        },
-                        ...(currentTicket.history || []),
-                      ];
-
-                      setCurrentTicket({
-                        ...currentTicket,
-                        status: "Ditutup",
-                        history: updatedHistory,
-                      });
-
-                      showAlertMessage(
-                        "Penyelesaian tiket disetujui. Tiket telah ditutup.",
-                        "success",
-                      );
-                    }}
+                    onClick={handleApproveResolution}
+                    disabled={isVerifying}
                   />
                 </div>
               </div>
@@ -1056,8 +1447,8 @@ export default function HelpdeskDetailPage() {
           </div>
 
           {/* ==================================
-              RIGHT CONTENT
-          ================================== */}
+            RIGHT CONTENT
+        ================================== */}
 
           <div>
             <HistoryCard history={currentTicket.history} />
@@ -1092,8 +1483,11 @@ export default function HelpdeskDetailPage() {
       ====================================== */}
         <HandleTicketModal
           isOpen={isHandleModalOpen}
+          ticketId={String(ticketId)}
+          startedAtFromDb={currentTicket?.sla_started_at ?? null}
           onClose={() => setIsHandleModalOpen(false)}
           onSave={handleSaveHandling}
+          isSaving={isSavingHandling}
         />
 
         <RejectResolutionModal

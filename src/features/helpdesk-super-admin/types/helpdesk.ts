@@ -1,12 +1,5 @@
 export type TicketStatus =
-  | "Baru"
-  | "Diklasifikasi"
-  | "Ditolak"
-  | "Ditugaskan"
-  | "Diproses"
-  | "Eskalasi"
-  | "Terselesaikan"
-  | "Ditutup";
+  "Baru" | "Diklasifikasi" | "Ditolak" | "Diproses" | "Eskalasi" | "Terselesaikan" | "Ditutup";
 export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
 export type TicketCategory = "TIK" | "Sarpras" | string;
 
@@ -25,6 +18,7 @@ export interface TicketLog {
   };
 
   retryNote?: string;
+  rejectionReason?: string;
 }
 
 export interface TicketAttachment {
@@ -43,6 +37,7 @@ export interface TicketItem {
   category: TicketCategory;
   status: TicketStatus;
   priority: TicketPriority | null;
+  sla_started_at: string | null;
   reporter: {
     name: string;
     unit: string;
@@ -54,6 +49,7 @@ export interface TicketItem {
     role: string;
     avatarInitials?: string;
   };
+  started_at?: string | null;
   createdAt: string;
   finishedAt?: string;
   attachments?: TicketAttachment[];

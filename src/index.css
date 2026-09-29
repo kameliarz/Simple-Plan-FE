@@ -58,9 +58,9 @@
   --color-badge-denied-stroke: #dc262633;
   --color-badge-denied-fill: #dc26261a;
 
-  --color-badge-escalation-text: ##c2410c;
-  --color-badge-escalation-stroke: ##c2410c33;
-  --color-badge-escalation-fill: ##c2410c1a;
+  --color-badge-escalation-text: #c2410c;
+  --color-badge-escalation-stroke: #c2410c33;
+  --color-badge-escalation-fill: #c2410c1a;
 
   --color-badge-new-text: var(--app-badge-new-text);
   --color-badge-new-stroke: #64748b33;
@@ -69,6 +69,7 @@
   --color-cborder: #d1d5db;
 
   --color-soft-border: var(--app-soft-border);
+  --color-med-border: var(--app-med-border);
 }
 
 @layer base {
@@ -100,6 +101,7 @@
   --app-badge-process-text: #0d47a1;
 
   --app-soft-border: #e2e8f0;
+  --app-med-border: #e2e8f0;
 
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --heading: system-ui, "Segoe UI", Roboto, sans-serif;
@@ -139,6 +141,7 @@
   --app-badge-process-text: #1a61cf;
 
   --app-soft-border: #314158;
+  --app-med-border: #62748e;
 }
 
 /* =========================
@@ -218,4 +221,42 @@ code,
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background-color: #405d94; /* slightly lighter custom muted blue */
+}
+
+/* datetime range */
+/* Kalender date range: lebih ringkas dan ringan */
+.date-range-calendar {
+  --rdp-day-width: 32px;
+  --rdp-day-height: 32px;
+  --rdp-day_button-width: 30px;
+  --rdp-day_button-height: 30px;
+  --rdp-nav-height: 28px;
+  --rdp-months-gap: 12px;
+
+  font-size: 12px;
+}
+
+/* Judul bulan dan tahun */
+.date-range-calendar .rdp-month_caption {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Header nama hari */
+.date-range-calendar .rdp-weekday {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* Angka tanggal */
+.date-range-calendar .rdp-day_button {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Tombol navigasi bulan */
+.date-range-calendar .rdp-button_previous,
+.date-range-calendar .rdp-button_next {
+  width: 28px;
+  height: 28px;
 }

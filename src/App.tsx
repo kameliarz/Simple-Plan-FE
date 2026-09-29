@@ -1,31 +1,79 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import MainLayout from "@/layouts/MainLayout";
-
 import LoginPage from "@/features/auth-login/pages/LoginPage";
 import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
-import HelpdeskDetailPage from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPage";
+import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
 import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
 
+import { useAuth } from "@/features/auth-login/context/AuthContext";
+
+interface RequireAuthProps {
+  children: React.ReactNode;
+}
+
+function RequireAuth({ children }: RequireAuthProps) {
+  const { user, token, isLoading } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <div className="p-6">Memuat sesi...</div>;
+  }
+
+  if (!user || !token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function LoginRoute() {
+  const { user, token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="p-6">Memuat sesi...</div>;
+  }
+
+  if (user && token) {
+    return <Navigate to="/helpdesk/tik" replace />;
+  }
+
+  return <LoginPage />;
+}
+
 function App() {
-  return (
-    <MainLayout>
+  const location = useLocation();
+
+  // LOGIN TIDAK MEMAKAI MAIN LAYOUT
+  if (location.pathname === "/login") {
+    return (
       <Routes>
-        <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
-
-        <Route path="/login" element={<LoginPage />} />
-
-        <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
-        <Route path="/helpdesk/sarpras" element={<HelpdeskSAPage />} />
-
-        <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
-        <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
-
-        <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
-
-        <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+        <Route path="/login" element={<LoginRoute />} />
       </Routes>
-    </MainLayout>
+    );
+  }
+
+  // SEMUA HALAMAN SELAIN LOGIN WAJIB LOGIN
+  return (
+    <RequireAuth>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
+
+          <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
+
+          <Route path="/helpdesk/sarpras" element={<HelpdeskSAPage />} />
+
+          <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPagee />} />
+
+          <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPagee />} />
+
+          <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
+
+          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+        </Routes>
+      </MainLayout>
+    </RequireAuth>
   );
 }
 

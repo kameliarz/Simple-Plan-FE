@@ -32,7 +32,6 @@ const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
   baru: "Baru",
   diklasifikasi: "Diklasifikasi",
   ditolak: "Ditolak",
-  ditugaskan: "Ditugaskan",
   diproses: "Diproses",
   eskalasi: "Eskalasi",
   terselesaikan: "Terselesaikan",
@@ -95,7 +94,8 @@ export default function HelpdeskSAPage() {
 
   const [priority, setPriority] = useState<ApiTicketPriority | "">("");
 
-  const [date, setDate] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -122,8 +122,8 @@ export default function HelpdeskSAPage() {
 
           search: search.trim() || undefined,
 
-          date_from: date || undefined,
-          date_to: date || undefined,
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
         });
 
         /*
@@ -153,7 +153,7 @@ export default function HelpdeskSAPage() {
     };
 
     fetchTickets();
-  }, [currentPage, search, status, priority, date, service]);
+  }, [currentPage, search, status, priority, dateFrom, dateTo, service]);
 
   /* =========================
      FILTER HANDLERS
@@ -170,7 +170,6 @@ export default function HelpdeskSAPage() {
       Baru: "baru",
       Diklasifikasi: "diklasifikasi",
       Ditolak: "ditolak",
-      Ditugaskan: "ditugaskan",
       Diproses: "diproses",
       Eskalasi: "eskalasi",
       Terselesaikan: "terselesaikan",
@@ -191,11 +190,6 @@ export default function HelpdeskSAPage() {
     };
 
     setPriority(priorityValueMap[value] ?? "");
-    setCurrentPage(1);
-  };
-
-  const handleDateChange = (value: string) => {
-    setDate(value);
     setCurrentPage(1);
   };
 
@@ -233,7 +227,6 @@ export default function HelpdeskSAPage() {
                 "Baru",
                 "Diklasifikasi",
                 "Ditolak",
-                "Ditugaskan",
                 "Diproses",
                 "Eskalasi",
                 "Terselesaikan",
@@ -253,7 +246,16 @@ export default function HelpdeskSAPage() {
 
             {/* Date */}
 
-            <DateInput value={date} onChange={handleDateChange} />
+            <DateInput
+              variant="range"
+              startValue={dateFrom}
+              endValue={dateTo}
+              onRangeChange={({ start, end }) => {
+                setDateFrom(start);
+                setDateTo(end);
+                setCurrentPage(1);
+              }}
+            />
 
             {/* Search */}
 
