@@ -5,6 +5,8 @@ import LoginPage from "@/features/auth-login/pages/LoginPage";
 import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
 import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
 import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
+import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
+import UserListPage from "@/features/master-data/users/pages/UserListPage";
 
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 
@@ -69,6 +71,11 @@ function App() {
           <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPagee />} />
 
           <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
+
+          {/* Master Data */}
+          <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
+          <Route path="/master-data/users" element={<UserListPage />} />
+          <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
 
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
         </Routes>
