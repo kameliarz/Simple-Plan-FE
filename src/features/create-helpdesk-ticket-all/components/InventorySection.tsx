@@ -30,7 +30,7 @@ export default function InventorySection({
   onLocationChange,
 }: InventorySectionProps) {
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-text-secondary">
@@ -51,17 +51,17 @@ export default function InventorySection({
       </div>
 
       <Input
-        label="No. Inventaris"
-        value={inventoryNumber}
-        onChange={(event) => onInventoryNumberChange(event.target.value)}
-        placeholder="Contoh: INV-TIK-2023-089"
-      />
-
-      <Input
         label="Nama Inventaris"
         value={inventoryName}
         onChange={(event) => onInventoryNameChange(event.target.value)}
         placeholder="Contoh: PC All-in-One Core i5 Poli Dalam"
+      />
+
+      <Input
+        label="No. Inventaris"
+        value={inventoryNumber}
+        onChange={(event) => onInventoryNumberChange(event.target.value)}
+        placeholder="Contoh: INV-TIK-2023-089"
       />
 
       <Input
