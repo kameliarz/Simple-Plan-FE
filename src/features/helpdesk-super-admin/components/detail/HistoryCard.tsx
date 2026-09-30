@@ -43,7 +43,7 @@ export default function HistoryCard({ history }: HistoryCardProps) {
                     </p>
 
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-800">
-                      <p className="whitespace-pre-line text-sm leading-5 text-text-secondary">
+                      <p className="whitespace-pre-line text-xs leading-5 text-text-secondary">
                         {item.retryNote}
                       </p>
                     </div>
@@ -52,12 +52,14 @@ export default function HistoryCard({ history }: HistoryCardProps) {
 
                 {/* HASIL PENANGANAN */}
                 {(item.handlingNote || item.handlingPhoto) && (
-                  <div className="ml-14 mt-2 mb-4">
+                  <div className="ml-14 -mt- mb-4">
                     {/* CATATAN */}
                     {item.handlingNote && (
                       <div>
-                        <p className="mb-1.5 pb-1.5 text-xs text-slate-500 dark:text-slate-400">
-                          Catatan Penanganan
+                        <p className="mb-1 pb-1 text-xs text-slate-500 dark:text-slate-400">
+                          {item.action === "Tiket Ditolak"
+                            ? "Alasan Penolakan"
+                            : "Catatan Penanganan"}
                         </p>
 
                         <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-800">

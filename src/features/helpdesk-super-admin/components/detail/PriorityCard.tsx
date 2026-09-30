@@ -116,44 +116,35 @@ export default function PriorityCard({
       )}
 
       {isAssignmentSaved && savedPriority && (
-        <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm dark:border-slate-700 dark:bg-table-card">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-text-title">Tingkat Prioritas</h2>
-
-              <span
-                className="
-                  rounded-md
-                  border
-                  border-red-200
-                  bg-red-50
-                  px-2
-                  py-1
-                  text-[11px]
-                  font-medium
-                  text-red-500
-                  dark:bg-red-200
-                "
-              >
-                {priorityConfig[savedPriority].limit}
-              </span>
-            </div>
-
-            <div className="my-3 border-t border-slate-100 dark:border-slate-700" />
-
+        <DetailCard
+          title="Tingkat Prioritas"
+          headerRight={
+            <span
+              className="
+                rounded-md
+                bg-red-50
+                px-2 py-1
+                text-[11px] font-medium
+                text-red-500
+                dark:bg-red-200/85
+              "
+            >
+              {priorityConfig[savedPriority].limit}
+            </span>
+          }
+        >
+          <div className="px-4 py-4 sm:px-6">
             <div className="flex items-start gap-3">
               <span
                 className={`
                   mt-1.5
-                  h-3
-                  w-3
-                  shrink-0
+                  h-3 w-3 shrink-0
                   rounded-full
                   ${priorityConfig[savedPriority].dot}
                 `}
               />
 
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-text-title">
                   {priorityOptions.find((item) => item.value === savedPriority)?.label}
                 </p>
@@ -164,7 +155,7 @@ export default function PriorityCard({
               </div>
             </div>
           </div>
-        </div>
+        </DetailCard>
       )}
     </>
   );

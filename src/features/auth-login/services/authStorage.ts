@@ -13,15 +13,14 @@ export function getToken(): string | null {
 }
 
 export function getUser(): LoginUser | null {
-  const user = localStorage.getItem(USER_KEY);
+  const rawUser = localStorage.getItem(USER_KEY);
 
-  if (!user) {
-    return null;
-  }
+  if (!rawUser) return null;
 
   try {
-    return JSON.parse(user) as LoginUser;
+    return JSON.parse(rawUser) as LoginUser;
   } catch {
+    localStorage.removeItem(USER_KEY);
     return null;
   }
 }

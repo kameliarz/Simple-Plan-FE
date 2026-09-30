@@ -11,21 +11,16 @@ export interface LoginFormErrors {
 
 export interface LoginUser {
   id: number;
-  name: string;
-  email: string | null;
-  nip: string;
-  avatar: string | null;
-  email_verified_at: string | null;
-  status: string;
-  roles: LoginRole[];
-  units: LoginUnit[];
-  permissions: Record<string, boolean>;
-  created_at: string;
+  nama: string;
+  unit_user: string;
+  jabatan: string;
+  role: string;
+  status_user: string;
 }
 
 export interface LoginRole {
   id: number;
-  name: string;
+  nama: string;
   guard_name: string;
   permissions: LoginPermission[];
   created_at: string;

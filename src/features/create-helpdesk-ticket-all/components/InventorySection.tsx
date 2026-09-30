@@ -5,64 +5,35 @@ import Dropdown from "@/components/ui/ui-template/Dropdown";
 import { unitOptions } from "../data/helpdeskTicketData";
 
 interface InventorySectionProps {
+  unit: string | null;
   inventoryNumber: string;
   inventoryName: string;
-  brandSeries: string;
-  unit: string | null;
+  location: string;
 
-  inventoryNumberError?: string;
-  inventoryNameError?: string;
   unitError?: string;
 
+  onUnitChange: (value: string) => void;
   onInventoryNumberChange: (value: string) => void;
   onInventoryNameChange: (value: string) => void;
-  onBrandSeriesChange: (value: string) => void;
-  onUnitChange: (value: string) => void;
+  onLocationChange: (value: string) => void;
 }
 
 export default function InventorySection({
+  unit,
   inventoryNumber,
   inventoryName,
-  brandSeries,
-  unit,
-  inventoryNumberError,
-  inventoryNameError,
+  location,
   unitError,
+  onUnitChange,
   onInventoryNumberChange,
   onInventoryNameChange,
-  onBrandSeriesChange,
-  onUnitChange,
+  onLocationChange,
 }: InventorySectionProps) {
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-      <Input
-        label="No. Inventaris"
-        required
-        value={inventoryNumber}
-        onChange={(event) => onInventoryNumberChange(event.target.value)}
-        placeholder="Contoh: INV-TIK-2023-089"
-        error={inventoryNumberError}
-      />
-
-      <Input
-        label="Nama Inventaris"
-        required
-        value={inventoryName}
-        onChange={(event) => onInventoryNameChange(event.target.value)}
-        placeholder="Contoh: PC All-in-One Core i5 Poli Dalam"
-        error={inventoryNameError}
-      />
-
-      <Input
-        label="Merk / Seri"
-        value={brandSeries}
-        onChange={(event) => onBrandSeriesChange(event.target.value)}
-        placeholder="Contoh: Lenovo ThinkCentre M70q / RAM 16GB"
-      />
-
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-base font-semibold text-text-secondary">
+          <label className="text-sm font-semibold text-text-secondary">
             Unit
             <span className="ml-1 text-red-500">*</span>
           </label>
@@ -75,8 +46,30 @@ export default function InventorySection({
           placeholder="Pilih unit"
           className="w-full"
           error={unitError}
+          mobileSheet
         />
       </div>
+
+      <Input
+        label="No. Inventaris"
+        value={inventoryNumber}
+        onChange={(event) => onInventoryNumberChange(event.target.value)}
+        placeholder="Contoh: INV-TIK-2023-089"
+      />
+
+      <Input
+        label="Nama Inventaris"
+        value={inventoryName}
+        onChange={(event) => onInventoryNameChange(event.target.value)}
+        placeholder="Contoh: PC All-in-One Core i5 Poli Dalam"
+      />
+
+      <Input
+        label="Lokasi"
+        value={location}
+        onChange={(event) => onLocationChange(event.target.value)}
+        placeholder="Masukkan lokasi inventaris"
+      />
     </div>
   );
 }

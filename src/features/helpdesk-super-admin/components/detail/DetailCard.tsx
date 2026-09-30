@@ -20,21 +20,26 @@ export default function DetailCard({
   return (
     <div
       className={`
-        ${overflowVisible ? "overflow-visible" : "overflow-hidden"}
-        overflow-hidden
         rounded-lg
-        border
-        border-slate-200
+        border border-slate-200
+        border-l-[3px] border-l-primary-600
         bg-white
         dark:border-slate-700
+        dark:border-l-white
         dark:bg-table-card
+        sm:border-l
+        sm:border-l-slate-200
+        sm:dark:border-l-slate-700
+        ${overflowVisible ? "overflow-visible" : "overflow-hidden"}
         ${className}
       `}
     >
+      {/* Header */}
       <div
         className="
           flex
           items-center
+          justify-between
           gap-2
           border-b
           border-slate-200

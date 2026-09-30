@@ -1,50 +1,75 @@
 import { useState } from "react";
+
 import { Image as ImageIcon } from "lucide-react";
 
 import Modal from "@/components/ui/ui-template/Modal";
-import Dropdown from "@/components/ui/ui-template/Dropdown";
+
 import Button from "@/components/ui/ui-template/Button";
+
 import TextArea from "@/components/ui/ui-template/TextArea";
+
 import FileUpload from "@/components/ui/ui-template/FileUploader";
+
 import DateInput from "@/components/ui/ui-template/DateInput";
 
 interface HandleTicketModalProps {
   isOpen: boolean;
+  ticketId: string;
+  startedAtFromDb: string | null;
   onClose: () => void;
-  onSave: (data: HandleTicketFormData) => void;
+  onSave: (data: HandleTicketFormData) => void | Promise<void>;
+  isSaving?: boolean;
 }
 
 export interface HandleTicketFormData {
-  status: "diproses" | "selesai";
+  status: "terselesaikan";
   startedAt: string;
   completedAt: string;
   notes: string;
   photo: File | null;
 }
 
-const statusOptions = ["Diproses", "Selesai"];
+const toDateTimeLocalValue = (dateString: string) => {
+  const date = new Date(dateString);
 
-const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) => {
-  const [status, setStatus] = useState<"diproses" | "selesai" | "">("");
-  const [startedAt, setStartedAt] = useState("");
+  if (Number.isNaN(date.getTime())) return "";
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+
+  return localDate.toISOString().slice(0, 16);
+};
+
+const HandleTicketModal = (props: HandleTicketModalProps) => {
+  const { isOpen, ticketId, startedAtFromDb } = props;
+
+  if (!isOpen) return null;
+
+  return <HandleTicketModalContent key={`${ticketId}-${startedAtFromDb ?? ""}`} {...props} />;
+};
+
+const HandleTicketModalContent = ({
+  startedAtFromDb,
+  onClose,
+  onSave,
+  isSaving = false,
+}: HandleTicketModalProps) => {
+  const formatted = startedAtFromDb ? toDateTimeLocalValue(startedAtFromDb) : "";
+
+  const [startedAt] = useState(formatted);
   const [completedAt, setCompletedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
 
-  const [statusError, setStatusError] = useState("");
-  const [startedAtError, setStartedAtError] = useState("");
+  const [startedAtError, setStartedAtError] = useState(
+    formatted ? "" : "Waktu mulai SLA belum tersedia di data tiket.",
+  );
   const [completedAtError, setCompletedAtError] = useState("");
   const [notesError, setNotesError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let hasError = false;
-
-    if (!status) {
-      setStatusError("Status tiket wajib dipilih.");
-      hasError = true;
-    } else {
-      setStatusError("");
-    }
 
     if (!startedAt) {
       setStartedAtError("Waktu mulai perbaikan wajib diisi.");
@@ -67,78 +92,62 @@ const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) 
       setNotesError("");
     }
 
-    if (hasError || !status) {
-      return;
+    if (
+      startedAt &&
+      completedAt &&
+      new Date(completedAt).getTime() < new Date(startedAt).getTime()
+    ) {
+      setCompletedAtError("Waktu selesai harus sama dengan atau setelah waktu mulai.");
+      hasError = true;
     }
 
-    onSave({
-      status,
-      startedAt,
-      completedAt,
-      notes: notes.trim(),
-      photo,
-    });
+    if (hasError) return;
+
+    setSubmitError("");
+
+    try {
+      setIsSubmitting(true);
+
+      await onSave({
+        status: "terselesaikan",
+        startedAt,
+        completedAt,
+        notes: notes.trim(),
+        photo,
+      });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Gagal menyimpan penanganan tiket.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
-    setStatus("");
-    setStartedAt("");
-    setCompletedAt("");
-    setNotes("");
-    setPhoto(null);
-
-    setStatusError("");
-    setStartedAtError("");
-    setCompletedAtError("");
-    setNotesError("");
-
+    if (isSubmitting) return;
     onClose();
   };
 
   return (
     <Modal
-      show={isOpen}
+      show
       onClose={handleClose}
-      closeable
+      closeable={!isSubmitting}
       showHeader
       title="Catatan Penanganan"
       icon={<ImageIcon size={18} />}
       maxWidth="xl"
     >
       <div className="space-y-5">
-        {/* Status */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-text-primary">
-            Status Tiket <span className="text-red-500">*</span>
-          </label>
-
-          <Dropdown
-            value={status}
-            options={statusOptions}
-            onChange={(value) => {
-              setStatus(value as "diproses" | "selesai");
-              setStatusError("");
-            }}
-            placeholder="Pilih Status"
-            error={statusError}
-            className="w-full"
-          />
-        </div>
-
-        {/* Waktu */}
+        {/* Waktu perbaikan */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-text-primary">
-              Waktu Mulai Perbaikan <span className="text-red-500">*</span>
+              Waktu Mulai Perbaikan
             </label>
-
             <DateInput
               variant="datetime"
               value={startedAt}
-              onChange={(value) => {
-                setStartedAt(value);
-                setStartedAtError("");
-              }}
+              disabled
               required
               error={startedAtError}
             />
@@ -148,7 +157,6 @@ const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) 
             <label className="mb-1.5 block text-xs font-medium text-text-primary">
               Waktu Selesai Perbaikan <span className="text-red-500">*</span>
             </label>
-
             <DateInput
               variant="datetime"
               value={completedAt}
@@ -162,12 +170,11 @@ const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) 
           </div>
         </div>
 
-        {/* Catatan */}
+        {/* Catatan penanganan */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-primary">
             Catatan Penanganan <span className="text-red-500">*</span>
           </label>
-
           <TextArea
             value={notes}
             onChange={(event) => {
@@ -180,13 +187,12 @@ const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) 
           />
         </div>
 
-        {/* Foto Hasil Perbaikan */}
+        {/* Foto hasil perbaikan */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-primary">
             Foto Hasil Perbaikan{" "}
             <span className="text-[11px] font-normal text-text-secondary">(Bukti Selesai)</span>
           </label>
-
           <FileUpload
             value={photo}
             onChange={setPhoto}
@@ -199,9 +205,22 @@ const HandleTicketModal = ({ isOpen, onClose, onSave }: HandleTicketModalProps) 
         </div>
       </div>
 
+      {/* Error dari request API */}
+      {submitError && (
+        <p className="mt-4 text-sm text-red-600" role="alert">
+          {submitError}
+        </p>
+      )}
+
       {/* Footer */}
       <div className="mt-6 flex justify-end border-t border-slate-100 pt-3">
-        <Button label="Simpan" variant="primary" size="sm" onClick={handleSave} />
+        <Button
+          label={isSubmitting || isSaving ? "Mengirim..." : "Kirim"}
+          variant="primary"
+          size="sm"
+          onClick={handleSave}
+          disabled={isSubmitting || isSaving}
+        />
       </div>
     </Modal>
   );
