@@ -11,7 +11,7 @@ import ReporterSection from "../components/ReporterSection";
 import InventorySection from "../components/InventorySection";
 import EvidenceSection from "../components/EvidenceSection";
 
-import { searchUsersByName, type SearchedUser } from "../services/searchUserApi";
+import { searchUsersByName, type SearchedUser, createTicket } from "../services/searchApi";
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 
 import type { HelpdeskCategory, HelpdeskTicketForm } from "../types";
@@ -25,10 +25,16 @@ export default function CreateHelpdeskTicketPage() {
   const [searchUsersError, setSearchUsersError] = useState("");
   const [showUserResults, setShowUserResults] = useState(false);
 
+  // State untuk penanganan submit API
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [createdTicketNumber, setCreatedTicketNumber] = useState("");
+
   const [form, setForm] = useState<HelpdeskTicketForm>(() => ({
     reporterName: user?.nama ?? "",
     selectedReporterId: user?.id ? String(user.id) : "",
     category: "sarpras",
+    assetId: null,
     inventoryNumber: "",
     inventoryName: "",
     brandSeries: "",
@@ -143,19 +149,40 @@ export default function CreateHelpdeskTicketPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Menangani submit form
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  // Menangani submit form ke API
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Hentikan proses jika validasi gagal
     if (!validateForm()) {
       return;
     }
 
-    console.log("Form tiket:", form);
+    setIsSubmitting(true);
+    setSubmitError("");
 
-    // Tampilkan modal setelah form berhasil divalidasi
-    setShowSuccessModal(true);
+    try {
+      const response = await createTicket({
+        service: form.category, // "sarpras" | "tik"
+        asset_id: form.assetId,
+        description: form.issueDescription,
+        initial_evidence: form.evidence,
+      });
+
+      if (response?.data?.ticket_number) {
+        setCreatedTicketNumber(response.data.ticket_number);
+      }
+
+      setShowSuccessModal(true);
+    } catch (err: unknown) {
+      console.error(err);
+
+      const message =
+        err instanceof Error ? err.message : "Gagal membuat tiket. Silakan coba lagi.";
+
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSelectReporter = (selectedUser: SearchedUser) => {
@@ -219,6 +246,7 @@ export default function CreateHelpdeskTicketPage() {
               onInventoryNumberChange={(value) => updateField("inventoryNumber", value)}
               onInventoryNameChange={(value) => updateField("inventoryName", value)}
               onLocationChange={(value) => updateField("location", value)}
+              onAssetIdChange={(assetId) => updateField("assetId", assetId)}
             />
           </TicketSection>
 
@@ -243,10 +271,17 @@ export default function CreateHelpdeskTicketPage() {
             />
           </TicketSection>
 
+          {submitError && (
+            <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              {submitError}
+            </div>
+          )}
+
           {/* Submit */}
           <div className="flex justify-end pb-6">
             <Button
               type="submit"
+              disabled={isSubmitting}
               icon={<IconArrowRight size={17} />}
               label="Kirim Tiket"
               className="w-full sm:w-auto"
@@ -298,6 +333,7 @@ export default function CreateHelpdeskTicketPage() {
             {/* Deskripsi */}
             <p className="mt-2 text-sm leading-5 text-slate-500">
               Tiket berhasil dibuat beserta nomor tiket!
+              {createdTicketNumber ? ` dengan nomor tiket: ${createdTicketNumber}` : "!"}
             </p>
           </div>
         </Modal>

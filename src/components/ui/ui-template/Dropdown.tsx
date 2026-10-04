@@ -49,14 +49,18 @@ export default function Dropdown({
   );
 
   const filteredOptions = useMemo(() => {
-    if (!searchable && !mobileSheet) {
+    if (onSearchChange) {
+      return normalizedOptions;
+    }
+
+    if (!searchable) {
       return normalizedOptions;
     }
 
     return normalizedOptions.filter((option) =>
       option.label.toLowerCase().includes(search.trim().toLowerCase()),
     );
-  }, [normalizedOptions, search, searchable, mobileSheet]);
+  }, [normalizedOptions, search, searchable, onSearchChange]);
 
   const selectedLabel = normalizedOptions.find((option) => option.value === value)?.label ?? "";
 

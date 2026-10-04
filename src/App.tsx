@@ -76,8 +76,6 @@ function App() {
           <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
           <Route path="/master-data/users" element={<UserListPage />} />
           <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
-
-          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
         </Routes>
       </MainLayout>
     </RequireAuth>

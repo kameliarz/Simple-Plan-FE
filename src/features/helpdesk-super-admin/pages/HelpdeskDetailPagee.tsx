@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-
 import { ArrowLeft } from "lucide-react";
-
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-
 import type { ApiTicket } from "../types/ticket";
 import type { TicketItem, TicketPriority } from "../types/helpdesk";
 
@@ -14,6 +11,8 @@ import {
   assignTicket,
   rejectTicket,
   createTicketHandling,
+  escalateTicket,
+  deEscalateTicket,
 } from "../services/ticketApi";
 
 import RejectTicketModal from "../components/RejectTicketModal";
@@ -23,8 +22,7 @@ import { TicketStatusBadge } from "../components/TicketStatusBadge";
 import { TicketPriorityBadge } from "../components/TicketPriorityBadge";
 import HandleTicketModal, { type HandleTicketFormData } from "../components/HandleTicketModal";
 import RejectResolutionModal from "../components/RejectResolutionModal";
-import EscalationModal from "../components/EscalationModal";
-
+import EscalationModal, { type EscalationFormData } from "../components/EscalationModal";
 import Alert from "../../../components/ui/ui-template/Alert";
 import Button from "../../../components/ui/ui-template/Button";
 
@@ -447,6 +445,7 @@ export default function HelpdeskDetailPage() {
   const [isRejectResolutionModalOpen, setIsRejectResolutionModalOpen] = useState(false);
 
   const [isRejecting, setIsRejecting] = useState(false);
+
   // ==========================================
   // Escalation
   // ==========================================
@@ -529,6 +528,16 @@ export default function HelpdeskDetailPage() {
   const [isSavingHandling, setIsSavingHandling] = useState(false);
 
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // ==========================================
+  // ESCALATION
+  // ==========================================
+  const [isEscalating, setIsEscalating] = useState(false);
+
+  // ==========================================
+  // DE-ESCALATION
+  // ==========================================
+  const [isDeEscalating, setIsDeEscalating] = useState(false);
 
   // ==========================================
   // GET DETAIL TICKET
@@ -885,6 +894,53 @@ export default function HelpdeskDetailPage() {
     }
   };
 
+  const handleConfirmEscalation = async (data: EscalationFormData) => {
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
+
+    if (isEscalating) return;
+
+    setIsEscalating(true);
+
+    try {
+      // Kirim data ke API (bisa sesuaikan key-nya dengan kebutuhan backend, misal: target)
+      await escalateTicket(ticketId, {
+        target: data.destination,
+        notes: data.notes,
+      });
+
+      const updatedHistory = [
+        {
+          id: `escalated-${Date.now()}`,
+          action: "Tiket Dieskalasi",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+        },
+        ...(currentTicket.history || []),
+      ];
+
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Eskalasi",
+        history: updatedHistory,
+      });
+
+      setIsEscalationModalOpen(false);
+      showAlertMessage("Eskalasi tiket berhasil dikirim.", "success");
+    } catch (error) {
+      console.error("Gagal mengeskalasi tiket:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Terjadi kesalahan saat mengeskalasi tiket.",
+        "error",
+      );
+    } finally {
+      setIsEscalating(false);
+    }
+  };
+
   // ==========================================
   // OPEN ASSIGN OFFICER MODAL
   // ==========================================
@@ -1096,6 +1152,51 @@ export default function HelpdeskDetailPage() {
     }
   };
 
+  // Handler fungsi De-Escalate
+  const handleDeEscalate = async () => {
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
+
+    if (isDeEscalating) return;
+
+    setIsDeEscalating(true);
+
+    try {
+      // Kirim permintaan de-escalate ke API
+      await deEscalateTicket(ticketId);
+
+      // Tambahkan item riwayat baru & kembalikan status ke "Diproses"
+      const updatedHistory = [
+        {
+          id: `de-escalated-${Date.now()}`,
+          action: "Penanganan Dilanjutkan oleh Teknisi",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+        },
+        ...(currentTicket.history || []),
+      ];
+
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Diproses",
+        history: updatedHistory,
+      });
+
+      showAlertMessage("Penanganan tiket berhasil dilanjutkan.", "success");
+    } catch (error) {
+      console.error("Gagal melanjutkan penanganan tiket:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Gagal melanjutkan penanganan tiket.",
+        "error",
+      );
+    } finally {
+      setIsDeEscalating(false);
+    }
+  };
+
   const handleApproveResolution = async () => {
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
@@ -1107,10 +1208,12 @@ export default function HelpdeskDetailPage() {
     setIsVerifying(true);
 
     try {
-      // Kirim permintaan verifikasi ke backend.
-      await verifyTicketResolution(ticketId);
+      // Kirim is_approved: true ke API
+      await verifyTicketResolution(ticketId, {
+        is_approved: true,
+      });
 
-      // Perbarui tampilan hanya setelah API berhasil.
+      // Perbarui tampilan lokal ke status Ditutup
       setCurrentTicket((prev) => {
         if (!prev) return prev;
 
@@ -1137,6 +1240,62 @@ export default function HelpdeskDetailPage() {
 
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal menyetujui penyelesaian tiket.",
+        "error",
+      );
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleRejectResolution = async (reason: string) => {
+    const trimmedReason = reason.trim();
+
+    if (!ticketId) {
+      showAlertMessage("ID tiket tidak ditemukan.", "error");
+      return;
+    }
+
+    if (!trimmedReason) {
+      showAlertMessage("Keterangan kendala wajib diisi.", "error");
+      return;
+    }
+
+    if (isVerifying) return;
+
+    setIsVerifying(true);
+
+    try {
+      // Kirim is_approved: false dan keterangan_kendala ke API
+      await verifyTicketResolution(ticketId, {
+        is_approved: false,
+        keterangan_kendala: trimmedReason,
+      });
+
+      // Perbarui tampilan lokal kembali ke status Diproses
+      const updatedHistory = [
+        {
+          id: `rework-${Date.now()}`,
+          action: "Pengerjaan Ulang oleh Teknisi",
+          timestamp: formatHistoryDate(new Date().toISOString()),
+          isCompleted: true,
+          retryNote: trimmedReason,
+        },
+        ...(currentTicket.history || []),
+      ];
+
+      setCurrentTicket({
+        ...currentTicket,
+        status: "Diproses",
+        history: updatedHistory,
+      });
+
+      setIsRejectResolutionModalOpen(false);
+      showAlertMessage("Penyelesaian ditolak. Tiket kembali ke status diproses.", "success");
+    } catch (error) {
+      console.error("Gagal menolak penyelesaian:", error);
+
+      showAlertMessage(
+        error instanceof Error ? error.message : "Gagal menolak penyelesaian tiket.",
         "error",
       );
     } finally {
@@ -1243,16 +1402,7 @@ export default function HelpdeskDetailPage() {
                 label="Lanjutkan Penanganan"
                 variant="primary"
                 size="sm"
-                onClick={() => {
-                  setCurrentTicket((prev) => {
-                    if (!prev) return prev;
-
-                    return {
-                      ...prev,
-                      status: "Diproses",
-                    };
-                  });
-                }}
+                onClick={handleDeEscalate}
               />
             </div>
           )}
@@ -1336,16 +1486,7 @@ export default function HelpdeskDetailPage() {
                 label="Lanjutkan Penanganan"
                 variant="primary"
                 size="sm"
-                onClick={() => {
-                  setCurrentTicket((prev) => {
-                    if (!prev) return prev;
-
-                    return {
-                      ...prev,
-                      status: "Diproses",
-                    };
-                  });
-                }}
+                onClick={handleDeEscalate}
               />
             )}
           </div>
@@ -1657,30 +1798,7 @@ export default function HelpdeskDetailPage() {
         <RejectResolutionModal
           isOpen={isRejectResolutionModalOpen}
           onClose={() => setIsRejectResolutionModalOpen(false)}
-          onSave={(reason) => {
-            console.log("Alasan penolakan:", reason);
-
-            const updatedHistory = [
-              {
-                id: `rework-${Date.now()}`,
-                action: "Pengerjaan Ulang oleh Teknisi",
-                timestamp: formatHistoryDate(new Date().toISOString()),
-                isCompleted: true,
-                retryNote: reason,
-              },
-              ...(currentTicket.history || []),
-            ];
-
-            setCurrentTicket({
-              ...currentTicket,
-              status: "Diproses",
-              history: updatedHistory,
-            });
-
-            setIsRejectResolutionModalOpen(false);
-
-            showAlertMessage("Penyelesaian ditolak. Tiket kembali ke status diproses.", "success");
-          }}
+          onSave={handleRejectResolution}
         />
 
         {/* ======================================
@@ -1689,33 +1807,7 @@ export default function HelpdeskDetailPage() {
         <EscalationModal
           isOpen={isEscalationModalOpen}
           onClose={() => setIsEscalationModalOpen(false)}
-          onSave={(data) => {
-            console.log("Data eskalasi:", data);
-
-            const updatedHistory = [
-              {
-                id: `escalated-${Date.now()}`,
-                action: "Tiket Dieskalasi",
-                timestamp: new Date().toLocaleString("id-ID", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-              ...(currentTicket.history || []),
-            ];
-
-            setCurrentTicket({
-              ...currentTicket,
-              status: "Eskalasi",
-              history: updatedHistory,
-            });
-
-            setIsEscalationModalOpen(false);
-
-            showAlertMessage("Eskalasi tiket berhasil dikirim.", "success");
-          }}
+          onSave={handleConfirmEscalation}
         />
       </div>
     </div>
