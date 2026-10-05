@@ -77,6 +77,18 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    if (path.startsWith("/manajemen/helpdesk/tik")) {
+      const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
+      if (path === "/manajemen/helpdesk/tik") return [...base, { label: "Helpdesk TIK" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
+    if (path.startsWith("/manajemen/helpdesk/sarpras")) {
+      const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
+      if (path === "/manajemen/helpdesk/sarpras") return [...base, { label: "Helpdesk Sarpras" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
     if (path === "/helpdesk/create") {
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }

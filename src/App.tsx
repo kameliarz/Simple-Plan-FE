@@ -9,6 +9,8 @@ import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
 import HelpdeskKoorDetailPage from "@/features/helpdesk-koor/pages/HelpdeskKoorDetailPage";
 import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";
 import HelpdeskPetugasDetailPage from "@/features/helpdesk-petugas/pages/HelpdeskPetugasDetailPage";
+import HelpdeskManajemenPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenPage";
+import HelpdeskManajemenDetailPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenDetailPage";
 import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
@@ -33,6 +35,15 @@ function App() {
 
         <Route path="/petugas/tik/helpdesk" element={<HelpdeskPetugasPage />} />
         <Route path="/petugas/tik/helpdesk/:ticketId" element={<HelpdeskPetugasDetailPage />} />
+
+        {/* Manajemen */}
+        <Route path="/manajemen/helpdesk/tik" element={<HelpdeskManajemenPage />} />
+        <Route path="/manajemen/helpdesk/sarpras" element={<HelpdeskManajemenPage />} />
+        <Route path="/manajemen/helpdesk/tik/:ticketId" element={<HelpdeskManajemenDetailPage />} />
+        <Route
+          path="/manajemen/helpdesk/sarpras/:ticketId"
+          element={<HelpdeskManajemenDetailPage />}
+        />
 
         <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
 

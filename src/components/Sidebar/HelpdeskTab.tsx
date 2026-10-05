@@ -38,7 +38,12 @@ export default function HelpdeskTab() {
   return (
     <div className="flex flex-col">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen((prev) => !prev);
+        }}
         className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2 w-full ${
           isActive
             ? "border-blue-700 text-blue-700 dark:text-blue-400 dark:border-blue-500"
@@ -71,6 +76,14 @@ export default function HelpdeskTab() {
             <>
               {renderNavLink("/helpdesk/tik", "Helpdesk TIK", Monitor)}
               {renderNavLink("/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
+            </>
+          )}
+
+          {/* Manajemen */}
+          {role === "management" && (
+            <>
+              {renderNavLink("/manajemen/helpdesk/tik", "Helpdesk TIK", Monitor)}
+              {renderNavLink("/manajemen/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
             </>
           )}
 

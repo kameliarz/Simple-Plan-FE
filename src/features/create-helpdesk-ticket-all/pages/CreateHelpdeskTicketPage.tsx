@@ -12,6 +12,7 @@ import InventorySection from "../components/InventorySection";
 import EvidenceUpload from "../components/EvidenceUpload";
 
 import { getUser } from "@/features/auth-login/services/authStorage";
+import { createTicket } from "@/features/helpdesk-super-admin/services/ticketApi";
 
 import type { HelpdeskTicketForm } from "../types";
 
@@ -36,6 +37,8 @@ export default function CreateHelpdeskTicketPage() {
 
   // Mengatur tampilan modal berhasil
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
   const updateField = useCallback(
@@ -84,18 +87,30 @@ export default function CreateHelpdeskTicketPage() {
   };
 
   // Menangani submit form
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Hentikan proses jika validasi gagal
     if (!validateForm()) {
       return;
     }
 
-    console.log("Form tiket:", form);
+    setIsSubmitting(true);
+    setApiError(null);
 
-    // Tampilkan modal setelah form berhasil divalidasi
-    setShowSuccessModal(true);
+    try {
+      await createTicket({
+        service: form.category === "sarpras" ? "sarpras" : "tik",
+        description: form.issueDescription,
+        initial_evidence: form.evidence,
+      });
+
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Gagal membuat tiket:", error);
+      setApiError(error instanceof Error ? error.message : "Gagal membuat tiket");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -168,8 +183,16 @@ export default function CreateHelpdeskTicketPage() {
           </TicketSection>
 
           {/* Submit */}
-          <div className="flex justify-end pb-6">
-            <Button type="submit" icon={<IconArrowRight size={17} />} label="Kirim Tiket" />
+          <div className="flex justify-between items-center pb-6">
+            <div className="text-sm text-red-500 font-medium">
+              {apiError && <span>{apiError}</span>}
+            </div>
+            <Button
+              type="submit"
+              icon={<IconArrowRight size={17} />}
+              label={isSubmitting ? "Mengirim..." : "Kirim Tiket"}
+              disabled={isSubmitting}
+            />
           </div>
         </form>
 

@@ -245,3 +245,39 @@ export const classifyTicket = async (ticketId: string, payload: ClassifyTicketPa
 
   return responseText ? JSON.parse(responseText) : null;
 };
+export interface CreateTicketPayload {
+  service: "tik" | "sarpras";
+  description: string;
+  asset_id?: number | null;
+  initial_evidence?: File | null;
+}
+
+export const createTicket = async (data: CreateTicketPayload) => {
+  const formData = new FormData();
+  formData.append("service", data.service);
+  formData.append("description", data.description);
+
+  if (data.asset_id) {
+    formData.append("asset_id", String(data.asset_id));
+  }
+
+  if (data.initial_evidence) {
+    formData.append("initial_evidence", data.initial_evidence);
+  }
+
+  const response = await fetch("${API_BASE_URL}/tickets", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer ",
+    },
+    body: formData,
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error("Gagal membuat tiket (${response.status}): ${responseText}");
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};
