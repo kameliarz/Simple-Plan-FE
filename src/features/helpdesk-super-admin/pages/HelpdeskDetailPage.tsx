@@ -283,6 +283,12 @@ const tagsITIdMap: Record<string, number> = {
 
 const kategoriSarprasOptions = ["Sarpras", "Elektronik", "Alkes"];
 
+const kategoriSarprasIdMap: Record<string, number> = {
+  Sarpras: 1,
+  Elektronik: 2,
+  Alkes: 3,
+};
+
 // ==========================================
 // OPTIONS PRIORITAS
 // ==========================================
@@ -513,6 +519,7 @@ export default function HelpdeskDetailPage() {
 
         setKategoriMutu(data.tik_detail?.quality_category?.name ?? "");
         setTagsIT(data.tik_detail?.it_tag?.name ?? "");
+        setKategoriSarpras(data.category ?? "");
 
         if (!isMounted) {
           return;
@@ -735,9 +742,11 @@ export default function HelpdeskDetailPage() {
 
     setKategoriMutu("");
     setTagsIT("");
+    setKategoriSarpras("");
 
     setKategoriMutuError("");
     setTagsITError("");
+    setKategoriSarprasError("");
   };
 
   // ==========================================
@@ -780,12 +789,22 @@ export default function HelpdeskDetailPage() {
       return;
     }
 
+    if (isSarpras && !kategoriSarprasIdMap[kategoriSarpras]) {
+      showAlertMessage("ID kategori sarpras tidak valid.", "error");
+      return;
+    }
+
     try {
-      if (!isSarpras) {
+      if (isSarpras) {
+        const sarprasCategoryId = kategoriSarprasIdMap[kategoriSarpras];
+        await classifyTicket(ticketId, {
+          sarpras_category_id: sarprasCategoryId,
+        });
+      } else {
         await classifyTicket(ticketId, {
           quality_category_id: qualityCategoryId,
           it_tag_id: itTagId,
-          custom_it_tag_text: tagsIT === "Lain-lain" ? "Lain-lain" : "",
+          custom_it_tag_text: tagsIT === "Lain-lain" ? "Lain-lain" : undefined,
         });
       }
 

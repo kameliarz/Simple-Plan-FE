@@ -48,12 +48,47 @@ export default function MainLayout({
   }, [isDarkMode]);
 
   // Breadcrumb default berdasarkan halaman
-  const currentBreadcrumbs =
-    breadcrumbs.length > 0
-      ? breadcrumbs
-      : location.pathname === "/helpdesk/tik"
-        ? [{ label: "Super Admin" }, { label: "Helpdesk" }, { label: "Helpdesk TIK" }]
-        : [];
+  const getCurrentBreadcrumbs = () => {
+    if (breadcrumbs.length > 0) return breadcrumbs;
+
+    const path = location.pathname;
+
+    if (path.startsWith("/petugas/tik/helpdesk")) {
+      const base = [{ label: "Petugas TIK" }, { label: "Helpdesk" }];
+      if (path === "/petugas/tik/helpdesk") return [...base, { label: "Daftar Tiket" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
+    if (path.startsWith("/petugas/sarpras/helpdesk")) {
+      const base = [{ label: "Petugas Sarpras" }, { label: "Helpdesk" }];
+      if (path === "/petugas/sarpras/helpdesk") return [...base, { label: "Daftar Tiket" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
+    if (path.startsWith("/helpdesk/sarpras")) {
+      const base = [{ label: "Koordinator Sarpras" }, { label: "Helpdesk" }];
+      if (path === "/helpdesk/sarpras") return [...base, { label: "Helpdesk Sarpras" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
+    if (path.startsWith("/helpdesk/tik")) {
+      const base = [{ label: "Super Admin" }, { label: "Helpdesk" }];
+      if (path === "/helpdesk/tik") return [...base, { label: "Helpdesk TIK" }];
+      return [...base, { label: "Detail Tiket" }];
+    }
+
+    if (path === "/helpdesk/create") {
+      return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
+    }
+
+    if (path === "/maintenance") {
+      return [{ label: "Maintenance" }];
+    }
+
+    return [];
+  };
+
+  const currentBreadcrumbs = getCurrentBreadcrumbs();
 
   return (
     <div className="min-h-screen bg-background text-text transition-colors">

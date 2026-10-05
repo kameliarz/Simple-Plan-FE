@@ -18,7 +18,7 @@ import type { HelpdeskTicketForm } from "../types";
 const loggedInUser = getUser();
 
 const initialForm: HelpdeskTicketForm = {
-  reporterName: loggedInUser?.name ?? "",
+  reporterName: loggedInUser?.nama ?? "",
   category: "sarpras",
   inventoryNumber: "",
   inventoryName: "",

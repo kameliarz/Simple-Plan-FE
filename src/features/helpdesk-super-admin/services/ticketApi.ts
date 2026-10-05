@@ -224,6 +224,7 @@ type ClassifyTicketPayload = {
   quality_category_id?: number;
   it_tag_id?: number;
   custom_it_tag_text?: string;
+  sarpras_category_id?: number;
 };
 
 export const classifyTicket = async (ticketId: string, payload: ClassifyTicketPayload) => {

@@ -10,7 +10,7 @@ import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
 import { User } from "lucide-react";
-import { clearAuth } from "@/features/auth-login/services/authStorage";
+import { clearAuth, getUser } from "@/features/auth-login/services/authStorage";
 
 interface SidebarProps {
   isDarkMode?: boolean;
@@ -19,10 +19,19 @@ interface SidebarProps {
 
 export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
   const navigate = useNavigate();
+  const user = getUser();
 
   const handleLogout = () => {
     clearAuth();
     navigate("/login");
+  };
+
+  const formatRole = (role?: string) => {
+    if (!role) return "Pengguna";
+    return role
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   return (
@@ -60,14 +69,16 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
 
         {/* User Card */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
             <User className="h-5 w-5" />
           </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
-              Koordinator Sarpas
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-bold text-gray-800 dark:text-slate-200">
+              {formatRole(user?.role)}
             </p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">Nur Colis</p>
+            <p className="truncate text-xs text-gray-500 dark:text-slate-400">
+              {user?.nama || "Unknown User"}
+            </p>
           </div>
         </div>
       </div>
