@@ -20,7 +20,7 @@ function App() {
   return (
     <MainLayout>
       <Routes>
-        <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
+        <Route path="/" element={<HomeRedirect />} />
 
         <Route path="/login" element={<LoginPage />} />
 
