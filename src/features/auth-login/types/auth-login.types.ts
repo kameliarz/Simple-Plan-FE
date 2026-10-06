@@ -20,7 +20,7 @@ export interface LoginUser {
 
 export interface LoginRole {
   id: number;
-  name: string;
+  nama: string;
   guard_name: string;
   permissions: LoginPermission[];
   created_at: string;

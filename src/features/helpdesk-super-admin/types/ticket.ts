@@ -1,15 +1,38 @@
 import type { ApiMeta } from "@/types/api";
 
 export type ApiTicketStatus =
-  | "baru"
-  | "diklasifikasi"
-  | "ditolak"
-  | "ditugaskan"
-  | "diproses"
-  | "eskalasi"
-  | "terselesaikan"
-  | "ditutup";
+  "baru" | "diklasifikasi" | "ditolak" | "diproses" | "eskalasi" | "terselesaikan" | "ditutup";
 export type ApiTicketPriority = "low" | "medium" | "high" | "critical";
+
+export type ApiTicketPerson = {
+  id: number;
+  name: string;
+};
+
+export interface ApiTicketStatusHistory {
+  id: number;
+  from_status: ApiTicketStatus;
+  to_status: ApiTicketStatus;
+  changed_by: ApiTicketPerson | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ApiTicketHandling {
+  id: number;
+  notes: string | null;
+  status: ApiTicketStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  handled_by: ApiTicketPerson | null;
+  result_photo: {
+    object_key: string;
+    original_name: string;
+    mime_type: string;
+    size: number;
+  } | null;
+  created_at: string;
+}
 
 export interface ApiTicket {
   id: number;
@@ -20,6 +43,7 @@ export interface ApiTicket {
   status: ApiTicketStatus;
   rejection_reason: string | null;
   priority: ApiTicketPriority | null;
+  sla_started_at: string | null;
 
   tik_detail?: {
     quality_category?: {

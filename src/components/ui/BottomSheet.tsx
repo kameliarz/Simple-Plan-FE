@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
+
 import { cn } from "../../lib/utils";
 
 export interface BottomSheetProps {
@@ -20,55 +21,146 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   className,
 }) => {
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
     };
-  }, [isOpen]);
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div
+      className="
+        fixed inset-0 z-50
+        flex items-end justify-center
+      "
+    >
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+      <button
+        type="button"
+        aria-label="Tutup filter"
+        tabIndex={-1}
         onClick={onClose}
-        aria-hidden="true"
+        className="
+          absolute inset-0
+          cursor-default
+          bg-black/50
+          backdrop-blur-[1px]
+          animate-in fade-in
+          duration-200
+        "
       />
 
-      {/* Sheet Drawer */}
-      <div
+      {/* Bottom sheet */}
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || "Filter"}
         className={cn(
-          "relative w-full max-w-md bg-white dark:bg-[#1e293b] rounded-t-3xl p-5 shadow-2xl z-10 space-y-5 animate-in slide-in-from-bottom duration-300 border-t border-slate-100 dark:border-slate-800",
+          `
+            relative z-10
+            flex w-full flex-col
+            max-h-[90dvh]
+            overflow-hidden
+            rounded-t-[22px]
+            border border-b-0
+            border-slate-200
+            bg-white
+            shadow-2xl
+            dark:border-slate-700
+            dark:bg-[#1e293b]
+            animate-in slide-in-from-bottom
+            duration-300
+          `,
           className,
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div
+          className="
+            flex shrink-0 items-center
+            justify-between
+            px-5 pb-3 pt-5
+          "
+        >
           {title && (
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+            <h3
+              className="
+                text-base font-semibold
+                text-slate-900
+                dark:text-slate-100
+              "
+            >
+              {title}
+            </h3>
           )}
+
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition ml-auto cursor-pointer"
             aria-label="Tutup"
+            className="
+              ml-auto rounded-full p-1
+              text-slate-500
+              transition-colors
+              hover:bg-slate-100
+              hover:text-slate-800
+              focus-visible:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-blue-500
+              dark:text-slate-400
+              dark:hover:bg-slate-800
+              dark:hover:text-white
+            "
           >
-            <X className="w-5 h-5" />
+            <X size={21} strokeWidth={1.8} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="space-y-4">{children}</div>
+        {/* Scrollable content */}
+        <div
+          className="
+            min-h-0 flex-1
+            overflow-y-auto
+            overscroll-contain
+            px-5 pb-5
+          "
+        >
+          {children}
+        </div>
 
-        {/* Optional Footer */}
-        {footer && <div className="pt-2">{footer}</div>}
-      </div>
+        {/* Footer */}
+        {footer && (
+          <div
+            className="
+              shrink-0
+              border-t border-slate-100
+              bg-white
+              px-5 pb-[max(20px,env(safe-area-inset-bottom))]
+              pt-4
+              dark:border-slate-700
+              dark:bg-[#1e293b]
+            "
+          >
+            {footer}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

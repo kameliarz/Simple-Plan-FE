@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { IconArrowLeft, IconArrowRight, IconCircleCheck, IconX } from "@tabler/icons-react";
 
@@ -9,34 +9,99 @@ import Modal from "@/components/ui/ui-template/Modal";
 import TicketSection from "../components/TicketSection";
 import ReporterSection from "../components/ReporterSection";
 import InventorySection from "../components/InventorySection";
-import EvidenceUpload from "../components/EvidenceUpload";
+import EvidenceSection from "../components/EvidenceSection";
 
-import { getUser } from "@/features/auth-login/services/authStorage";
+import { searchUsersByName, type SearchedUser } from "../services/searchUserApi";
+import { useAuth } from "@/features/auth-login/context/AuthContext";
+
+import type { HelpdeskCategory, HelpdeskTicketForm } from "../types";
 import { createTicket } from "@/features/helpdesk-super-admin/services/ticketApi";
 
-import type { HelpdeskTicketForm } from "../types";
-
-const loggedInUser = getUser();
-
-const initialForm: HelpdeskTicketForm = {
-  reporterName: loggedInUser?.nama ?? "",
-  category: "sarpras",
-  inventoryNumber: "",
-  inventoryName: "",
-  brandSeries: "",
-  unit: null,
-  issueDescription: "",
-  evidence: null,
-};
-
 export default function CreateHelpdeskTicketPage() {
-  const [form, setForm] = useState<HelpdeskTicketForm>(initialForm);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super-admin";
+
+  const [searchedUsers, setSearchedUsers] = useState<SearchedUser[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchUsersError, setSearchUsersError] = useState("");
+  const [showUserResults, setShowUserResults] = useState(false);
+
+  const [form, setForm] = useState<HelpdeskTicketForm>(() => ({
+    reporterName: user?.nama ?? "",
+    selectedReporterId: user?.id ? String(user.id) : "",
+    category: "sarpras",
+    inventoryNumber: "",
+    inventoryName: "",
+    brandSeries: "",
+    reporterUnit: user?.unit_user ?? null,
+    inventoryUnit: null,
+    location: "",
+    issueDescription: "",
+    evidence: null,
+  }));
 
   // Menyimpan pesan error untuk setiap field
   const [errors, setErrors] = useState<Partial<Record<keyof HelpdeskTicketForm, string>>>({});
 
   // Mengatur tampilan modal berhasil
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const handleReporterSearchChange = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      reporterName: value,
+      reporterUnit: null,
+    }));
+
+    setShowUserResults(true);
+    setSearchUsersError("");
+  };
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const searchName = form.reporterName.trim();
+
+    if (searchName.length < 2) return;
+
+    let cancelled = false;
+
+    const timeoutId = window.setTimeout(async () => {
+      if (cancelled) return;
+
+      setIsSearchingUsers(true);
+
+      try {
+        const users = await searchUsersByName(searchName);
+
+        if (!cancelled) {
+          setSearchedUsers(users);
+          setSearchUsersError("");
+        }
+      } catch {
+        if (!cancelled) {
+          setSearchUsersError("Pencarian user gagal. Coba lagi.");
+          setSearchedUsers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearchingUsers(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.reporterName, isSuperAdmin]);
+
+  const handleCategoryChange = (value: HelpdeskCategory) => {
+    setForm((prev) => ({
+      ...prev,
+      category: value,
+    }));
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -65,16 +130,12 @@ export default function CreateHelpdeskTicketPage() {
       newErrors.reporterName = "Nama pelapor wajib diisi!";
     }
 
-    if (!form.inventoryNumber.trim()) {
-      newErrors.inventoryNumber = "No. inventaris wajib diisi!";
+    if (!form.reporterUnit) {
+      newErrors.reporterUnit = "Unit pelapor wajib diisi!";
     }
 
-    if (!form.inventoryName.trim()) {
-      newErrors.inventoryName = "Nama inventaris wajib diisi!";
-    }
-
-    if (!form.unit) {
-      newErrors.unit = "Unit wajib diisi!";
+    if (!form.inventoryUnit) {
+      newErrors.inventoryUnit = "Unit inventaris wajib diisi!";
     }
 
     if (!form.issueDescription.trim()) {
@@ -82,7 +143,6 @@ export default function CreateHelpdeskTicketPage() {
     }
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -113,9 +173,21 @@ export default function CreateHelpdeskTicketPage() {
     }
   };
 
+  const handleSelectReporter = (selectedUser: SearchedUser) => {
+    setForm((prev) => ({
+      ...prev,
+      reporterName: selectedUser.name,
+      reporterUnit: selectedUser.unit?.unit_name ?? null,
+    }));
+
+    setShowUserResults(false);
+    setSearchedUsers([]);
+    setSearchUsersError("");
+  };
+
   return (
     <div className="min-h-full bg-background">
-      <div className="mx-auto max-w-250 py-5">
+      <div className="mx-auto w-full max-w-250 px-6 py-5 sm:px-6 lg:px-0">
         {/* Page heading */}
         <div className="mb-5 flex items-center gap-3">
           <button
@@ -126,7 +198,7 @@ export default function CreateHelpdeskTicketPage() {
             <IconArrowLeft size={20} strokeWidth={1.7} />
           </button>
 
-          <h1 className="text-base font-semibold text-text">Buat Tiket</h1>
+          <h1 className="text-sm font-semibold text-text">Buat Tiket</h1>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -134,30 +206,34 @@ export default function CreateHelpdeskTicketPage() {
           <TicketSection title="Informasi Pelapor">
             <ReporterSection
               reporterName={form.reporterName}
-              unit={form.unit}
+              selectedReporterId={form.selectedReporterId}
+              unit={form.reporterUnit}
               category={form.category}
+              isSuperAdmin={isSuperAdmin}
+              searchedUsers={searchedUsers}
+              isSearchingUsers={isSearchingUsers}
+              searchUsersError={searchUsersError}
+              showUserResults={showUserResults}
               reporterNameError={errors.reporterName}
-              unitError={errors.unit}
-              onReporterNameChange={(value) => updateField("reporterName", value)}
-              onUnitChange={(value) => updateField("unit", value)}
-              onCategoryChange={(value) => updateField("category", value)}
+              unitError={errors.reporterUnit}
+              onReporterSearchChange={handleReporterSearchChange}
+              onSelectReporter={handleSelectReporter}
+              onCategoryChange={handleCategoryChange}
             />
           </TicketSection>
 
           {/* Data Inventaris */}
           <TicketSection title="Data Inventaris">
             <InventorySection
+              unit={form.inventoryUnit}
               inventoryNumber={form.inventoryNumber}
               inventoryName={form.inventoryName}
-              brandSeries={form.brandSeries}
-              unit={form.unit}
-              inventoryNumberError={errors.inventoryNumber}
-              inventoryNameError={errors.inventoryName}
-              unitError={errors.unit}
+              location={form.location}
+              unitError={errors.inventoryUnit}
+              onUnitChange={(value) => updateField("inventoryUnit", value)}
               onInventoryNumberChange={(value) => updateField("inventoryNumber", value)}
               onInventoryNameChange={(value) => updateField("inventoryName", value)}
-              onBrandSeriesChange={(value) => updateField("brandSeries", value)}
-              onUnitChange={(value) => updateField("unit", value)}
+              onLocationChange={(value) => updateField("location", value)}
             />
           </TicketSection>
 
@@ -176,11 +252,15 @@ export default function CreateHelpdeskTicketPage() {
 
           {/* Foto Bukti */}
           <TicketSection title="Foto Bukti Awal">
-            <EvidenceUpload
+            <EvidenceSection
               value={form.evidence}
               onChange={(file) => updateField("evidence", file)}
             />
           </TicketSection>
+
+          {apiError && (
+            <div className="text-sm font-medium text-red-500 mb-2 text-right">{apiError}</div>
+          )}
 
           {/* Submit */}
           <div className="flex justify-between items-center pb-6">

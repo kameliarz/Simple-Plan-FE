@@ -1,7 +1,6 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import MainLayout from "@/layouts/MainLayout";
-
 import LoginPage from "@/features/auth-login/pages/LoginPage";
 import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
 import HelpdeskDetailPage from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPage";
@@ -17,6 +16,18 @@ import UserListPage from "@/features/master-data/users/pages/UserListPage";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 function App() {
+  const location = useLocation();
+
+  // LOGIN TIDAK MEMAKAI MAIN LAYOUT
+  if (location.pathname === "/login") {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    );
+  }
+
+  // SEMUA HALAMAN SELAIN LOGIN WAJIB LOGIN
   return (
     <MainLayout>
       <Routes>

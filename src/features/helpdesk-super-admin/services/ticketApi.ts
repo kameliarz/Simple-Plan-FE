@@ -12,14 +12,7 @@ export interface GetTicketsParams {
   per_page?: number;
   service?: "tik" | "sarpras";
   status?:
-    | "baru"
-    | "diklasifikasi"
-    | "ditolak"
-    | "ditugaskan"
-    | "diproses"
-    | "eskalasi"
-    | "terselesaikan"
-    | "ditutup";
+    "baru" | "diklasifikasi" | "ditolak" | "diproses" | "eskalasi" | "terselesaikan" | "ditutup";
   priority?: "low" | "medium" | "high" | "critical";
   date_from?: string;
   date_to?: string;
@@ -245,6 +238,136 @@ export const classifyTicket = async (ticketId: string, payload: ClassifyTicketPa
 
   return responseText ? JSON.parse(responseText) : null;
 };
+
+// ==========================================
+// ASSIGN / REASSIGN PETUGAS TIKET
+// POST /api/v1/tickets/{ticketId}/assign
+// ==========================================
+
+export type AssignTicketPayload = {
+  assigned_officer_id: number;
+  priority: "low" | "medium" | "high" | "critical";
+};
+
+export const assignTicket = async (ticketId: string, payload: AssignTicketPayload) => {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/assign`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Gagal menyimpan penugasan tiket (${response.status}): ${responseText}`);
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// TOLAK TIKET
+// POST /api/v1/tickets/{ticket}/reject
+// ==========================================
+
+export type RejectTicketPayload = {
+  reason: string;
+};
+
+export const rejectTicket = async (ticketId: string, payload: RejectTicketPayload) => {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/reject`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Gagal menolak tiket (${response.status}): ${responseText}`);
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// TICKET HANDLING
+// POST /api/v1/tickets/{ticket}/handlings
+// ==========================================
+
+export type CreateTicketHandlingPayload = {
+  notes: string;
+  status: "diproses" | "terselesaikan";
+  started_at: string;
+  completed_at: string;
+  result_photo?: File | null;
+};
+
+export async function createTicketHandling(ticketId: string, payload: CreateTicketHandlingPayload) {
+  const formData = new FormData();
+
+  formData.append("notes", payload.notes);
+  formData.append("status", payload.status);
+  formData.append("started_at", payload.started_at);
+  formData.append("completed_at", payload.completed_at);
+
+  if (payload.result_photo) {
+    formData.append("result_photo", payload.result_photo);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/handlings`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Gagal menyimpan penanganan tiket.");
+  }
+
+  return data;
+}
+
+// ==========================================
+// SETUJUI PENYELESAIAN DAN TUTUP TIKET
+// POST /api/v1/tickets/{ticket}/verify
+// ==========================================
+
+export async function verifyTicketResolution(ticketId: string) {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/verify`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+
+  const responseText = await response.text();
+
+  let data: { message?: string } | null = null;
+
+  try {
+    data = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    // Respons bukan JSON; gunakan teks respons jika ada.
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message || responseText || `Gagal menyetujui penyelesaian tiket (${response.status}).`,
+    );
+  }
+
+  return data;
+}
 export interface CreateTicketPayload {
   service: "tik" | "sarpras";
   description: string;

@@ -1,16 +1,24 @@
 import Input from "@/components/ui/ui-template/Input";
 import Dropdown from "@/components/ui/ui-template/Dropdown";
+import CategorySelector from "@/components/ui/ui-template/CategorySelector";
+
 import type { HelpdeskCategory } from "../types";
-import { unitOptions } from "../data/helpdeskTicketData";
+import type { SearchedUser } from "../services/searchUserApi";
 
 interface ReporterSectionProps {
   reporterName: string;
   unit: string | null;
   category: HelpdeskCategory;
+  isSuperAdmin: boolean;
+  selectedReporterId: string;
+  searchedUsers: SearchedUser[];
+  isSearchingUsers: boolean;
+  searchUsersError?: string;
+  showUserResults: boolean;
   reporterNameError?: string;
   unitError?: string;
-  onReporterNameChange: (value: string) => void;
-  onUnitChange: (value: string) => void;
+  onReporterSearchChange: (value: string) => void;
+  onSelectReporter: (user: SearchedUser) => void;
   onCategoryChange: (value: HelpdeskCategory) => void;
 }
 
@@ -18,102 +26,101 @@ export default function ReporterSection({
   reporterName,
   unit,
   category,
+  isSuperAdmin,
+  selectedReporterId,
+  searchedUsers,
+  isSearchingUsers,
+  searchUsersError,
   reporterNameError,
   unitError,
-  onUnitChange,
+  onReporterSearchChange,
+  onSelectReporter,
   onCategoryChange,
 }: ReporterSectionProps) {
   return (
     <div className="space-y-5">
-      {/* Nama Pelapor + Unit Pelapor */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Input
-          label="Nama Pelapor"
-          required
-          value={reporterName}
-          onChange={() => {}}
-          placeholder="Nama pelapor"
-          error={reporterNameError}
-          readOnly
-          className="cursor-default"
-        />
+        {/* Nama Pelapor */}
+        <div className="relative">
+          {isSuperAdmin ? (
+            <>
+              <label className="mb-1.5 block text-sm font-medium text-text-primary">
+                Nama Pelapor <span className="text-red-500">*</span>
+              </label>
 
+              <Dropdown
+                value={selectedReporterId}
+                displayValue={reporterName}
+                options={searchedUsers.map((user) => ({
+                  label: user.name,
+                  value: String(user.id),
+                }))}
+                onChange={(userId) => {
+                  const selectedUser = searchedUsers.find((user) => String(user.id) === userId);
+
+                  if (selectedUser) {
+                    onSelectReporter(selectedUser);
+                  }
+                }}
+                onSearchChange={onReporterSearchChange}
+                placeholder=""
+                className="w-full"
+                error={reporterNameError}
+                searchable
+                searchPlaceholder="Cari nama pelapor..."
+                mobileSheet
+                sheetTitle="Pilih Pelapor"
+              />
+
+              {isSearchingUsers && <p className="mt-1 text-xs text-slate-500">Mencari user...</p>}
+
+              {searchUsersError && <p className="mt-1 text-xs text-red-500">{searchUsersError}</p>}
+            </>
+          ) : (
+            <Input
+              label="Nama Pelapor"
+              required
+              value={reporterName}
+              onChange={() => {}}
+              placeholder="Nama pelapor"
+              error={reporterNameError}
+              readOnly
+              className="cursor-default"
+            />
+          )}
+        </div>
+
+        {/* Unit Pelapor */}
         <div>
-          <label className="mb-2 block text-base font-medium text-text-primary">
-            Unit Pelapor
-            <span className="ml-0.5 text-red-500">*</span>
-          </label>
-
-          <Dropdown
+          <Input
+            label="Unit Pelapor"
             value={unit ?? ""}
-            options={unitOptions}
-            onChange={onUnitChange}
-            placeholder="Pilih unit"
+            onChange={() => {}}
+            placeholder="Unit"
             error={unitError}
-            className="w-full"
+            readOnly
+            className="cursor-default"
           />
         </div>
       </div>
 
       {/* Kategori Helpdesk */}
-      <div>
-        <label className="mb-1.5 block text-base font-medium text-text-primary">
-          Kategori Helpdesk
-          <span className="ml-0.5 text-red-500">*</span>
-        </label>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label
-            className={`
-              flex cursor-pointer items-center gap-2.5
-              rounded-lg border px-3 py-3
-              transition
-              ${
-                category === "tik"
-                  ? "border-blue-500 bg-blue-50/40"
-                  : "border-slate-200 bg-white hover:border-slate-300"
-              }
-            `}
-          >
-            <input
-              type="radio"
-              name="helpdesk-category"
-              value="tik"
-              checked={category === "tik"}
-              onChange={() => onCategoryChange("tik")}
-              className="h-4 w-4 accent-blue-600"
-            />
-
-            <span className="text-base text-text-title">
-              Teknologi Informasi & Komunikasi (TIK)
-            </span>
-          </label>
-
-          <label
-            className={`
-              flex cursor-pointer items-center gap-2.5
-              rounded-lg border px-3 py-3
-              transition
-              ${
-                category === "sarpras"
-                  ? "border-blue-500 bg-blue-50/40"
-                  : "border-slate-200 bg-white hover:border-slate-300"
-              }
-            `}
-          >
-            <input
-              type="radio"
-              name="helpdesk-category"
-              value="sarpras"
-              checked={category === "sarpras"}
-              onChange={() => onCategoryChange("sarpras")}
-              className="h-4 w-4 accent-blue-600"
-            />
-
-            <span className="text-base text-text-title">Sarana & Prasarana (Sarpras)</span>
-          </label>
-        </div>
-      </div>
+      <CategorySelector<HelpdeskCategory>
+        label="Kategori Helpdesk"
+        required
+        value={category}
+        onChange={onCategoryChange}
+        options={[
+          {
+            label: "Teknologi Informasi & Komunikasi (TIK)",
+            value: "tik",
+          },
+          {
+            label: "Sarana & Prasarana (Sarpras)",
+            value: "sarpras",
+          },
+        ]}
+      />
     </div>
   );
 }

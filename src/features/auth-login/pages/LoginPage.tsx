@@ -5,13 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { IconLoader2, IconLock, IconUser } from "@tabler/icons-react";
 
 import PasswordInput from "../components/PasswordInput";
-import { login } from "../services/authLoginApi";
-import { saveAuth } from "../services/authStorage";
+import { login as loginApi } from "../services/authLoginApi";
+import { useAuth } from "../context/AuthContext";
 
 import type { LoginFormData, LoginFormErrors } from "../types/auth-login.types";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login: setAuth } = useAuth();
 
   const [formData, setFormData] = useState<LoginFormData>({
     nip: "",
@@ -61,9 +62,9 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      const result = await login(formData);
+      const result = await loginApi(formData);
 
-      saveAuth(result.token, result.user);
+      setAuth(result.token, result.user);
 
       const userRole = result.user.role || "";
 
