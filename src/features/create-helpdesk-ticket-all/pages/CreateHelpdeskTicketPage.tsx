@@ -45,6 +45,29 @@ export default function CreateHelpdeskTicketPage() {
     evidence: null,
   }));
 
+  const resetForm = () => {
+    setForm({
+      reporterName: user?.nama ?? "",
+      selectedReporterId: user?.id ? String(user.id) : "",
+      category: "sarpras",
+      assetId: null,
+      inventoryNumber: "",
+      inventoryName: "",
+      brandSeries: "",
+      reporterUnit: user?.unit_user ?? null,
+      inventoryUnit: null,
+      location: "",
+      issueDescription: "",
+      evidence: null,
+    });
+
+    setErrors({});
+    setSearchedUsers([]);
+    setSearchUsersError("");
+    setShowUserResults(false);
+    setSubmitError("");
+  };
+
   // Menyimpan pesan error untuk setiap field
   const [errors, setErrors] = useState<Partial<Record<keyof HelpdeskTicketForm, string>>>({});
 
@@ -172,6 +195,7 @@ export default function CreateHelpdeskTicketPage() {
         setCreatedTicketNumber(response.data.ticket_number);
       }
 
+      resetForm();
       setShowSuccessModal(true);
     } catch (err: unknown) {
       console.error(err);

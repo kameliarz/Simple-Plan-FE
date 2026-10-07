@@ -21,11 +21,14 @@ export interface ApiTicketStatusHistory {
 export interface ApiTicketHandling {
   id: number;
   notes: string | null;
-  status: ApiTicketStatus;
-  started_at: string | null;
-  completed_at: string | null;
-  handled_by: ApiTicketPerson | null;
-  result_photo: {
+  status: string;
+  started_at: string;
+  completed_at: string;
+  handled_by?: {
+    id: number;
+    name: string;
+  } | null;
+  result_photo?: {
     object_key: string;
     original_name: string;
     mime_type: string;
@@ -72,11 +75,11 @@ export interface ApiTicket {
     name: string;
   } | null;
 
-  initial_evidence: {
-    object_key: string;
+  initial_evidence?: {
     original_name: string;
     mime_type: string;
     size: number;
+    url: string;
   } | null;
 
   completed_at: string | null;

@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { ApiTicket } from "../types/ticket";
 import type { TicketItem, TicketPriority } from "../types/helpdesk";
+import type { DropdownOption } from "../../../components/ui/ui-template/Dropdown";
 
 import {
   verifyTicketResolution,
@@ -13,6 +14,7 @@ import {
   createTicketHandling,
   escalateTicket,
   deEscalateTicket,
+  getTicketClassificationOptions,
 } from "../services/ticketApi";
 
 import RejectTicketModal from "../components/RejectTicketModal";
@@ -163,6 +165,18 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
       rawTimestamp: item.created_at,
       isCompleted: true,
       handlingNote: item.notes ?? undefined,
+
+      ...(item.result_photo
+        ? {
+            handlingPhoto: {
+              name: item.result_photo.original_name,
+              size: formatFileSize(item.result_photo.size),
+              url: item.result_photo.object_key.startsWith("http")
+                ? item.result_photo.object_key
+                : `http://localhost:8000/storage/${item.result_photo.object_key}`,
+            },
+          }
+        : {}),
     })),
   ]
     .sort((a, b) => new Date(b.rawTimestamp).getTime() - new Date(a.rawTimestamp).getTime())
@@ -199,119 +213,19 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
     createdAt: ticket.created_at,
     sla_started_at: ticket.sla_started_at ?? null,
     finishedAt: ticket.completed_at ?? undefined,
-    attachments: ticket.initial_evidence
+    attachments: ticket.initial_evidence?.url
       ? [
           {
-            id: ticket.initial_evidence.object_key,
+            id: ticket.initial_evidence.url,
             name: ticket.initial_evidence.original_name,
             size: formatFileSize(ticket.initial_evidence.size),
-            url: ticket.initial_evidence.object_key.startsWith("http")
-              ? ticket.initial_evidence.object_key
-              : `/storage/${ticket.initial_evidence.object_key}`,
+            url: ticket.initial_evidence.url,
           },
         ]
       : [],
     history,
   };
 };
-
-// ==========================================
-// OPTIONS KLASIFIKASI
-// ==========================================
-
-const kategoriMutuOptions = [
-  "Kepatuhan Input Operator",
-  "Ketidakstabilan System",
-  "Ketidaksesuaian Program",
-  "Akun dan Hak Akses System",
-  "Waktu Tanggap Kerusakan Hardware",
-  "Waktu Tanggap Kerusakan Software",
-];
-
-const kategoriMutuIdMap: Record<string, number> = {
-  "Kepatuhan Input Operator": 1,
-  "Ketidakstabilan System": 2,
-  "Ketidaksesuaian Program": 3,
-  "Akun dan Hak Akses System": 4,
-  "Waktu Tanggap Kerusakan Hardware": 5,
-  "Waktu Tanggap Kerusakan Software": 6,
-};
-
-const tagsITOptions = [
-  "Manage Batal Kunjungan Pasien",
-  "Edit Asesmen Medis Dokter (Form Perubahan Data)",
-  "Support Apps Hapus Asesmen Medis Dokter",
-  "Edit Asesmen Keperawatan (Form Perubahan Data)",
-  "Support Apps Hapus Asesmen Keperawatan",
-  "Edit Data Operasi dari Modul Operasi",
-  "Hapus Request, Regis dan ID Penjualan LAB",
-  "Hapus Request, Regis dan ID Penjualan RAD",
-  "Manage Edit ID Penjualan LAB",
-  "Manage Edit ID Penjualan RAD",
-  "Manage ACC dan Ticketing Unit",
-  "Hapus Request BMHP Farmasi",
-  "Manage Master Baru (Jasa, Rikjang, Fasilitas)",
-  "Manage Mapping Master (Jasa, Rikjang, Fasilitas)",
-  "Manage Mapping untuk Bridging IT",
-  "Manage Master LAB Test",
-  "Manage Master RAD Test",
-  "Manage Casemix Tidak Muncul",
-  "Manage Unvalidasi RPP",
-  "Manage Program Reham Medik Poli Fisioterapi",
-  "Manage Master Barang Medis Farmasi",
-  "Manage Tambah Hak Akses User NUHA",
-  "Manage Edit Hak Akses User NUHA",
-  "Manage Hapus Hak Akses User NUHA",
-  "Manage Pelatihan Modul ke Unit",
-  "Manage Input Diagnostik Medis",
-  "Manage Input Tindakan Kunjungan di Modul Vaksin",
-  "Manage Tambah Master Jam Kerja + Mapping Unit",
-  "Manage Transfer Mutasi Saldo di Kas V3",
-  "Manage Master Tenaga Medis",
-  "Manage Mapping Master Ruangan Operasi",
-  "Pergantian Sparepart",
-  "Perbaikan Perangkat",
-  "Lain-lain",
-];
-
-const tagsITIdMap: Record<string, number> = {
-  "Manage Batal Kunjungan Pasien": 1,
-  "Edit Asesmen Medis Dokter (Form Perubahan Data)": 2,
-  "Support Apps Hapus Asesmen Medis Dokter": 3,
-  "Edit Asesmen Keperawatan (Form Perubahan Data)": 4,
-  "Support Apps Hapus Asesmen Keperawatan": 5,
-  "Edit Data Operasi dari Modul Operasi": 6,
-  "Hapus Request, Regis dan ID Penjualan LAB": 7,
-  "Hapus Request, Regis dan ID Penjualan RAD": 8,
-  "Manage Edit ID Penjualan LAB": 9,
-  "Manage Edit ID Penjualan RAD": 10,
-  "Manage ACC dan Ticketing Unit": 11,
-  "Hapus Request BMHP Farmasi": 12,
-  "Manage Master Baru (Jasa, Rikjang, Fasilitas)": 13,
-  "Manage Mapping Master (Jasa, Rikjang, Fasilitas)": 14,
-  "Manage Mapping untuk Bridging IT": 15,
-  "Manage Master LAB Test": 16,
-  "Manage Master RAD Test": 17,
-  "Manage Casemix Tidak Muncul": 18,
-  "Manage Unvalidasi RPP": 19,
-  "Manage Program Reham Medik Poli Fisioterapi": 20,
-  "Manage Master Barang Medis Farmasi": 21,
-  "Manage Tambah Hak Akses User NUHA": 22,
-  "Manage Edit Hak Akses User NUHA": 23,
-  "Manage Hapus Hak Akses User NUHA": 24,
-  "Manage Pelatihan Modul ke Unit": 25,
-  "Manage Input Diagnostik Medis": 26,
-  "Manage Input Tindakan Kunjungan di Modul Vaksin": 27,
-  "Manage Tambah Master Jam Kerja + Mapping Unit": 28,
-  "Manage Transfer Mutasi Saldo di Kas V3": 29,
-  "Manage Master Tenaga Medis": 30,
-  "Manage Mapping Master Ruangan Operasi": 31,
-  "Pergantian Sparepart": 32,
-  "Perbaikan Perangkat": 33,
-  "Lain-lain": 34,
-};
-
-const kategoriSarprasOptions = ["Sarpras", "Elektronik", "Alkes"];
 
 // ==========================================
 // OPTIONS PRIORITAS
@@ -380,37 +294,6 @@ const priorityConfig: Record<
     dot: "bg-green-500",
   },
 };
-
-// ==========================================
-// MOCK PETUGAS
-// ==========================================
-
-const MOCK_OFFICERS: Officer[] = [
-  {
-    id: 1,
-    name: "Hendra Wijaya",
-    role: "IT Support - SIS",
-    initials: "HW",
-  },
-  {
-    id: 2,
-    name: "Rian Pratama",
-    role: "Teknisi Lapangan",
-    initials: "RP",
-  },
-  {
-    id: 3,
-    name: "Siti Lestari",
-    role: "IT Helpdesk",
-    initials: "SL",
-  },
-  {
-    id: 4,
-    name: "Ahmad Fauzi",
-    role: "IT Support - Hardware",
-    initials: "AF",
-  },
-];
 
 // ==========================================
 // COMPONENT
@@ -482,6 +365,10 @@ export default function HelpdeskDetailPage() {
 
   const [tagsIT, setTagsIT] = useState("");
 
+  const [customITTag, setCustomITTag] = useState("");
+
+  const [customITTagError, setCustomITTagError] = useState("");
+
   const [kategoriSarpras, setKategoriSarpras] = useState("");
 
   const [kategoriSarprasError, setKategoriSarprasError] = useState("");
@@ -491,6 +378,12 @@ export default function HelpdeskDetailPage() {
   const [tagsITError, setTagsITError] = useState("");
 
   const classificationRef = useRef<HTMLDivElement | null>(null);
+
+  const [kategoriSarprasOptions, setKategoriSarprasOptions] = useState<DropdownOption[]>([]);
+
+  const [kategoriMutuOptions, setKategoriMutuOptions] = useState<DropdownOption[]>([]);
+
+  const [tagsITOptions, setTagsITOptions] = useState<DropdownOption[]>([]);
 
   // ==========================================
   // ASSIGNMENT
@@ -540,6 +433,12 @@ export default function HelpdeskDetailPage() {
   const [isDeEscalating, setIsDeEscalating] = useState(false);
 
   // ==========================================
+  // JENIS TIKET
+  // ==========================================
+
+  const isSarpras = currentTicket?.category === "Sarpras";
+
+  // ==========================================
   // GET DETAIL TICKET
   // ==========================================
 
@@ -557,8 +456,13 @@ export default function HelpdeskDetailPage() {
 
         const data = await getTicket(ticketId);
 
-        setKategoriMutu(data.tik_detail?.quality_category?.name ?? "");
-        setTagsIT(data.tik_detail?.it_tag?.name ?? "");
+        setKategoriMutu(
+          data.tik_detail?.quality_category?.id ? String(data.tik_detail.quality_category.id) : "",
+        );
+
+        setTagsIT(data.tik_detail?.it_tag?.id ? String(data.tik_detail.it_tag.id) : "");
+
+        setCustomITTag(data.tik_detail?.custom_it_tag_text ?? "");
 
         if (!isMounted) {
           return;
@@ -595,12 +499,8 @@ export default function HelpdeskDetailPage() {
 
         // Sync petugas dari API
         if (data.assigned_officer) {
-          const apiOfficer = MOCK_OFFICERS.find(
-            (officer) => officer.name === data.assigned_officer?.name,
-          );
-
-          const officer: Officer = apiOfficer ?? {
-            id: 0,
+          const officer: Officer = {
+            id: data.assigned_officer.id,
             name: data.assigned_officer.name,
             role: "Petugas",
             initials: data.assigned_officer.name
@@ -640,6 +540,56 @@ export default function HelpdeskDetailPage() {
       isMounted = false;
     };
   }, [ticketId]);
+
+  // ==========================================
+  // GET CLASSIFICATION OPTIONS
+  // ==========================================
+
+  useEffect(() => {
+    const fetchClassificationOptions = async () => {
+      try {
+        const response = await getTicketClassificationOptions(isSarpras ? "sarpras" : "tik");
+
+        setKategoriSarprasOptions(
+          (response.sarpras_categories ?? []).map((item) => ({
+            label: item.name,
+            value: String(item.id),
+          })),
+        );
+
+        setKategoriMutuOptions(
+          (response.quality_categories ?? []).map((item) => ({
+            label: item.name,
+            value: String(item.id),
+          })),
+        );
+
+        const itTags = (response.it_tags ?? []).map((item) => ({
+          label: item.name,
+          value: String(item.id),
+        }));
+
+        const lainLain = itTags.filter((item) => item.label.toLowerCase() === "lain-lain");
+
+        const otherTags = itTags.filter((item) => item.label.toLowerCase() !== "lain-lain");
+
+        setTagsITOptions([...otherTags, ...lainLain]);
+      } catch (error) {
+        console.error("Gagal mengambil opsi klasifikasi:", error);
+
+        setKategoriSarprasOptions([]);
+        setKategoriMutuOptions([]);
+        setTagsITOptions([]);
+
+        showAlertMessage(
+          error instanceof Error ? error.message : "Gagal mengambil opsi klasifikasi tiket.",
+          "error",
+        );
+      }
+    };
+
+    fetchClassificationOptions();
+  }, [isSarpras, showAlertMessage]);
 
   // ==========================================
   // NO TICKET ID
@@ -716,12 +666,6 @@ export default function HelpdeskDetailPage() {
       </div>
     );
   }
-
-  // ==========================================
-  // JENIS TIKET
-  // ==========================================
-
-  const isSarpras = currentTicket.category === "Sarpras";
 
   // ==========================================
   // REJECT
@@ -817,6 +761,10 @@ export default function HelpdeskDetailPage() {
   // SAVE CLASSIFICATION
   // ==========================================
 
+  const qualityCategoryId = Number(kategoriMutu);
+
+  const itTagId = Number(tagsIT);
+
   const handleSaveClassification = async () => {
     let hasError = false;
 
@@ -841,24 +789,25 @@ export default function HelpdeskDetailPage() {
       } else {
         setTagsITError("");
       }
+
+      if (tagsIT === "1" && !customITTag.trim()) {
+        setCustomITTagError("Tags IT lainnya wajib diisi.");
+        hasError = true;
+      }
     }
 
     if (hasError) return;
 
-    const qualityCategoryId = kategoriMutuIdMap[kategoriMutu];
-    const itTagId = tagsITIdMap[tagsIT];
-
-    if (!isSarpras && (!qualityCategoryId || !itTagId)) {
-      showAlertMessage("ID kategori atau tag IT tidak valid.", "error");
-      return;
-    }
-
     try {
-      if (!isSarpras) {
+      if (isSarpras) {
+        await classifyTicket(ticketId, {
+          quality_category_id: Number(kategoriSarpras),
+        });
+      } else {
         await classifyTicket(ticketId, {
           quality_category_id: qualityCategoryId,
           it_tag_id: itTagId,
-          custom_it_tag_text: tagsIT === "Lain-lain" ? "Lain-lain" : "",
+          custom_it_tag_text: tagsIT === "1" ? customITTag.trim() : "",
         });
       }
 
@@ -978,19 +927,19 @@ export default function HelpdeskDetailPage() {
     }
 
     try {
-      // Kirim assignment ke backend
       await assignTicket(ticketId, {
         assigned_officer_id: assignedOfficer.id,
         priority: priority,
       });
 
-      // Simpan sebagai data final setelah API berhasil
+      const updatedTicket = await getTicket(ticketId);
+      const mappedUpdatedTicket = mapApiTicketToTicketItem(updatedTicket);
+
       setSavedPriority(priority);
       setSavedOfficer(assignedOfficer);
       setIsAssignmentMode(false);
       setIsAssignmentSaved(true);
 
-      // Perbarui riwayat di tampilan
       const updatedHistory = [
         {
           id: `assigned-${Date.now()}`,
@@ -1002,16 +951,7 @@ export default function HelpdeskDetailPage() {
       ];
 
       setCurrentTicket({
-        ...currentTicket,
-        status: "Diproses",
-        priority:
-          priority === "critical"
-            ? "Critical"
-            : priority === "high"
-              ? "High"
-              : priority === "medium"
-                ? "Medium"
-                : "Low",
+        ...mappedUpdatedTicket,
         history: updatedHistory,
       });
 
@@ -1535,6 +1475,10 @@ export default function HelpdeskDetailPage() {
               kategoriMutuOptions={kategoriMutuOptions}
               kategoriMutuError={kategoriMutuError}
               setKategoriMutuError={setKategoriMutuError}
+              customITTag={customITTag}
+              setCustomITTag={setCustomITTag}
+              customITTagError={customITTagError}
+              setCustomITTagError={setCustomITTagError}
               tagsIT={tagsIT}
               setTagsIT={setTagsIT}
               tagsITOptions={tagsITOptions}

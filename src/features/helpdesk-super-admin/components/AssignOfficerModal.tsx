@@ -29,18 +29,17 @@ export default function AssignOfficerModal({
   const [search, setSearch] = useState("");
   const [officers, setOfficers] = useState<Officer[]>([]);
 
-  // Melacak prop sebelumnya untuk sinkronisasi state tanpa useEffect
-  const [prevSelectedOfficer, setPrevSelectedOfficer] = useState<Officer | null>(selectedOfficer);
-  const [selectedId, setSelectedId] = useState<number | null>(selectedOfficer?.id ?? null);
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Atur state awal secara sinkron saat prop selectedOfficer berubah
-  if (selectedOfficer !== prevSelectedOfficer) {
-    setPrevSelectedOfficer(selectedOfficer);
+  const [selectedId, setSelectedId] = useState<number | null>(selectedOfficer?.id ?? null);
+
+  const handleClose = () => {
     setSelectedId(selectedOfficer?.id ?? null);
-  }
+    setSearch("");
+    setError("");
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen || !ticketId) return;
@@ -77,16 +76,21 @@ export default function AssignOfficerModal({
   }, [isOpen, ticketId, search]);
 
   const handleAssign = () => {
-    const officer = officers.find((item) => item.id === selectedId);
+    const officer =
+      officers.find((item) => item.id === selectedId) ??
+      (selectedOfficer?.id === selectedId ? selectedOfficer : null);
 
     if (!officer) return;
 
     onAssign(officer);
+
+    setSearch("");
+    setError("");
     onClose();
   };
 
   return (
-    <Modal show={isOpen} onClose={onClose} title="Tugaskan Petugas" maxWidth="md" closeable>
+    <Modal show={isOpen} onClose={handleClose} title="Tugaskan Petugas" maxWidth="md" closeable>
       <div className="space-y-4">
         <div>
           <label
@@ -141,6 +145,7 @@ export default function AssignOfficerModal({
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-text-title">{officer.name}</p>
+
                     <p className="mt-0.5 truncate text-xs text-slate-400">{officer.role}</p>
                   </div>
 
@@ -162,7 +167,8 @@ export default function AssignOfficerModal({
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button label="Batal" variant="secondary" className="w-full" onClick={onClose} />
+          <Button label="Batal" variant="secondary" className="w-full" onClick={handleClose} />
+
           <Button label="Tugaskan" variant="primary" className="w-full" onClick={handleAssign} />
         </div>
       </div>

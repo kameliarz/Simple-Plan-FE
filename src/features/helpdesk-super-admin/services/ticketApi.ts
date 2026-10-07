@@ -3,7 +3,7 @@ import type {
   TicketCollectionResponse,
 } from "@/features/helpdesk-super-admin/types/ticket";
 
-import { getToken } from "@/features/auth-login/services/authStorage";
+import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
 
 const API_BASE_URL = "/api/v1";
 
@@ -34,6 +34,16 @@ function getAuthHeaders(): HeadersInit {
     Accept: "application/json",
     Authorization: `Bearer ${token}`,
   };
+}
+
+function handleUnauthorized(response: Response) {
+  if (response.status === 401) {
+    clearAuth();
+    window.location.href = "/login";
+    return true;
+  }
+
+  return false;
 }
 
 // ==========================================
@@ -85,6 +95,10 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
     method: "GET",
     headers: getAuthHeaders(),
   });
+
+  if (handleUnauthorized(response)) {
+    throw new Error("Sesi login sudah tidak valid.");
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -440,4 +454,57 @@ export const deEscalateTicket = async (ticketId: string) => {
   }
 
   return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// OPSI KLASIFIKASI TIKET
+// GET /api/v1/tickets/classification-options?service={service}
+// ==========================================
+
+export type ClassificationOption = {
+  id: number;
+  name: string;
+};
+
+export type TicketClassificationOptions = {
+  service: "tik" | "sarpras";
+  quality_categories: ClassificationOption[];
+  it_tags: ClassificationOption[];
+  sarpras_categories: ClassificationOption[];
+};
+
+export const getTicketClassificationOptions = async (
+  service: "tik" | "sarpras",
+): Promise<TicketClassificationOptions> => {
+  const response = await fetch(
+    `${API_BASE_URL}/tickets/classification-options?service=${encodeURIComponent(service)}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let errorMessage = `Gagal mengambil opsi klasifikasi tiket (${response.status})`;
+
+    try {
+      const parsed = JSON.parse(responseText);
+
+      if (parsed.message) {
+        errorMessage = parsed.message;
+      }
+    } catch {
+      if (responseText) {
+        errorMessage = responseText;
+      }
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  const parsed = responseText ? JSON.parse(responseText) : null;
+
+  return parsed?.data;
 };
