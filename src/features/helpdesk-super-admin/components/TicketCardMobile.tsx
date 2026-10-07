@@ -27,6 +27,7 @@ interface TicketCardMobileProps {
 const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
   baru: "Baru",
   diklasifikasi: "Diklasifikasi",
+  ditugaskan: "Ditugaskan",
   ditolak: "Ditolak",
   diproses: "Diproses",
   eskalasi: "Eskalasi",
@@ -53,6 +54,7 @@ const priorityLabelMap: Record<ApiTicketPriority, TicketPriority> = {
 const borderAccentMap: Record<TicketStatus, string> = {
   Baru: "border-l-badge-new-text",
   Diklasifikasi: "border-l-badge-classificated-text",
+  Ditugaskan: "border-l-badge-process-text",
   Ditolak: "border-l-badge-denied-text",
   Diproses: "border-l-badge-process-text",
   Eskalasi: "border-l-badge-escalation-text",

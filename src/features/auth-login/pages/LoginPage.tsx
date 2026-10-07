@@ -69,9 +69,9 @@ export default function LoginPage() {
       const userRole = result.user.role || "";
 
       if (userRole === "petugas-sarpras") {
-        navigate("/petugas/sarpras/helpdesk", { replace: true });
+        navigate("/helpdesk/sarpras", { replace: true });
       } else if (userRole === "petugas-tik") {
-        navigate("/petugas/tik/helpdesk", { replace: true });
+        navigate("/helpdesk/tik", { replace: true });
       } else if (userRole === "koordinator-sarpras") {
         navigate("/helpdesk/sarpras", { replace: true });
       } else {

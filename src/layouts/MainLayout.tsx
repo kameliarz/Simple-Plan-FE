@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import BottomNav, { type MobileNavTab } from "@/components/layout/BottomNav";
+import { getUser } from "@/features/auth-login/services/authStorage";
 
 import MobileHeader from "@/components/layout/MobileHeader";
 import NavbarHeader from "@/components/layout/NavbarHeader";
@@ -53,26 +54,27 @@ export default function MainLayout({
 
     const path = location.pathname;
 
-    if (path.startsWith("/petugas/tik/helpdesk")) {
-      const base = [{ label: "Petugas TIK" }, { label: "Helpdesk" }];
-      if (path === "/petugas/tik/helpdesk") return [...base, { label: "Daftar Tiket" }];
-      return [...base, { label: "Detail Tiket" }];
-    }
-
-    if (path.startsWith("/petugas/sarpras/helpdesk")) {
-      const base = [{ label: "Petugas Sarpras" }, { label: "Helpdesk" }];
-      if (path === "/petugas/sarpras/helpdesk") return [...base, { label: "Daftar Tiket" }];
-      return [...base, { label: "Detail Tiket" }];
-    }
-
     if (path.startsWith("/helpdesk/sarpras")) {
-      const base = [{ label: "Koordinator Sarpras" }, { label: "Helpdesk" }];
+      const user = getUser();
+      const role = user?.role;
+      let label = "Koordinator Sarpras";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "super-admin") label = "Super Admin";
+
+      const base = [{ label }, { label: "Helpdesk" }];
       if (path === "/helpdesk/sarpras") return [...base, { label: "Helpdesk Sarpras" }];
       return [...base, { label: "Detail Tiket" }];
     }
 
     if (path.startsWith("/helpdesk/tik")) {
-      const base = [{ label: "Super Admin" }, { label: "Helpdesk" }];
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+
+      const base = [{ label }, { label: "Helpdesk" }];
       if (path === "/helpdesk/tik") return [...base, { label: "Helpdesk TIK" }];
       return [...base, { label: "Detail Tiket" }];
     }

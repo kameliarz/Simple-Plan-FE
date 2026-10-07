@@ -36,6 +36,7 @@ const ITEMS_PER_PAGE = 15;
 const statusLabelMap: Record<ApiTicketStatus, TicketStatus> = {
   baru: "Baru",
   diklasifikasi: "Diklasifikasi",
+  ditugaskan: "Ditugaskan",
   ditolak: "Ditolak",
   diproses: "Diproses",
   eskalasi: "Eskalasi",

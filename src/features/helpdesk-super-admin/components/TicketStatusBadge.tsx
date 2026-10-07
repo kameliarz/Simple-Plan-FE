@@ -9,6 +9,7 @@ const statusStyles: Record<TicketStatus, string> = {
   Baru: "bg-badge-new-fill text-badge-new-text border-badge-new-stroke",
   Diklasifikasi:
     "bg-badge-classificated-fill text-badge-classificated-text border-badge-classificated-stroke",
+  Ditugaskan: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
   Ditolak: "bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke",
   Diproses: "bg-badge-process-fill text-badge-process-text border-badge-process-stroke",
   Terselesaikan: "bg-badge-done-fill text-badge-done-text border-badge-done-stroke",

@@ -11,11 +11,13 @@ export const MOCK_TICKETS: TicketItem[] = [
     status: "Baru",
     priority: "Medium",
     reporter: {
+      id: 1,
       name: "Ahmad Subagyo",
       unit: "Poli Umum",
       avatarInitials: "AS",
     },
     createdAt: "10 Okt 2023, 08:30",
+    sla_started_at: null,
     attachments: [
       {
         id: "att-1",
@@ -48,11 +50,13 @@ export const MOCK_TICKETS: TicketItem[] = [
     status: "Diproses",
     priority: "Medium",
     reporter: {
+      id: 1,
       name: "Dr. Wahyudi",
       unit: "IGD",
       avatarInitials: "DW",
     },
     createdAt: "09 Okt 2023, 14:30",
+    sla_started_at: null,
   },
   {
     id: "3",
@@ -63,11 +67,13 @@ export const MOCK_TICKETS: TicketItem[] = [
     status: "Terselesaikan",
     priority: "Medium",
     reporter: {
+      id: 1,
       name: "Siti Rahma",
       unit: "Farmasi",
       avatarInitials: "SR",
     },
     createdAt: "08 Okt 2023, 11:30",
+    sla_started_at: null,
   },
   {
     id: "4",
@@ -78,11 +84,13 @@ export const MOCK_TICKETS: TicketItem[] = [
     status: "Diklasifikasi",
     priority: "Medium",
     reporter: {
+      id: 1,
       name: "Citra Dwi",
       unit: "Farmasi",
       avatarInitials: "CD",
     },
     createdAt: "06 Okt 2023, 10.00",
+    sla_started_at: null,
   },
   {
     id: "5",
@@ -93,10 +101,12 @@ export const MOCK_TICKETS: TicketItem[] = [
     status: "Ditolak",
     priority: "Medium",
     reporter: {
+      id: 1,
       name: "Naura Indra",
       unit: "IGD",
       avatarInitials: "NR",
     },
     createdAt: "06 Okt 2023, 10.00",
+    sla_started_at: null,
   },
 ];

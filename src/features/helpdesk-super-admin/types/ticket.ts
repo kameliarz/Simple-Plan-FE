@@ -1,20 +1,14 @@
-export interface ApiMeta {
-  current_page: number;
-  from: number | null;
-  last_page: number;
-  links: {
-    url: string | null;
-    label: string;
-    active: boolean;
-  }[];
-  path: string;
-  per_page: number;
-  to: number | null;
-  total: number;
-}
+import type { ApiMeta } from "@/types/api";
 
 export type ApiTicketStatus =
-  "baru" | "diklasifikasi" | "ditolak" | "diproses" | "eskalasi" | "terselesaikan" | "ditutup";
+  | "baru"
+  | "diklasifikasi"
+  | "ditugaskan"
+  | "ditolak"
+  | "diproses"
+  | "eskalasi"
+  | "terselesaikan"
+  | "ditutup";
 export type ApiTicketPriority = "low" | "medium" | "high" | "critical";
 
 export type ApiTicketPerson = {
@@ -89,10 +83,11 @@ export interface ApiTicket {
   } | null;
 
   initial_evidence?: {
+    object_key?: string;
     original_name: string;
     mime_type: string;
     size: number;
-    url: string;
+    url?: string;
   } | null;
 
   completed_at: string | null;

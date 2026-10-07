@@ -5,9 +5,7 @@ import LoginPage from "@/features/auth-login/pages/LoginPage";
 import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
 import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
 import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
-import HelpdeskKoorDetailPage from "@/features/helpdesk-koor/pages/HelpdeskKoorDetailPage";
 import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";
-import HelpdeskPetugasDetailPage from "@/features/helpdesk-petugas/pages/HelpdeskPetugasDetailPage";
 import HelpdeskManajemenPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenPage";
 import HelpdeskManajemenDetailPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenDetailPage";
 import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
@@ -15,10 +13,31 @@ import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
+const TikHelpdeskRouter = () => {
+  const user = getUser();
+  const role = user?.role;
+  if (role === "super-admin") return <HelpdeskSAPage />;
+  return <HelpdeskPetugasPage />;
+};
+
+const TikHelpdeskDetailRouter = () => {
+  return <HelpdeskDetailPagee />;
+};
+
+const SarprasHelpdeskRouter = () => {
+  const user = getUser();
+  const role = user?.role;
+  if (role === "koordinator-sarpras" || role === "super-admin") return <HelpdeskKoorPage />;
+  return <HelpdeskPetugasPage />;
+};
+
+const SarprasHelpdeskDetailRouter = () => {
+  return <HelpdeskDetailPagee />;
+};
+
 function App() {
   const location = useLocation();
 
-  // LOGIN TIDAK MEMAKAI MAIN LAYOUT
   if (location.pathname === "/login") {
     return (
       <Routes>
@@ -35,17 +54,11 @@ function App() {
 
         <Route path="/login" element={<LoginPage />} />
 
-        <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
-        <Route path="/helpdesk/sarpras" element={<HelpdeskKoorPage />} />
+        <Route path="/helpdesk/tik" element={<TikHelpdeskRouter />} />
+        <Route path="/helpdesk/sarpras" element={<SarprasHelpdeskRouter />} />
 
-        <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPagee />} />
-        <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskKoorDetailPage />} />
-
-        <Route path="/petugas/sarpras/helpdesk" element={<HelpdeskPetugasPage />} />
-        <Route path="/petugas/sarpras/helpdesk/:ticketId" element={<HelpdeskPetugasDetailPage />} />
-
-        <Route path="/petugas/tik/helpdesk" element={<HelpdeskPetugasPage />} />
-        <Route path="/petugas/tik/helpdesk/:ticketId" element={<HelpdeskPetugasDetailPage />} />
+        <Route path="/helpdesk/tik/:ticketId" element={<TikHelpdeskDetailRouter />} />
+        <Route path="/helpdesk/sarpras/:ticketId" element={<SarprasHelpdeskDetailRouter />} />
 
         {/* Manajemen */}
         <Route path="/manajemen/helpdesk/tik" element={<HelpdeskManajemenPage />} />
@@ -76,8 +89,8 @@ function HomeRedirect() {
 
   const userRole = user.role;
   if (userRole === "user") return <Navigate to="/helpdesk/create" replace />;
-  if (userRole === "petugas-sarpras") return <Navigate to="/petugas/sarpras/helpdesk" replace />;
-  if (userRole === "petugas-tik") return <Navigate to="/petugas/tik/helpdesk" replace />;
+  if (userRole === "petugas-sarpras") return <Navigate to="/helpdesk/sarpras" replace />;
+  if (userRole === "petugas-tik") return <Navigate to="/helpdesk/tik" replace />;
   if (userRole === "koordinator-sarpras") return <Navigate to="/helpdesk/sarpras" replace />;
 
   return <Navigate to="/helpdesk/tik" replace />;
