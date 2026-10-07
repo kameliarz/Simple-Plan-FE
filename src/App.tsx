@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "@/features/auth-login/pages/LoginPage";
 import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
-import HelpdeskDetailPage from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPage";
+import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
 import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
 import HelpdeskKoorDetailPage from "@/features/helpdesk-koor/pages/HelpdeskKoorDetailPage";
 import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";
@@ -38,7 +38,7 @@ function App() {
         <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
         <Route path="/helpdesk/sarpras" element={<HelpdeskKoorPage />} />
 
-        <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
+        <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPagee />} />
         <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskKoorDetailPage />} />
 
         <Route path="/petugas/sarpras/helpdesk" element={<HelpdeskPetugasPage />} />
