@@ -83,7 +83,7 @@ const EscalationModal = ({ isOpen, onClose, onSave }: EscalationModalProps) => {
             value={destination}
             options={destinationOptions}
             onChange={(value) => {
-              setDestination(value.toLowerCase() as "Manajemen" | "Vendor" | "Tim Terkait");
+              setDestination(value as EscalationFormData["destination"]);
               setDestinationError("");
             }}
             placeholder="Pilih tujuan eskalasi"

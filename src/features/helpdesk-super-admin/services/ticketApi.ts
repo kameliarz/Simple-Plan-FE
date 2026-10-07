@@ -3,7 +3,7 @@ import type {
   TicketCollectionResponse,
 } from "@/features/helpdesk-super-admin/types/ticket";
 
-import { getToken } from "@/features/auth-login/services/authStorage";
+import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
 
 const API_BASE_URL = "/api/v1";
 
@@ -34,6 +34,16 @@ function getAuthHeaders(): HeadersInit {
     Accept: "application/json",
     Authorization: `Bearer ${token}`,
   };
+}
+
+function handleUnauthorized(response: Response) {
+  if (response.status === 401) {
+    clearAuth();
+    window.location.href = "/login";
+    return true;
+  }
+
+  return false;
 }
 
 // ==========================================
@@ -85,6 +95,10 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
     method: "GET",
     headers: getAuthHeaders(),
   });
+
+  if (handleUnauthorized(response)) {
+    throw new Error("Sesi login sudah tidak valid.");
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -340,14 +354,23 @@ export async function createTicketHandling(ticketId: string, payload: CreateTick
 }
 
 // ==========================================
-// SETUJUI PENYELESAIAN DAN TUTUP TIKET
+// VERIFIKASI TIKET (SETUJUI / TOLAK PENYELESAIAN)
 // POST /api/v1/tickets/{ticket}/verify
 // ==========================================
 
-export async function verifyTicketResolution(ticketId: string) {
+export type VerifyTicketPayload = {
+  is_approved: boolean;
+  keterangan_kendala?: string;
+};
+
+export async function verifyTicketResolution(ticketId: string, payload: VerifyTicketPayload) {
   const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/verify`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
 
   const responseText = await response.text();
@@ -357,17 +380,22 @@ export async function verifyTicketResolution(ticketId: string) {
   try {
     data = responseText ? JSON.parse(responseText) : null;
   } catch {
-    // Respons bukan JSON; gunakan teks respons jika ada.
+    // Respons bukan JSON
   }
 
   if (!response.ok) {
     throw new Error(
-      data?.message || responseText || `Gagal menyetujui penyelesaian tiket (${response.status}).`,
+      data?.message || responseText || `Gagal memproses verifikasi tiket (${response.status}).`,
     );
   }
 
   return data;
 }
+
+// ==========================================
+// CREATE TIKET
+// POST /api/v1/tickets
+// ==========================================
 export interface CreateTicketPayload {
   service: "tik" | "sarpras";
   description: string;
@@ -403,4 +431,122 @@ export const createTicket = async (data: CreateTicketPayload) => {
   }
 
   return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// ESKALASI TIKET
+// POST /api/v1/tickets/{ticket}/escalate
+// ==========================================
+
+export type EscalateTicketPayload = {
+  target?: string;
+  notes?: string;
+  reason?: string;
+  [key: string]: unknown;
+};
+
+export const escalateTicket = async (ticketId: string, payload?: EscalateTicketPayload) => {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/escalate`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload ?? {}),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let errorMessage = `Gagal mengeskalasi tiket (${response.status})`;
+    try {
+      const parsed = JSON.parse(responseText);
+      if (parsed.message) errorMessage = parsed.message;
+    } catch {
+      if (responseText) errorMessage = responseText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// DE-ESKALATE TIKET (LANJUTKAN PENANGANAN)
+// POST /api/v1/tickets/{ticket}/de-escalate
+// ==========================================
+
+export const deEscalateTicket = async (ticketId: string) => {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/de-escalate`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let errorMessage = `Gagal melanjutkan penanganan tiket (${response.status})`;
+    try {
+      const parsed = JSON.parse(responseText);
+      if (parsed.message) errorMessage = parsed.message;
+    } catch {
+      if (responseText) errorMessage = responseText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return responseText ? JSON.parse(responseText) : null;
+};
+
+// ==========================================
+// OPSI KLASIFIKASI TIKET
+// GET /api/v1/tickets/classification-options?service={service}
+// ==========================================
+
+export type ClassificationOption = {
+  id: number;
+  name: string;
+};
+
+export type TicketClassificationOptions = {
+  service: "tik" | "sarpras";
+  quality_categories: ClassificationOption[];
+  it_tags: ClassificationOption[];
+  sarpras_categories: ClassificationOption[];
+};
+
+export const getTicketClassificationOptions = async (
+  service: "tik" | "sarpras",
+): Promise<TicketClassificationOptions> => {
+  const response = await fetch(
+    `${API_BASE_URL}/tickets/classification-options?service=${encodeURIComponent(service)}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let errorMessage = `Gagal mengambil opsi klasifikasi tiket (${response.status})`;
+
+    try {
+      const parsed = JSON.parse(responseText);
+
+      if (parsed.message) {
+        errorMessage = parsed.message;
+      }
+    } catch {
+      if (responseText) {
+        errorMessage = responseText;
+      }
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  const parsed = responseText ? JSON.parse(responseText) : null;
+
+  return parsed?.data;
 };

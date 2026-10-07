@@ -9,6 +9,7 @@ export interface HelpdeskTicketForm {
   reporterName: string;
   selectedReporterId: string;
   category: HelpdeskCategory;
+  assetId: number | string | null;
   reporterUnit: string | null;
   inventoryUnit: string | null;
   inventoryNumber: string;

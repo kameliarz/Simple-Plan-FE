@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IconChevronDown, IconAlertCircle, IconSearch, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,30 @@ export default function Dropdown({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [draftValue, setDraftValue] = useState(value);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = () => {
+    setOpen(false);
+    setSearch("");
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (event: PointerEvent) => {
+      const target = event.target as Node;
+
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [open]);
 
   const normalizedOptions = useMemo(
     () =>
@@ -49,14 +73,18 @@ export default function Dropdown({
   );
 
   const filteredOptions = useMemo(() => {
-    if (!searchable && !mobileSheet) {
+    if (onSearchChange) {
+      return normalizedOptions;
+    }
+
+    if (!searchable) {
       return normalizedOptions;
     }
 
     return normalizedOptions.filter((option) =>
       option.label.toLowerCase().includes(search.trim().toLowerCase()),
     );
-  }, [normalizedOptions, search, searchable, mobileSheet]);
+  }, [normalizedOptions, search, searchable, onSearchChange]);
 
   const selectedLabel = normalizedOptions.find((option) => option.value === value)?.label ?? "";
 
@@ -68,11 +96,6 @@ export default function Dropdown({
     setDraftValue(value);
     setSearch("");
     setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSearch("");
   };
 
   const handleApply = () => {
@@ -91,7 +114,7 @@ export default function Dropdown({
   };
 
   return (
-    <div className={cn("relative w-40", className)}>
+    <div ref={dropdownRef} className={cn("relative w-40", className)}>
       {/* Trigger */}
       <button
         type="button"

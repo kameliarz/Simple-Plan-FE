@@ -11,11 +11,10 @@ import ReporterSection from "../components/ReporterSection";
 import InventorySection from "../components/InventorySection";
 import EvidenceSection from "../components/EvidenceSection";
 
-import { searchUsersByName, type SearchedUser } from "../services/searchUserApi";
+import { searchUsersByName, type SearchedUser, createTicket } from "../services/searchApi";
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 
 import type { HelpdeskCategory, HelpdeskTicketForm } from "../types";
-import { createTicket } from "@/features/helpdesk-super-admin/services/ticketApi";
 
 export default function CreateHelpdeskTicketPage() {
   const { user } = useAuth();
@@ -26,10 +25,15 @@ export default function CreateHelpdeskTicketPage() {
   const [searchUsersError, setSearchUsersError] = useState("");
   const [showUserResults, setShowUserResults] = useState(false);
 
+  // State untuk penanganan submit API
+  const [submitError, setSubmitError] = useState("");
+  const [createdTicketNumber, setCreatedTicketNumber] = useState("");
+
   const [form, setForm] = useState<HelpdeskTicketForm>(() => ({
     reporterName: user?.nama ?? "",
     selectedReporterId: user?.id ? String(user.id) : "",
     category: "sarpras",
+    assetId: null,
     inventoryNumber: "",
     inventoryName: "",
     brandSeries: "",
@@ -39,6 +43,29 @@ export default function CreateHelpdeskTicketPage() {
     issueDescription: "",
     evidence: null,
   }));
+
+  const resetForm = () => {
+    setForm({
+      reporterName: user?.nama ?? "",
+      selectedReporterId: user?.id ? String(user.id) : "",
+      category: "sarpras",
+      assetId: null,
+      inventoryNumber: "",
+      inventoryName: "",
+      brandSeries: "",
+      reporterUnit: user?.unit_user ?? null,
+      inventoryUnit: null,
+      location: "",
+      issueDescription: "",
+      evidence: null,
+    });
+
+    setErrors({});
+    setSearchedUsers([]);
+    setSearchUsersError("");
+    setShowUserResults(false);
+    setSubmitError("");
+  };
 
   // Menyimpan pesan error untuk setiap field
   const [errors, setErrors] = useState<Partial<Record<keyof HelpdeskTicketForm, string>>>({});
@@ -103,7 +130,7 @@ export default function CreateHelpdeskTicketPage() {
     }));
   };
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiError] = useState<string | null>(null);
 
   // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
   const updateField = useCallback(
@@ -155,19 +182,29 @@ export default function CreateHelpdeskTicketPage() {
     }
 
     setIsSubmitting(true);
-    setApiError(null);
+    setSubmitError("");
 
     try {
-      await createTicket({
-        service: form.category === "sarpras" ? "sarpras" : "tik",
+      const response = await createTicket({
+        service: form.category, // "sarpras" | "tik"
+        asset_id: form.assetId,
         description: form.issueDescription,
         initial_evidence: form.evidence,
       });
 
+      if (response?.data?.ticket_number) {
+        setCreatedTicketNumber(response.data.ticket_number);
+      }
+
+      resetForm();
       setShowSuccessModal(true);
-    } catch (error) {
-      console.error("Gagal membuat tiket:", error);
-      setApiError(error instanceof Error ? error.message : "Gagal membuat tiket");
+    } catch (err: unknown) {
+      console.error(err);
+
+      const message =
+        err instanceof Error ? err.message : "Gagal membuat tiket. Silakan coba lagi.";
+
+      setSubmitError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -234,6 +271,7 @@ export default function CreateHelpdeskTicketPage() {
               onInventoryNumberChange={(value) => updateField("inventoryNumber", value)}
               onInventoryNameChange={(value) => updateField("inventoryName", value)}
               onLocationChange={(value) => updateField("location", value)}
+              onAssetIdChange={(assetId) => updateField("assetId", assetId)}
             />
           </TicketSection>
 
@@ -262,6 +300,12 @@ export default function CreateHelpdeskTicketPage() {
             <div className="text-sm font-medium text-red-500 mb-2 text-right">{apiError}</div>
           )}
 
+          {submitError && (
+            <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              {submitError}
+            </div>
+          )}
+
           {/* Submit */}
           <div className="flex justify-between items-center pb-6">
             <div className="text-sm text-red-500 font-medium">
@@ -269,9 +313,9 @@ export default function CreateHelpdeskTicketPage() {
             </div>
             <Button
               type="submit"
+              disabled={isSubmitting}
               icon={<IconArrowRight size={17} />}
               label={isSubmitting ? "Mengirim..." : "Kirim Tiket"}
-              disabled={isSubmitting}
             />
           </div>
         </form>
@@ -320,6 +364,7 @@ export default function CreateHelpdeskTicketPage() {
             {/* Deskripsi */}
             <p className="mt-2 text-sm leading-5 text-slate-500">
               Tiket berhasil dibuat beserta nomor tiket!
+              {createdTicketNumber ? ` dengan nomor tiket: ${createdTicketNumber}` : "!"}
             </p>
           </div>
         </Modal>

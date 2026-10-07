@@ -3,7 +3,7 @@ import Dropdown from "@/components/ui/ui-template/Dropdown";
 import CategorySelector from "@/components/ui/ui-template/CategorySelector";
 
 import type { HelpdeskCategory } from "../types";
-import type { SearchedUser } from "../services/searchUserApi";
+import type { SearchedUser } from "../services/searchApi";
 
 interface ReporterSectionProps {
   reporterName: string;
