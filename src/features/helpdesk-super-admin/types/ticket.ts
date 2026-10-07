@@ -84,9 +84,17 @@ export interface ApiTicket {
 
   completed_at: string | null;
   created_at: string;
-
-  handlings?: ApiTicketHandling[];
-  status_histories?: ApiTicketStatusHistory[];
+  status_histories?: {
+    id: number;
+    from_status?: string | null;
+    to_status: string;
+    changed_by?: {
+      id: number;
+      name: string;
+    } | null;
+    notes?: string | null;
+    created_at: string;
+  }[];
 }
 
 // Response dari GET /tickets

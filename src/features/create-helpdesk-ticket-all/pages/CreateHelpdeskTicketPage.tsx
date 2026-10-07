@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { IconArrowLeft, IconArrowRight, IconCircleCheck, IconX } from "@tabler/icons-react";
 
@@ -26,7 +26,6 @@ export default function CreateHelpdeskTicketPage() {
   const [showUserResults, setShowUserResults] = useState(false);
 
   // State untuk penanganan submit API
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [createdTicketNumber, setCreatedTicketNumber] = useState("");
 
@@ -130,6 +129,8 @@ export default function CreateHelpdeskTicketPage() {
       category: value,
     }));
   };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError] = useState<string | null>(null);
 
   // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
   const updateField = useCallback(
@@ -172,7 +173,7 @@ export default function CreateHelpdeskTicketPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Menangani submit form ke API
+  // Menangani submit form
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -295,6 +296,10 @@ export default function CreateHelpdeskTicketPage() {
             />
           </TicketSection>
 
+          {apiError && (
+            <div className="text-sm font-medium text-red-500 mb-2 text-right">{apiError}</div>
+          )}
+
           {submitError && (
             <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {submitError}
@@ -302,13 +307,15 @@ export default function CreateHelpdeskTicketPage() {
           )}
 
           {/* Submit */}
-          <div className="flex justify-end pb-6">
+          <div className="flex justify-between items-center pb-6">
+            <div className="text-sm text-red-500 font-medium">
+              {apiError && <span>{apiError}</span>}
+            </div>
             <Button
               type="submit"
               disabled={isSubmitting}
               icon={<IconArrowRight size={17} />}
-              label="Kirim Tiket"
-              className="w-full sm:w-auto"
+              label={isSubmitting ? "Mengirim..." : "Kirim Tiket"}
             />
           </div>
         </form>

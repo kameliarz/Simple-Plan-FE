@@ -66,7 +66,17 @@ export default function LoginPage() {
 
       setAuth(result.token, result.user);
 
-      navigate("/helpdesk/tik", { replace: true });
+      const userRole = result.user.role || "";
+
+      if (userRole === "petugas-sarpras") {
+        navigate("/petugas/sarpras/helpdesk", { replace: true });
+      } else if (userRole === "petugas-tik") {
+        navigate("/petugas/tik/helpdesk", { replace: true });
+      } else if (userRole === "koordinator-sarpras") {
+        navigate("/helpdesk/sarpras", { replace: true });
+      } else {
+        navigate("/helpdesk/tik", { replace: true });
+      }
     } catch (error: unknown) {
       const loginError = error as {
         status?: number;

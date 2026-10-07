@@ -11,6 +11,7 @@ import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
+import { getUser } from "@/features/auth-login/services/authStorage";
 
 interface SidebarProps {
   isDarkMode?: boolean;
@@ -20,13 +21,12 @@ interface SidebarProps {
 export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const user = getUser();
 
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
-
-  const { user } = useAuth();
 
   const roleLabels: Record<string, string> = {
     "super-admin": "Super Admin",
@@ -70,13 +70,14 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
             <User className="h-5 w-5" />
           </div>
-
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{roleName}</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-bold text-gray-800 dark:text-slate-200">
+              {roleName}
+            </p>
+            <p className="truncate text-xs text-gray-500 dark:text-slate-400">
               {user?.nama || "Nama belum tersedia"}
             </p>
           </div>

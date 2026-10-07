@@ -56,10 +56,10 @@ export default function AssignOfficerModal({
         if (isActive) {
           setOfficers(result);
         }
-      } catch {
+      } catch (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
         if (isActive) {
           setOfficers([]);
-          setError("Gagal mengambil daftar petugas.");
+          setError(err.message || "Gagal mengambil daftar petugas.");
         }
       } finally {
         if (isActive) {
