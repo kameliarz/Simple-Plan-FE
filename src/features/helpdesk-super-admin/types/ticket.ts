@@ -1,4 +1,17 @@
-import type { ApiMeta } from "@/types/api";
+export interface ApiMeta {
+  current_page: number;
+  from: number | null;
+  last_page: number;
+  links: {
+    url: string | null;
+    label: string;
+    active: boolean;
+  }[];
+  path: string;
+  per_page: number;
+  to: number | null;
+  total: number;
+}
 
 export type ApiTicketStatus =
   "baru" | "diklasifikasi" | "ditolak" | "diproses" | "eskalasi" | "terselesaikan" | "ditutup";
@@ -84,17 +97,9 @@ export interface ApiTicket {
 
   completed_at: string | null;
   created_at: string;
-  status_histories?: {
-    id: number;
-    from_status?: string | null;
-    to_status: string;
-    changed_by?: {
-      id: number;
-      name: string;
-    } | null;
-    notes?: string | null;
-    created_at: string;
-  }[];
+
+  handlings?: ApiTicketHandling[];
+  status_histories?: ApiTicketStatusHistory[];
 }
 
 // Response dari GET /tickets
