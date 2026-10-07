@@ -166,15 +166,16 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
     attachments: ticket.initial_evidence
       ? [
           {
-            id: ticket.initial_evidence.object_key,
-
+            id: ticket.initial_evidence.object_key || ticket.initial_evidence.url || "",
             name: ticket.initial_evidence.original_name,
-
             size: formatFileSize(ticket.initial_evidence.size),
-
-            url: ticket.initial_evidence.object_key.startsWith("http")
-              ? ticket.initial_evidence.object_key
-              : `/storage/${ticket.initial_evidence.object_key}`,
+            url: (
+              ticket.initial_evidence.object_key ||
+              ticket.initial_evidence.url ||
+              ""
+            ).startsWith("http")
+              ? ticket.initial_evidence.object_key || ticket.initial_evidence.url || ""
+              : `/storage/${ticket.initial_evidence.object_key || ticket.initial_evidence.url || ""}`,
           },
         ]
       : [],

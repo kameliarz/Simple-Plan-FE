@@ -20,6 +20,7 @@ import {
 import RejectTicketModal from "../components/RejectTicketModal";
 import AssignOfficerModal from "../components/AssignOfficerModal";
 import type { Officer } from "../components/AssignOfficerModal";
+import { getUser } from "@/features/auth-login/services/authStorage";
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
 import { TicketPriorityBadge } from "../components/TicketPriorityBadge";
 import HandleTicketModal, { type HandleTicketFormData } from "../components/HandleTicketModal";
@@ -50,6 +51,7 @@ const mapStatus = (status: ApiTicket["status"]): TicketItem["status"] => {
   const statusMap: Record<ApiTicket["status"], TicketItem["status"]> = {
     baru: "Baru",
     diklasifikasi: "Diklasifikasi",
+    ditugaskan: "Ditugaskan",
     ditolak: "Ditolak",
     diproses: "Diproses",
     eskalasi: "Eskalasi",
@@ -201,6 +203,7 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
         }[ticket.priority] as TicketPriority)
       : null,
     reporter: {
+      id: ticket.reporter.id,
       name: ticket.reporter.name,
       unit: ticket.unit.name,
     },
@@ -309,11 +312,33 @@ export default function HelpdeskDetailPage() {
     ticketId: string;
   }>();
 
+  const user = getUser();
+  const role = user?.role || "";
+
+  const isSuperAdmin = role === "super-admin";
+  const isKoorSarpras = role === "koordinator-sarpras";
+  const isPetugasTik = role === "petugas-tik";
+  const isPetugasSarpras = role === "petugas-sarpras";
+
+  const isAuthorizedPetugas =
+    (service === "tik" && isPetugasTik) || (service === "sarpras" && isPetugasSarpras);
+
+  // Role permissions
+  const canClassify = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
+  const canAssign = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
+  const canReject = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
+  const canHandle = isSuperAdmin || (service === "sarpras" && isKoorSarpras) || isAuthorizedPetugas;
+
   // ==========================================
   // TICKET
   // ==========================================
 
   const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(null);
+
+  const canVerify =
+    isSuperAdmin ||
+    (service === "sarpras" && isKoorSarpras) ||
+    currentTicket?.reporter?.id === user?.id;
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -476,20 +501,21 @@ export default function HelpdeskDetailPage() {
 
         const classifiedStatuses = [
           "diklasifikasi",
+          "ditugaskan",
           "diproses",
           "eskalasi",
           "terselesaikan",
           "ditutup",
         ];
 
-        const assignedStatuses = ["diproses", "eskalasi", "terselesaikan", "ditutup"];
+        const assignedStatuses = ["ditugaskan", "diproses", "eskalasi", "terselesaikan", "ditutup"];
 
         const isClassified = classifiedStatuses.includes(status);
         const isAssigned = assignedStatuses.includes(status);
 
         setIsClassificationSaved(isClassified);
         setIsAssignmentSaved(isAssigned);
-        setIsAssignmentMode(isClassified && !isAssigned);
+        setIsAssignmentMode(canAssign && isClassified && !isAssigned);
 
         // Pulihkan prioritas dari data API
         const apiPriority = data.priority ?? null;
@@ -546,6 +572,8 @@ export default function HelpdeskDetailPage() {
   // ==========================================
 
   useEffect(() => {
+    if (!canClassify) return;
+
     const fetchClassificationOptions = async () => {
       try {
         const response = await getTicketClassificationOptions(isSarpras ? "sarpras" : "tik");
@@ -589,7 +617,7 @@ export default function HelpdeskDetailPage() {
     };
 
     fetchClassificationOptions();
-  }, [isSarpras, showAlertMessage]);
+  }, [isSarpras, canClassify, showAlertMessage]);
 
   // ==========================================
   // NO TICKET ID
@@ -1312,30 +1340,34 @@ export default function HelpdeskDetailPage() {
           </div>
 
           {/* Tombol header pada mobile */}
-          {currentTicket.status === "Diproses" && (
+          {(currentTicket.status === "Diproses" || currentTicket.status === "Ditugaskan") && (
             <div className="mt-4 flex gap-2">
-              <Button
-                label="Eskalasi"
-                variant="secondary"
-                size="sm"
-                className="flex-1"
-                onClick={() => setIsEscalationModalOpen(true)}
-              />
+              {canHandle && (
+                <Button
+                  label="Eskalasi"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setIsEscalationModalOpen(true)}
+                />
+              )}
 
-              <Button
-                label="Tangani"
-                variant="primary"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  setIsContinuingHandling(false);
-                  setIsHandleModalOpen(true);
-                }}
-              />
+              {canHandle && (
+                <Button
+                  label="Tangani"
+                  variant="primary"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsContinuingHandling(false);
+                    setIsHandleModalOpen(true);
+                  }}
+                />
+              )}
             </div>
           )}
 
-          {currentTicket.status === "Eskalasi" && (
+          {currentTicket.status === "Eskalasi" && canHandle && (
             <div className="mt-4">
               <Button
                 type="button"
@@ -1395,32 +1427,36 @@ export default function HelpdeskDetailPage() {
               <TicketPriorityBadge priority={currentTicket.priority} />
             </div>
 
-            {currentTicket.status === "Diproses" && (
+            {(currentTicket.status === "Diproses" || currentTicket.status === "Ditugaskan") && (
               <div className="flex items-center gap-2">
-                <Button
-                  label="Eskalasi"
-                  variant="primary"
-                  size="sm"
-                  className="py-1"
-                  onClick={() => {
-                    setIsEscalationModalOpen(true);
-                  }}
-                />
+                {canHandle && (
+                  <Button
+                    label="Eskalasi"
+                    variant="primary"
+                    size="sm"
+                    className="py-1"
+                    onClick={() => {
+                      setIsEscalationModalOpen(true);
+                    }}
+                  />
+                )}
 
-                <Button
-                  label="Tangani"
-                  variant="primary"
-                  size="sm"
-                  className="py-1"
-                  onClick={() => {
-                    setIsContinuingHandling(false);
-                    setIsHandleModalOpen(true);
-                  }}
-                />
+                {canHandle && (
+                  <Button
+                    label="Tangani"
+                    variant="primary"
+                    size="sm"
+                    className="py-1"
+                    onClick={() => {
+                      setIsContinuingHandling(false);
+                      setIsHandleModalOpen(true);
+                    }}
+                  />
+                )}
               </div>
             )}
 
-            {currentTicket.status === "Eskalasi" && (
+            {currentTicket.status === "Eskalasi" && canHandle && (
               <Button
                 type="button"
                 label="Lanjutkan Penanganan"
@@ -1508,25 +1544,29 @@ export default function HelpdeskDetailPage() {
               AKSI DESKTOP
               Tetap di bawah kolom kiri
           ================================== */}
-            {!isRejected && !isAssignmentSaved && (
+            {!isRejected && !isAssignmentSaved && canClassify && (
               <div className="mt-6 hidden w-full justify-end lg:flex">
                 {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                   <div className="flex w-full gap-3 sm:w-auto">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setIsRejectModalOpen(true)}
-                      label="Tolak Tiket"
-                      className="flex-1 sm:min-w-32"
-                    />
+                    {canReject && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setIsRejectModalOpen(true)}
+                        label="Tolak Tiket"
+                        className="flex-1 sm:min-w-32"
+                      />
+                    )}
 
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={handleOpenClassification}
-                      label="Klasifikasikan"
-                      className="flex-1 sm:min-w-28"
-                    />
+                    {canClassify && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleOpenClassification}
+                        label="Klasifikasikan"
+                        className="flex-1 sm:min-w-28"
+                      />
+                    )}
                   </div>
                 )}
 
@@ -1573,7 +1613,7 @@ export default function HelpdeskDetailPage() {
             )}
 
             {/* Aksi verifikasi desktop, posisi lama */}
-            {currentTicket.status === "Terselesaikan" && (
+            {currentTicket.status === "Terselesaikan" && canVerify && (
               <div className="mt-5 hidden justify-end lg:flex">
                 <div className="flex items-center gap-2">
                   <Button
@@ -1613,25 +1653,29 @@ export default function HelpdeskDetailPage() {
           Mengikuti alur halaman, tidak fixed
       ==================================== */}
         <div className="mt-5 w-full lg:hidden">
-          {!isRejected && !isAssignmentSaved && (
+          {!isRejected && !isAssignmentSaved && canClassify && (
             <>
               {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                 <div className="flex w-full gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setIsRejectModalOpen(true)}
-                    label="Tolak Tiket"
-                    className="flex-1"
-                  />
+                  {canReject && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsRejectModalOpen(true)}
+                      label="Tolak Tiket"
+                      className="flex-1"
+                    />
+                  )}
 
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={handleOpenClassification}
-                    label="Klasifikasikan"
-                    className="flex-1"
-                  />
+                  {canClassify && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleOpenClassification}
+                      label="Klasifikasikan"
+                      className="flex-1"
+                    />
+                  )}
                 </div>
               )}
 
@@ -1677,7 +1721,7 @@ export default function HelpdeskDetailPage() {
             </>
           )}
 
-          {currentTicket.status === "Terselesaikan" && (
+          {currentTicket.status === "Terselesaikan" && canVerify && (
             <div className="flex w-full gap-3">
               <Button
                 type="button"

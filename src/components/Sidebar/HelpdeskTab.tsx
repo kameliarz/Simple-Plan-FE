@@ -59,13 +59,13 @@ export default function HelpdeskTab() {
 
       {isOpen && (
         <div className="flex flex-col bg-gray-50/50 dark:bg-slate-800/30 py-1">
-          {/* Petugas TIK */}
-          {role === "petugas-tik" &&
-            renderNavLink("/petugas/tik/helpdesk", "Helpdesk TIK", Monitor)}
-
-          {/* Petugas Sarpras */}
-          {role === "petugas-sarpras" &&
-            renderNavLink("/petugas/sarpras/helpdesk", "Helpdesk Sarpras", Wrench)}
+          {/* Petugas (TIK & Sarpras) */}
+          {(role === "petugas-tik" || role === "petugas-sarpras") && (
+            <>
+              {renderNavLink("/helpdesk/tik", "Helpdesk TIK", Monitor)}
+              {renderNavLink("/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
+            </>
+          )}
 
           {/* Koordinator Sarpras */}
           {role === "koordinator-sarpras" &&

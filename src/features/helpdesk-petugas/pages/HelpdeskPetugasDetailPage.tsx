@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { getUser } from "@/features/auth-login/services/authStorage";
 import type { ApiTicket } from "../../helpdesk-super-admin/types/ticket";
 import { getTicket } from "../../helpdesk-super-admin/services/ticketApi";
 import { TicketStatusBadge } from "../../helpdesk-super-admin/components/TicketStatusBadge";
@@ -185,19 +186,31 @@ export default function HelpdeskPetugasDetailPage() {
     ? ((currentTicket.priority.charAt(0).toUpperCase() + currentTicket.priority.slice(1)) as any)
     : null;
 
+  const user = getUser();
+  const role = user?.role || "";
+
+  const isAuthorizedPetugas =
+    (service === "tik" && role === "petugas-tik") ||
+    (service === "sarpras" && role === "petugas-sarpras");
+
   const canAction =
-    currentTicket.status === "baru" ||
-    currentTicket.status === "ditugaskan" ||
-    currentTicket.status === "diproses";
+    isAuthorizedPetugas &&
+    (currentTicket.status === "baru" ||
+      currentTicket.status === "ditugaskan" ||
+      currentTicket.status === "diproses");
 
   const attachment = currentTicket.initial_evidence
     ? {
-        id: currentTicket.initial_evidence.object_key,
+        id: currentTicket.initial_evidence.object_key || currentTicket.initial_evidence.url || "",
         name: currentTicket.initial_evidence.original_name,
         size: formatFileSize(currentTicket.initial_evidence.size),
-        url: currentTicket.initial_evidence.object_key.startsWith("http")
-          ? currentTicket.initial_evidence.object_key
-          : `/storage/${currentTicket.initial_evidence.object_key}`,
+        url: (
+          currentTicket.initial_evidence.object_key ||
+          currentTicket.initial_evidence.url ||
+          ""
+        ).startsWith("http")
+          ? currentTicket.initial_evidence.object_key || currentTicket.initial_evidence.url || ""
+          : `/storage/${currentTicket.initial_evidence.object_key || currentTicket.initial_evidence.url || ""}`,
       }
     : null;
 
@@ -218,7 +231,7 @@ export default function HelpdeskPetugasDetailPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(`/petugas/${service}/helpdesk`)}
+            onClick={() => navigate(`/helpdesk/${service}`)}
             className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-text-secondary transition-colors hover:bg-slate-50 hover:text-text-title dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -441,7 +454,9 @@ export default function HelpdeskPetugasDetailPage() {
       <HandleTicketModal
         isOpen={isHandleModalOpen}
         onClose={() => setIsHandleModalOpen(false)}
-        onSave={handleSaveHandling}
+        onSave={handleSaveHandling as any}
+        ticketId={ticketId || ""}
+        startedAtFromDb={currentTicket?.sla_started_at || null}
       />
       <EscalationModal
         isOpen={isEscalationModalOpen}
