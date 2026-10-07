@@ -48,11 +48,12 @@ export interface ApiTicket {
     name: string;
   } | null;
 
-  initial_evidence: {
-    object_key: string;
+  initial_evidence?: {
+    object_key?: string;
     original_name: string;
     mime_type: string;
     size: number;
+    url?: string;
   } | null;
 
   completed_at: string | null;

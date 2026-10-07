@@ -118,6 +118,7 @@ const formatFileSize = (bytes: number): string => {
 const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
   return {
     id: String(ticket.id),
+    sla_started_at: ticket.sla_started_at ?? null,
 
     code: ticket.ticket_number,
 
@@ -139,6 +140,7 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
       : null,
 
     reporter: {
+      id: ticket.reporter.id,
       name: ticket.reporter.name,
       unit: ticket.unit.name,
     },
@@ -157,15 +159,16 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
     attachments: ticket.initial_evidence
       ? [
           {
-            id: ticket.initial_evidence.object_key,
-
+            id: ticket.initial_evidence.object_key || ticket.initial_evidence.url || "",
             name: ticket.initial_evidence.original_name,
-
             size: formatFileSize(ticket.initial_evidence.size),
-
-            url: ticket.initial_evidence.object_key.startsWith("http")
-              ? ticket.initial_evidence.object_key
-              : `/storage/${ticket.initial_evidence.object_key}`,
+            url: (
+              ticket.initial_evidence.object_key ||
+              ticket.initial_evidence.url ||
+              ""
+            ).startsWith("http")
+              ? ticket.initial_evidence.object_key || ticket.initial_evidence.url || ""
+              : `/storage/${ticket.initial_evidence.object_key || ticket.initial_evidence.url || ""}`,
           },
         ]
       : [],
@@ -2378,7 +2381,10 @@ export default function HelpdeskManajemenDetailPage() {
         <HandleTicketModal
           isOpen={isHandleModalOpen}
           onClose={() => setIsHandleModalOpen(false)}
-          onSave={handleSaveHandling}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onSave={handleSaveHandling as any}
+          ticketId={ticketId || ""}
+          startedAtFromDb={currentTicket?.sla_started_at || null}
         />
 
         <RejectResolutionModal

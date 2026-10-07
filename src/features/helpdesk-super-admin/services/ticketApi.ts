@@ -1,5 +1,6 @@
 import type {
   ApiTicket,
+  ApiTicketStatus,
   TicketCollectionResponse,
 } from "@/features/helpdesk-super-admin/types/ticket";
 
@@ -11,8 +12,7 @@ export interface GetTicketsParams {
   page?: number;
   per_page?: number;
   service?: "tik" | "sarpras";
-  status?:
-    "baru" | "diklasifikasi" | "ditolak" | "diproses" | "eskalasi" | "terselesaikan" | "ditutup";
+  status?: ApiTicketStatus;
   priority?: "low" | "medium" | "high" | "critical";
   date_from?: string;
   date_to?: string;

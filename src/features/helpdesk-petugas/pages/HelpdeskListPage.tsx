@@ -278,7 +278,7 @@ export default function HelpdeskListPage() {
               <TicketCardMobile
                 key={ticket.id}
                 ticket={mapApiTicketToTicketItem(ticket)}
-                onClick={() => navigate(`/petugas/${service}/helpdesk/${ticket.id}`)}
+                onClick={() => navigate(`/helpdesk/${service}/${ticket.id}`)}
               />
             ))
           ) : (
@@ -426,7 +426,7 @@ export default function HelpdeskListPage() {
                   tickets.map((ticket) => (
                     <tr
                       key={ticket.id}
-                      onClick={() => navigate(`/petugas/${service}/helpdesk/${ticket.id}`)}
+                      onClick={() => navigate(`/helpdesk/${service}/${ticket.id}`)}
                       className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
                     >
                       {/* Nomor tiket */}
