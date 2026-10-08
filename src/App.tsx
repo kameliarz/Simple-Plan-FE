@@ -10,7 +10,8 @@ import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListP
 import HelpdeskPetugasDetailPage from "@/features/helpdesk-petugas/pages/HelpdeskPetugasDetailPage";
 import HelpdeskManajemenPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenPage";
 import HelpdeskManajemenDetailPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenDetailPage";
-import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
+import CreateHelpdeskTicketPage from "@/features/helpdesk-create/pages/CreateHelpdeskTicketPage";
+import CreateInventoryPage from "@/features/inventory-create/pages/CreateInventoryPage";
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
 import { getUser } from "@/features/auth-login/services/authStorage";
@@ -62,6 +63,9 @@ function App() {
         <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
         <Route path="/master-data/users" element={<UserListPage />} />
         <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
+
+        {/* Inventory */}
+        <Route path="/inventory/create" element={<CreateInventoryPage />} />
 
         <Route path="*" element={<HomeRedirect />} />
       </Routes>
