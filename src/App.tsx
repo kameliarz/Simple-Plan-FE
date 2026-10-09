@@ -2,7 +2,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "@/features/auth-login/pages/LoginPage";
-import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
+import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskListPage";
 import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
 import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
 import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";

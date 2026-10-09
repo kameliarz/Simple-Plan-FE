@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 
 import { IconFilter, IconFolder } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { TicketCardMobile } from "../components/TicketCardMobile";
+import { TicketFilterBottomSheet } from "../components/TicketFilterBottomSheet";
+
+import type { FilterState } from "../components/TicketFilterBottomSheet";
+
+import { getTickets } from "../services/ticketApi";
+
+import type { TicketPriority, TicketStatus } from "../types/helpdesk";
 
 import Table from "@/components/ui/ui-template/Table";
 import Pagination from "@/components/ui/ui-template/Pagination";
@@ -11,14 +19,6 @@ import DateInput from "@/components/ui/ui-template/DateInput";
 
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
 import { TicketPriorityBadge } from "../components/TicketPriorityBadge";
-import { TicketCardMobile } from "../components/TicketCardMobile";
-import { TicketFilterBottomSheet } from "../components/TicketFilterBottomSheet";
-
-import type { FilterState } from "../components/TicketFilterBottomSheet";
-
-import { getTickets } from "../services/ticketApi";
-
-import type { TicketPriority, TicketStatus } from "../types/helpdesk";
 
 import type {
   ApiTicket,
