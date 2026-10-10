@@ -1,39 +1,22 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "@/features/auth-login/pages/LoginPage";
-import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskListPage";
-import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
-import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
-import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";
-import HelpdeskManajemenPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenPage";
-import HelpdeskManajemenDetailPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenDetailPage";
-import CreateHelpdeskTicketPage from "@/features/create-helpdesk-ticket-all/pages/CreateHelpdeskTicketPage";
-import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
-import UserListPage from "@/features/master-data/users/pages/UserListPage";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
-const TikHelpdeskRouter = () => {
+import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskListPage";
+import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
+import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskCreateTicketPage";
+
+import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
+import UserListPage from "@/features/master-data/users/pages/UserListPage";
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
-  const role = user?.role;
-  if (role === "super-admin") return <HelpdeskSAPage />;
-  return <HelpdeskPetugasPage />;
-};
-
-const TikHelpdeskDetailRouter = () => {
-  return <HelpdeskDetailPagee />;
-};
-
-const SarprasHelpdeskRouter = () => {
-  const user = getUser();
-  const role = user?.role;
-  if (role === "koordinator-sarpras" || role === "super-admin") return <HelpdeskKoorPage />;
-  return <HelpdeskPetugasPage />;
-};
-
-const SarprasHelpdeskDetailRouter = () => {
-  return <HelpdeskDetailPagee />;
-};
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 function App() {
   const location = useLocation();
@@ -46,54 +29,30 @@ function App() {
     );
   }
 
-  // SEMUA HALAMAN SELAIN LOGIN WAJIB LOGIN
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<HomeRedirect />} />
+    <ProtectedRoute>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
 
-        <Route path="/login" element={<LoginPage />} />
+          {/* Helpdesk */}
+          <Route path="/helpdesk/tik" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk/sarpras" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
 
-        <Route path="/helpdesk/tik" element={<TikHelpdeskRouter />} />
-        <Route path="/helpdesk/sarpras" element={<SarprasHelpdeskRouter />} />
+          {/* Master Data */}
+          <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
+          <Route path="/master-data/users" element={<UserListPage />} />
+          <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
 
-        <Route path="/helpdesk/tik/:ticketId" element={<TikHelpdeskDetailRouter />} />
-        <Route path="/helpdesk/sarpras/:ticketId" element={<SarprasHelpdeskDetailRouter />} />
-
-        {/* Manajemen */}
-        <Route path="/manajemen/helpdesk/tik" element={<HelpdeskManajemenPage />} />
-        <Route path="/manajemen/helpdesk/sarpras" element={<HelpdeskManajemenPage />} />
-        <Route path="/manajemen/helpdesk/tik/:ticketId" element={<HelpdeskManajemenDetailPage />} />
-        <Route
-          path="/manajemen/helpdesk/sarpras/:ticketId"
-          element={<HelpdeskManajemenDetailPage />}
-        />
-
-        <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
-
-        {/* Master Data */}
-        <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
-        <Route path="/master-data/users" element={<UserListPage />} />
-        <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
-
-        <Route path="*" element={<HomeRedirect />} />
-      </Routes>
-    </MainLayout>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+        </Routes>
+      </MainLayout>
+    </ProtectedRoute>
   );
-}
-
-function HomeRedirect() {
-  const user = getUser();
-
-  if (!user) return <Navigate to="/login" replace />;
-
-  const userRole = user.role;
-  if (userRole === "user") return <Navigate to="/helpdesk/create" replace />;
-  if (userRole === "petugas-sarpras") return <Navigate to="/helpdesk/sarpras" replace />;
-  if (userRole === "petugas-tik") return <Navigate to="/helpdesk/tik" replace />;
-  if (userRole === "koordinator-sarpras") return <Navigate to="/helpdesk/sarpras" replace />;
-
-  return <Navigate to="/helpdesk/tik" replace />;
 }
 
 export default App;

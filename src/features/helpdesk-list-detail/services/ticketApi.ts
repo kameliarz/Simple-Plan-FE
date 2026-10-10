@@ -2,7 +2,7 @@ import type {
   ApiTicket,
   ApiTicketStatus,
   TicketCollectionResponse,
-} from "@/features/helpdesk-super-admin/types/ticket";
+} from "@/features/helpdesk-list-detail/types/ticket";
 
 import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
 

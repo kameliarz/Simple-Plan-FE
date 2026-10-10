@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { ApiTicket } from "../types/ticket";
@@ -313,27 +313,27 @@ export default function HelpdeskDetailPage() {
   }>();
 
   const user = getUser();
-  const role = user?.role || "";
+  const role = user?.role;
+
+  const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(null);
+
+  const [apiTicket, setApiTicket] = useState<ApiTicket | null>(null);
 
   const isSuperAdmin = role === "super-admin";
   const isKoorSarpras = role === "koordinator-sarpras";
-  const isPetugasTik = role === "petugas-tik";
-  const isPetugasSarpras = role === "petugas-sarpras";
 
-  const isAuthorizedPetugas =
-    (service === "tik" && isPetugasTik) || (service === "sarpras" && isPetugasSarpras);
+  const isSarpras = currentTicket?.category === "Sarpras";
 
   // Role permissions
-  const canClassify = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
-  const canAssign = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
-  const canReject = isSuperAdmin || (service === "sarpras" && isKoorSarpras);
-  const canHandle = isSuperAdmin || (service === "sarpras" && isKoorSarpras) || isAuthorizedPetugas;
+  const canManage = isSuperAdmin || (isKoorSarpras && isSarpras);
 
+  const canHandle =
+    !!user &&
+    !!apiTicket?.assigned_officer &&
+    String(apiTicket.assigned_officer.id) === String(user.id);
   // ==========================================
   // TICKET
   // ==========================================
-
-  const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(null);
 
   const canVerify =
     isSuperAdmin ||
@@ -372,11 +372,11 @@ export default function HelpdeskDetailPage() {
 
   const [alertVariant, setAlertVariant] = useState<AlertVariant>("success");
 
-  const showAlertMessage = (message: string, variant: AlertVariant = "success") => {
+  const showAlertMessage = useCallback((message: string, variant: AlertVariant = "success") => {
     setAlertMessage(message);
     setAlertVariant(variant);
     setShowAlert(true);
-  };
+  }, []);
 
   // ==========================================
   // CLASSIFICATION
@@ -458,12 +458,6 @@ export default function HelpdeskDetailPage() {
   const [isDeEscalating, setIsDeEscalating] = useState(false);
 
   // ==========================================
-  // JENIS TIKET
-  // ==========================================
-
-  const isSarpras = currentTicket?.category === "Sarpras";
-
-  // ==========================================
   // GET DETAIL TICKET
   // ==========================================
 
@@ -480,6 +474,9 @@ export default function HelpdeskDetailPage() {
         setError(null);
 
         const data = await getTicket(ticketId);
+
+        if (!isMounted) return;
+        setApiTicket(data);
 
         setKategoriMutu(
           data.tik_detail?.quality_category?.id ? String(data.tik_detail.quality_category.id) : "",
@@ -515,7 +512,7 @@ export default function HelpdeskDetailPage() {
 
         setIsClassificationSaved(isClassified);
         setIsAssignmentSaved(isAssigned);
-        setIsAssignmentMode(canAssign && isClassified && !isAssigned);
+        setIsAssignmentMode(canManage && isClassified && !isAssigned);
 
         // Pulihkan prioritas dari data API
         const apiPriority = data.priority ?? null;
@@ -565,14 +562,14 @@ export default function HelpdeskDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [ticketId]);
+  }, [ticketId, canManage]);
 
   // ==========================================
   // GET CLASSIFICATION OPTIONS
   // ==========================================
 
   useEffect(() => {
-    if (!canClassify) return;
+    if (!canManage) return;
 
     const fetchClassificationOptions = async () => {
       try {
@@ -617,7 +614,7 @@ export default function HelpdeskDetailPage() {
     };
 
     fetchClassificationOptions();
-  }, [isSarpras, canClassify, showAlertMessage]);
+  }, [isSarpras, canManage, showAlertMessage]);
 
   // ==========================================
   // NO TICKET ID
@@ -1544,29 +1541,25 @@ export default function HelpdeskDetailPage() {
               AKSI DESKTOP
               Tetap di bawah kolom kiri
           ================================== */}
-            {!isRejected && !isAssignmentSaved && canClassify && (
+            {!isRejected && !isAssignmentSaved && canManage && (
               <div className="mt-6 hidden w-full justify-end lg:flex">
                 {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                   <div className="flex w-full gap-3 sm:w-auto">
-                    {canReject && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setIsRejectModalOpen(true)}
-                        label="Tolak Tiket"
-                        className="flex-1 sm:min-w-32"
-                      />
-                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsRejectModalOpen(true)}
+                      label="Tolak Tiket"
+                      className="flex-1 sm:min-w-32"
+                    />
 
-                    {canClassify && (
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={handleOpenClassification}
-                        label="Klasifikasikan"
-                        className="flex-1 sm:min-w-28"
-                      />
-                    )}
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleOpenClassification}
+                      label="Klasifikasikan"
+                      className="flex-1 sm:min-w-28"
+                    />
                   </div>
                 )}
 
@@ -1651,31 +1644,27 @@ export default function HelpdeskDetailPage() {
           AKSI MOBILE
           Diletakkan setelah grid/riwayat
           Mengikuti alur halaman, tidak fixed
-      ==================================== */}
+        ==================================== */}
         <div className="mt-5 w-full lg:hidden">
-          {!isRejected && !isAssignmentSaved && canClassify && (
+          {!isRejected && !isAssignmentSaved && canManage && (
             <>
               {!isClassifying && !isClassificationSaved && !isAssignmentMode && (
                 <div className="flex w-full gap-3">
-                  {canReject && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setIsRejectModalOpen(true)}
-                      label="Tolak Tiket"
-                      className="flex-1"
-                    />
-                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsRejectModalOpen(true)}
+                    label="Tolak Tiket"
+                    className="flex-1"
+                  />
 
-                  {canClassify && (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={handleOpenClassification}
-                      label="Klasifikasikan"
-                      className="flex-1"
-                    />
-                  )}
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleOpenClassification}
+                    label="Klasifikasikan"
+                    className="flex-1"
+                  />
                 </div>
               )}
 
@@ -1747,9 +1736,6 @@ export default function HelpdeskDetailPage() {
           )}
         </div>
 
-        {/* ======================================
-          REJECT MODAL
-      ====================================== */}
         <RejectTicketModal
           isOpen={isRejectModalOpen}
           ticketCode={currentTicket.code}
@@ -1768,9 +1754,6 @@ export default function HelpdeskDetailPage() {
           onAssign={handleAssignOfficer}
         />
 
-        {/* ======================================
-          HANDLE TICKET MODAL
-      ====================================== */}
         <HandleTicketModal
           isOpen={isHandleModalOpen}
           ticketId={String(ticketId)}
@@ -1780,18 +1763,12 @@ export default function HelpdeskDetailPage() {
           isSaving={isSavingHandling}
         />
 
-        {/* ======================================
-          REJECT RESOLUTION MODAL
-      ====================================== */}
         <RejectResolutionModal
           isOpen={isRejectResolutionModalOpen}
           onClose={() => setIsRejectResolutionModalOpen(false)}
           onSave={handleRejectResolution}
         />
 
-        {/* ======================================
-          ESCALATION MODAL
-      ====================================== */}
         <EscalationModal
           isOpen={isEscalationModalOpen}
           onClose={() => setIsEscalationModalOpen(false)}
