@@ -77,6 +77,7 @@ export default function CreateHelpdeskTicketPage() {
     setForm((prev) => ({
       ...prev,
       reporterName: value,
+      selectedReporterId: "",
       reporterUnit: null,
     }));
 
@@ -213,6 +214,7 @@ export default function CreateHelpdeskTicketPage() {
   const handleSelectReporter = (selectedUser: SearchedUser) => {
     setForm((prev) => ({
       ...prev,
+      selectedReporterId: String(selectedUser.id),
       reporterName: selectedUser.name,
       reporterUnit: selectedUser.unit?.unit_name ?? null,
     }));

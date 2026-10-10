@@ -90,34 +90,33 @@ export default function InventorySection({
   // =========================
   // Fetch Inventaris ketika Unit berubah
   // =========================
+
   useEffect(() => {
-    if (!unit) {
-      return;
-    }
+    if (!unit || unitList.length === 0) return;
+
+    const matchedUnit = unitList.find(
+      (item) => item.unit_name.toLowerCase() === unit.toLowerCase(),
+    );
+
+    if (!matchedUnit) return;
 
     let isMounted = true;
 
-    // Cari ID unit berdasarkan nama unit
-    const matchedUnitObj = unitList.find((u) => u.unit_name.toLowerCase() === unit.toLowerCase());
-
-    const unitParamForApi = matchedUnitObj ? matchedUnitObj.id : unit;
-
-    searchAssets(unitParamForApi)
+    searchAssets(matchedUnit.id)
       .then((data) => {
-        if (isMounted && Array.isArray(data)) {
-          setAssetList(data);
-        }
+        if (!isMounted) return;
+
+        setAssetList(Array.isArray(data) ? data : []);
+        setFetchError("");
+        setIsLoadingAssets(false);
       })
-      .catch((err) => {
-        if (isMounted) {
-          setFetchError("Gagal memuat data inventaris untuk unit ini.");
-          console.error(err);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoadingAssets(false);
-        }
+      .catch((error) => {
+        if (!isMounted) return;
+
+        setAssetList([]);
+        setFetchError("Gagal memuat inventaris untuk unit ini.");
+        setIsLoadingAssets(false);
+        console.error(error);
       });
 
     return () => {
@@ -207,6 +206,12 @@ export default function InventorySection({
         onAssetIdChange(null);
       }
     }
+
+    if (matchingAssets.length === 0) {
+      onInventoryNumberChange("");
+      onLocationChange("");
+      onAssetIdChange(null);
+    }
   };
 
   // =========================
@@ -224,6 +229,11 @@ export default function InventorySection({
       onLocationChange(matchedAsset.location ?? "");
       onAssetIdChange(matchedAsset.id ?? null);
     }
+
+    if (!matchedAsset) {
+      onLocationChange("");
+      onAssetIdChange(null);
+    }
   };
 
   // =========================
@@ -235,7 +245,10 @@ export default function InventorySection({
 
     // State lokal
     setAssetList([]);
-    setIsLoadingAssets(Boolean(newUnitValue));
+    setIsLoadingAssets(
+      Boolean(newUnitValue) &&
+        unitList.some((item) => item.unit_name.toLowerCase() === newUnitValue.toLowerCase()),
+    );
 
     // State parent
     onUnitChange(newUnitValue);

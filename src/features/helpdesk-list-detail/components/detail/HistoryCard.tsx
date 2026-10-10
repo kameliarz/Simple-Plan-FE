@@ -1,6 +1,6 @@
 import { Clock, Download, Image as ImageIcon } from "lucide-react";
 import type { TicketItem } from "../../types/helpdesk";
-import { TicketHistoryItem } from "../../components/TicketHistoryItem";
+import { TicketHistoryItem } from "../TicketHistoryItem";
 import DetailCard from "./DetailCard";
 
 type HistoryCardProps = {
