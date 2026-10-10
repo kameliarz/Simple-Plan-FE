@@ -1,25 +1,28 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "@/features/auth-login/pages/LoginPage";
-import HelpdeskSAPage from "@/features/helpdesk-super-admin/pages/HelpdeskSAPage";
-import HelpdeskDetailPagee from "@/features/helpdesk-super-admin/pages/HelpdeskDetailPagee";
-import HelpdeskKoorPage from "@/features/helpdesk-koor/pages/HelpdeskKoorPage";
-import HelpdeskKoorDetailPage from "@/features/helpdesk-koor/pages/HelpdeskKoorDetailPage";
-import HelpdeskPetugasPage from "@/features/helpdesk-petugas/pages/HelpdeskListPage";
-import HelpdeskPetugasDetailPage from "@/features/helpdesk-petugas/pages/HelpdeskPetugasDetailPage";
-import HelpdeskManajemenPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenPage";
-import HelpdeskManajemenDetailPage from "@/features/helpdesk-manajemen/pages/HelpdeskManajemenDetailPage";
-import CreateHelpdeskTicketPage from "@/features/helpdesk-create/pages/CreateHelpdeskTicketPage";
-import CreateInventoryPage from "@/features/inventory-create/pages/CreateInventoryPage";
+import { getUser } from "@/features/auth-login/services/authStorage";
+
+import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskListPage";
+import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
+import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskCreateTicketPage";
+
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
-import { getUser } from "@/features/auth-login/services/authStorage";
+
+import CreateInventoryPage from "@/features/inventory-create/pages/CreateInventoryPage";
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const user = getUser();
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 function App() {
   const location = useLocation();
 
-  // LOGIN TIDAK MEMAKAI MAIN LAYOUT
   if (location.pathname === "/login") {
     return (
       <Routes>
@@ -28,63 +31,33 @@ function App() {
     );
   }
 
-  // SEMUA HALAMAN SELAIN LOGIN WAJIB LOGIN
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<HomeRedirect />} />
+    <ProtectedRoute>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
 
-        <Route path="/login" element={<LoginPage />} />
+          {/* Helpdesk */}
+          <Route path="/helpdesk/tik" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk/sarpras" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
 
-        <Route path="/helpdesk/tik" element={<HelpdeskSAPage />} />
-        <Route path="/helpdesk/sarpras" element={<HelpdeskKoorPage />} />
+          {/* Master Data */}
+          <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
+          <Route path="/master-data/users" element={<UserListPage />} />
+          <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
 
-        <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPagee />} />
-        <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskKoorDetailPage />} />
+          {/* Inventory */}
+          <Route path="/inventory/create" element={<CreateInventoryPage />} />
 
-        <Route path="/petugas/sarpras/helpdesk" element={<HelpdeskPetugasPage />} />
-        <Route path="/petugas/sarpras/helpdesk/:ticketId" element={<HelpdeskPetugasDetailPage />} />
-
-        <Route path="/petugas/tik/helpdesk" element={<HelpdeskPetugasPage />} />
-        <Route path="/petugas/tik/helpdesk/:ticketId" element={<HelpdeskPetugasDetailPage />} />
-
-        {/* Manajemen */}
-        <Route path="/manajemen/helpdesk/tik" element={<HelpdeskManajemenPage />} />
-        <Route path="/manajemen/helpdesk/sarpras" element={<HelpdeskManajemenPage />} />
-        <Route path="/manajemen/helpdesk/tik/:ticketId" element={<HelpdeskManajemenDetailPage />} />
-        <Route
-          path="/manajemen/helpdesk/sarpras/:ticketId"
-          element={<HelpdeskManajemenDetailPage />}
-        />
-
-        <Route path="/helpdesk/create" element={<CreateHelpdeskTicketPage />} />
-
-        {/* Master Data */}
-        <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
-        <Route path="/master-data/users" element={<UserListPage />} />
-        <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
-
-        {/* Inventory */}
-        <Route path="/inventory/create" element={<CreateInventoryPage />} />
-
-        <Route path="*" element={<HomeRedirect />} />
-      </Routes>
-    </MainLayout>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+        </Routes>
+      </MainLayout>
+    </ProtectedRoute>
   );
-}
-
-function HomeRedirect() {
-  const user = getUser();
-
-  if (!user) return <Navigate to="/login" replace />;
-
-  const userRole = user.role;
-  if (userRole === "user") return <Navigate to="/helpdesk/create" replace />;
-  if (userRole === "petugas-sarpras") return <Navigate to="/petugas/sarpras/helpdesk" replace />;
-  if (userRole === "petugas-tik") return <Navigate to="/petugas/tik/helpdesk" replace />;
-  if (userRole === "koordinator-sarpras") return <Navigate to="/helpdesk/sarpras" replace />;
-
-  return <Navigate to="/helpdesk/tik" replace />;
 }
 
 export default App;
