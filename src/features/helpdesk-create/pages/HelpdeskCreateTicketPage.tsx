@@ -81,8 +81,15 @@ export default function CreateHelpdeskTicketPage() {
       reporterUnit: null,
     }));
 
+    setSearchedUsers([]);
     setShowUserResults(true);
     setSearchUsersError("");
+
+    setErrors((prev) => ({
+      ...prev,
+      reporterName: undefined,
+      reporterUnit: undefined,
+    }));
   };
 
   useEffect(() => {
@@ -90,7 +97,9 @@ export default function CreateHelpdeskTicketPage() {
 
     const searchName = form.reporterName.trim();
 
-    if (searchName.length < 2) return;
+    if (searchName.length < 2 || !showUserResults || form.selectedReporterId) {
+      return;
+    }
 
     let cancelled = false;
 
@@ -122,7 +131,7 @@ export default function CreateHelpdeskTicketPage() {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [form.reporterName, isSuperAdmin]);
+  }, [form.reporterName, form.selectedReporterId, isSuperAdmin, showUserResults]);
 
   const handleCategoryChange = (value: HelpdeskCategory) => {
     setForm((prev) => ({
@@ -131,7 +140,6 @@ export default function CreateHelpdeskTicketPage() {
     }));
   };
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [apiError] = useState<string | null>(null);
 
   // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
   const updateField = useCallback(
@@ -156,14 +164,12 @@ export default function CreateHelpdeskTicketPage() {
 
     if (!form.reporterName.trim()) {
       newErrors.reporterName = "Nama pelapor wajib diisi!";
+    } else if (isSuperAdmin && !form.selectedReporterId) {
+      newErrors.reporterName = "Silakan pilih pelapor dari hasil pencarian!";
     }
 
     if (!form.reporterUnit) {
       newErrors.reporterUnit = "Unit pelapor wajib diisi!";
-    }
-
-    if (!form.inventoryUnit) {
-      newErrors.inventoryUnit = "Unit inventaris wajib diisi!";
     }
 
     if (!form.issueDescription.trim()) {
@@ -187,15 +193,22 @@ export default function CreateHelpdeskTicketPage() {
 
     try {
       const response = await createTicket({
-        service: form.category, // "sarpras" | "tik"
-        asset_id: form.assetId,
-        description: form.issueDescription,
+        ...(isSuperAdmin && form.selectedReporterId
+          ? {
+              reporter_id: Number(form.selectedReporterId),
+            }
+          : {}),
+
+        service: form.category,
+
+        asset_id: form.assetId !== null && form.assetId !== "" ? Number(form.assetId) : null,
+
+        description: form.issueDescription.trim(),
+
         initial_evidence: form.evidence,
       });
 
-      if (response?.data?.ticket_number) {
-        setCreatedTicketNumber(response.data.ticket_number);
-      }
+      setCreatedTicketNumber(response.data?.ticket_number ?? "");
 
       resetForm();
       setShowSuccessModal(true);
@@ -298,10 +311,6 @@ export default function CreateHelpdeskTicketPage() {
             />
           </TicketSection>
 
-          {apiError && (
-            <div className="text-sm font-medium text-red-500 mb-2 text-right">{apiError}</div>
-          )}
-
           {submitError && (
             <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {submitError}
@@ -309,10 +318,7 @@ export default function CreateHelpdeskTicketPage() {
           )}
 
           {/* Submit */}
-          <div className="flex justify-between items-center pb-6">
-            <div className="text-sm text-red-500 font-medium">
-              {apiError && <span>{apiError}</span>}
-            </div>
+          <div className="flex justify-end items-center pb-6">
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -365,8 +371,16 @@ export default function CreateHelpdeskTicketPage() {
 
             {/* Deskripsi */}
             <p className="mt-2 text-sm leading-5 text-slate-500">
-              Tiket berhasil dibuat beserta nomor tiket!
-              {createdTicketNumber ? ` dengan nomor tiket: ${createdTicketNumber}` : "!"}
+              {createdTicketNumber ? (
+                <>
+                  Tiket berhasil dibuat dengan nomor tiket
+                  <span className="mt-1 block font-semibold text-primary-600">
+                    {createdTicketNumber}
+                  </span>
+                </>
+              ) : (
+                "Tiket berhasil dibuat!"
+              )}
             </p>
           </div>
         </Modal>

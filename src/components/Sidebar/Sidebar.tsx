@@ -11,6 +11,7 @@ import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
+import NotifikasiTab from "./NotifikasiTab";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 interface SidebarProps {
@@ -34,10 +35,15 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
     "petugas-tik": "Petugas TIK",
     "petugas-sarpras": "Petugas Sarpras",
     user: "User",
-    manajemen: "Manajemen",
+    management: "Manajemen",
   };
 
-  const roleName = user?.role ? (roleLabels[user.role] ?? user.role) : "Role belum tersedia";
+  const roleName =
+    user?.role === "user"
+      ? user?.jabatan || "Jabatan belum tersedia"
+      : user?.role
+        ? (roleLabels[user.role] ?? user.role)
+        : "Role belum tersedia";
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 dark:border-slate-800 bg-sidebar transition-colors">
@@ -60,6 +66,7 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         <MaintenanceTab />
         <CadanganDataTab />
         <LaporanTab />
+        <NotifikasiTab />
         <LogoutTab onLogout={handleLogout} />
       </nav>
 

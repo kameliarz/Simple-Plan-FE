@@ -173,9 +173,9 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
             handlingPhoto: {
               name: item.result_photo.original_name,
               size: formatFileSize(item.result_photo.size),
-              url: item.result_photo.object_key.startsWith("http")
-                ? item.result_photo.object_key
-                : `http://localhost:8000/storage/${item.result_photo.object_key}`,
+              url: item.result_photo.url.startsWith("http")
+                ? item.result_photo.url
+                : `http://localhost:8000/storage/${item.result_photo.url}`,
             },
           }
         : {}),
@@ -328,17 +328,15 @@ export default function HelpdeskDetailPage() {
   const canManage = isSuperAdmin || (isKoorSarpras && isSarpras);
 
   const canHandle =
-    !!user &&
-    !!apiTicket?.assigned_officer &&
-    String(apiTicket.assigned_officer.id) === String(user.id);
+    canManage ||
+    (!!user &&
+      !!apiTicket?.assigned_officer &&
+      String(apiTicket.assigned_officer.id) === String(user.id));
   // ==========================================
   // TICKET
   // ==========================================
 
-  const canVerify =
-    isSuperAdmin ||
-    (service === "sarpras" && isKoorSarpras) ||
-    currentTicket?.reporter?.id === user?.id;
+  const canVerify = currentTicket?.reporter?.id === user?.id;
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -826,7 +824,7 @@ export default function HelpdeskDetailPage() {
     try {
       if (isSarpras) {
         await classifyTicket(ticketId, {
-          quality_category_id: Number(kategoriSarpras),
+          sarpras_category_id: Number(kategoriSarpras),
         });
       } else {
         await classifyTicket(ticketId, {
@@ -1111,7 +1109,9 @@ export default function HelpdeskDetailPage() {
       showAlertMessage("Penanganan tiket berhasil disimpan.", "success");
     } catch (error) {
       console.error("Gagal menyimpan penanganan tiket:", error);
-      showAlertMessage("Gagal menyimpan penanganan tiket. Silakan coba lagi.", "error");
+      const errorMessage =
+        error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.";
+      showAlertMessage(errorMessage, "error");
     } finally {
       setIsSavingHandling(false);
     }
@@ -1486,7 +1486,13 @@ export default function HelpdeskDetailPage() {
               createdAt={formatDateTime(currentTicket.createdAt)}
             />
 
-            <InventoryCard unit={currentTicket.reporter.unit} />
+            <InventoryCard
+              inventoryNumber={apiTicket?.asset?.asset_number}
+              inventoryName={apiTicket?.asset?.name}
+              brand={apiTicket?.asset?.brand}
+              unit={apiTicket?.asset?.unit?.name}
+              location={apiTicket?.asset?.location}
+            />
 
             <DescriptionCard
               description={currentTicket.description}
@@ -1517,6 +1523,7 @@ export default function HelpdeskDetailPage() {
               tagsITOptions={tagsITOptions}
               tagsITError={tagsITError}
               setTagsITError={setTagsITError}
+              classificationDetail={apiTicket}
             />
 
             <PriorityCard
