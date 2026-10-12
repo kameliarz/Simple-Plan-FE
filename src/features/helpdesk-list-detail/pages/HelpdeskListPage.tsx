@@ -86,7 +86,11 @@ export default function HelpdeskSAPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const service = location.pathname.includes("/helpdesk/sarpras") ? "sarpras" : "tik";
+  const service = location.pathname.includes("/helpdesk/sarpras")
+    ? "sarpras"
+    : location.pathname.includes("/helpdesk/tik")
+      ? "tik"
+      : undefined;
 
   /* =========================
      STATE

@@ -56,10 +56,15 @@ export default function ReporterSection({
                   value: String(user.id),
                 }))}
                 onChange={(userId) => {
+                  console.log("Dropdown memilih user ID:", userId);
+
                   const selectedUser = searchedUsers.find((user) => String(user.id) === userId);
 
                   if (selectedUser) {
+                    console.log("Reporter terpilih:", selectedUser);
                     onSelectReporter(selectedUser);
+                  } else {
+                    console.warn("Reporter tidak ditemukan dalam hasil pencarian");
                   }
                 }}
                 onSearchChange={onReporterSearchChange}

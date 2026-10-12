@@ -30,7 +30,6 @@ export default function InventorySection({
   inventoryNumber,
   inventoryName,
   location,
-  unitError,
   onUnitChange,
   onInventoryNumberChange,
   onInventoryNameChange,
@@ -49,8 +48,6 @@ export default function InventorySection({
   const [assetList, setAssetList] = useState<SearchedAsset[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [fetchError, setFetchError] = useState("");
-  const [unitWarning, setUnitWarning] = useState("");
-
   // =========================
   // Load Unit
   // =========================
@@ -125,19 +122,6 @@ export default function InventorySection({
   }, [unit, unitList]);
 
   // =========================
-  // Validasi Unit
-  // =========================
-  const checkUnitSelected = (): boolean => {
-    if (!unit) {
-      setUnitWarning("Silakan pilih Unit terlebih dahulu!");
-      return false;
-    }
-
-    setUnitWarning("");
-    return true;
-  };
-
-  // =========================
   // Opsi Nama Inventaris
   // =========================
   const nameOptions: DropdownOption[] = useMemo(() => {
@@ -179,7 +163,7 @@ export default function InventorySection({
   // Pilih Nama Inventaris
   // =========================
   const handleNameSelect = (selectedName: string) => {
-    if (!checkUnitSelected()) return;
+    if (!unit) return;
 
     onInventoryNameChange(selectedName);
 
@@ -218,21 +202,24 @@ export default function InventorySection({
   // Pilih No. Inventaris
   // =========================
   const handleNumberSelect = (selectedNumber: string) => {
-    if (!checkUnitSelected()) return;
-
-    onInventoryNumberChange(selectedNumber);
+    if (!unit) return;
 
     const matchedAsset = assetList.find((item) => item.asset_number === selectedNumber);
 
     if (matchedAsset) {
+      onInventoryNumberChange(matchedAsset.asset_number ?? "");
       onInventoryNameChange(matchedAsset.name ?? "");
       onLocationChange(matchedAsset.location ?? "");
       onAssetIdChange(matchedAsset.id ?? null);
-    }
 
-    if (!matchedAsset) {
+      console.log("Inventaris terpilih:", matchedAsset);
+      console.log("Asset ID terpilih:", matchedAsset.id);
+    } else {
+      onInventoryNumberChange("");
       onLocationChange("");
       onAssetIdChange(null);
+
+      console.warn("Inventaris tidak ditemukan:", selectedNumber);
     }
   };
 
@@ -240,7 +227,6 @@ export default function InventorySection({
   // Ganti Unit
   // =========================
   const handleUnitChange = (newUnitValue: string) => {
-    setUnitWarning("");
     setFetchError("");
 
     // State lokal
@@ -266,7 +252,6 @@ export default function InventorySection({
     onInventoryNumberChange("");
     onLocationChange("");
     onAssetIdChange(null);
-    setUnitWarning("");
   };
 
   return (
@@ -274,10 +259,7 @@ export default function InventorySection({
       {/* Unit */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-text-secondary">
-            Unit
-            <span className="ml-1 text-red-500">*</span>
-          </label>
+          <label className="text-sm font-semibold text-text-secondary">Unit</label>
         </div>
 
         <Dropdown
@@ -287,7 +269,6 @@ export default function InventorySection({
           onChange={handleUnitChange}
           placeholder={isLoadingUnits ? "Memuat unit..." : "Pilih unit"}
           className="w-full"
-          error={unitError || unitWarning}
           searchable
           searchPlaceholder="Cari unit..."
           sheetTitle="Pilih Unit"
@@ -296,14 +277,7 @@ export default function InventorySection({
       </div>
 
       {/* Nama Inventaris */}
-      <div
-        className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}
-        onClickCapture={() => {
-          if (!unit) {
-            checkUnitSelected();
-          }
-        }}
-      >
+      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">Nama Inventaris</label>
 
         <div className={!unit ? "pointer-events-none opacity-60" : ""}>
@@ -328,14 +302,7 @@ export default function InventorySection({
       </div>
 
       {/* No. Inventaris */}
-      <div
-        className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}
-        onClickCapture={() => {
-          if (!unit) {
-            checkUnitSelected();
-          }
-        }}
-      >
+      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">No. Inventaris</label>
 
         <div className={!unit ? "pointer-events-none opacity-60" : ""}>

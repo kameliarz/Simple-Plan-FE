@@ -1,0 +1,36 @@
+import type { Inventory } from "../types/inventory.types";
+
+export const dummyInventories: Inventory[] = [
+  {
+    id: "AST-ITK-12345678",
+    inventoryNumber: "TK-2023-2026",
+    inventoryType: "tik",
+    classification: "alat-it",
+    roomLocation: "lantai-1",
+    location: "Lantai 1",
+    itemName: "pc-all-in-one-core-i5-poli-dalam",
+    model: "Core i7-12700, 16GB RAM, 512GB SSD",
+    serialNumber: "4CE2460NSL",
+    purchaseYear: "2024",
+    warrantyUntil: "",
+    status: "digunakan",
+    condition: "baik",
+    description: "",
+  },
+  {
+    id: "AST-SPR-12345679",
+    inventoryNumber: "SPR-2024-001",
+    inventoryType: "sarpras",
+    classification: "alat-elektronik",
+    roomLocation: "ruang-meeting",
+    location: "Lantai 2",
+    itemName: "monitor-dell-24",
+    model: "Monitor Dell 24 Inch",
+    serialNumber: "DELL2024001",
+    purchaseYear: "2024",
+    warrantyUntil: "2027-12-31",
+    status: "digunakan",
+    condition: "baik",
+    description: "Monitor ruang meeting",
+  },
+];

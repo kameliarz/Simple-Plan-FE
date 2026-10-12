@@ -59,32 +59,13 @@ export default function HelpdeskTab() {
 
       {isOpen && (
         <div className="flex flex-col bg-gray-50/50 dark:bg-slate-800/30 py-1">
-          {/* Petugas (TIK & Sarpras) */}
-          {(role === "petugas-tik" || role === "petugas-sarpras") && (
+          {role === "super-admin" ? (
             <>
               {renderNavLink("/helpdesk/tik", "Helpdesk TIK", Monitor)}
               {renderNavLink("/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
             </>
-          )}
-
-          {/* Koordinator Sarpras */}
-          {role === "koordinator-sarpras" &&
-            renderNavLink("/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
-
-          {/* Super Admin */}
-          {role === "super-admin" && (
-            <>
-              {renderNavLink("/helpdesk/tik", "Helpdesk TIK", Monitor)}
-              {renderNavLink("/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
-            </>
-          )}
-
-          {/* Manajemen */}
-          {role === "management" && (
-            <>
-              {renderNavLink("/manajemen/helpdesk/tik", "Helpdesk TIK", Monitor)}
-              {renderNavLink("/manajemen/helpdesk/sarpras", "Helpdesk Sarpras", Wrench)}
-            </>
+          ) : (
+            renderNavLink("/helpdesk", "Helpdesk", Monitor)
           )}
 
           <NavLink
