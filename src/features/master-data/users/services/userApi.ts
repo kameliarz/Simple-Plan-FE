@@ -61,6 +61,16 @@ export async function getUserDetail(userId: number | string): Promise<ApiUser> {
   return result.data;
 }
 
+export class ApiValidationError extends Error {
+  errors?: Record<string, string[]>;
+
+  constructor(message: string, errors?: Record<string, string[]>) {
+    super(message);
+    this.name = "ApiValidationError";
+    this.errors = errors;
+  }
+}
+
 export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
   const response = await fetch(`${API_BASE_URL}/users`, {
     method: "POST",
@@ -70,7 +80,10 @@ export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Gagal menambah user (${response.status})`);
+    throw new ApiValidationError(
+      errorData?.message || `Gagal menambah user (${response.status})`,
+      errorData?.errors,
+    );
   }
 
   const result: UserDetailResponse = await response.json();
@@ -89,7 +102,10 @@ export async function updateUser(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Gagal mengubah data user (${response.status})`);
+    throw new ApiValidationError(
+      errorData?.message || `Gagal mengubah data user (${response.status})`,
+      errorData?.errors,
+    );
   }
 
   const result: UserDetailResponse = await response.json();
@@ -108,7 +124,10 @@ export async function toggleUserStatus(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Gagal mengubah status user (${response.status})`);
+    throw new ApiValidationError(
+      errorData?.message || `Gagal mengubah status user (${response.status})`,
+      errorData?.errors,
+    );
   }
 
   const result: UserDetailResponse = await response.json();

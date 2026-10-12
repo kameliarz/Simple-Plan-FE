@@ -12,6 +12,11 @@ import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskC
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
 
+import InventarisTikListPage from "@/features/inventaris/pages/InventarisTikListPage";
+import InventarisTikDetailPage from "@/features/inventaris/pages/InventarisTikDetailPage";
+import InventarisSarprasListPage from "@/features/inventaris/pages/InventarisSarprasListPage";
+import InventarisSarprasDetailPage from "@/features/inventaris/pages/InventarisSarprasDetailPage";
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
@@ -46,6 +51,12 @@ function App() {
           <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
           <Route path="/master-data/users" element={<UserListPage />} />
           <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
+
+          {/* Inventaris Aset */}
+          <Route path="/inventaris/tik" element={<InventarisTikListPage />} />
+          <Route path="/inventaris/tik/:id" element={<InventarisTikDetailPage />} />
+          <Route path="/inventaris/sarpras" element={<InventarisSarprasListPage />} />
+          <Route path="/inventaris/sarpras/:id" element={<InventarisSarprasDetailPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />

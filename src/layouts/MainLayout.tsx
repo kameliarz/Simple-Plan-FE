@@ -95,6 +95,32 @@ export default function MainLayout({
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
 
+    if (path.startsWith("/inventaris/tik")) {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "management") label = "Manajemen";
+
+      const base = [{ label }, { label: "Inventaris Aset" }];
+      return [...base, { label: "Inventaris TIK" }];
+    }
+
+    if (path.startsWith("/inventaris/sarpras")) {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "management") label = "Manajemen";
+
+      const base = [{ label }, { label: "Inventaris Aset" }];
+      return [...base, { label: "Inventaris Sarpras" }];
+    }
+
     if (path === "/maintenance") {
       return [{ label: "Maintenance" }];
     }

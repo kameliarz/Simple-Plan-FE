@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { getUnits, getRoles, createUser, updateUser } from "../services/userApi";
+import {
+  getUnits,
+  getRoles,
+  createUser,
+  updateUser,
+  ApiValidationError,
+} from "../services/userApi";
 import type { ApiUser, CreateUserPayload } from "../types/user";
 
 interface Props {
@@ -33,6 +39,9 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setErrors({});
+      setApiError(null);
       getUnits().then(setUnits).catch(console.error);
       getRoles().then(setRoles).catch(console.error);
     }
@@ -60,12 +69,16 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.nama) newErrors.nama = "Nama lengkap wajib diisi!";
-    if (!formData.nip) newErrors.nip = "NIP wajib diisi!";
-    if (!isEdit && !formData.password) newErrors.password = "Password wajib diisi!";
+    if (!formData.nama?.trim()) newErrors.nama = "Nama lengkap wajib diisi!";
+    if (!formData.nip?.trim()) newErrors.nip = "NIP wajib diisi!";
+    if (!isEdit && !formData.password) {
+      newErrors.password = "Password wajib diisi!";
+    } else if (formData.password && formData.password.length < 8) {
+      newErrors.password = "Password minimal 8 karakter!";
+    }
     if (!formData.unit_id) newErrors.unit_id = "Unit wajib dipilih!";
-    if (!formData.jabatan) newErrors.jabatan = "Jabatan wajib diisi!";
-    if (!formData.no_hp) newErrors.no_hp = "Nomor HP wajib diisi!";
+    if (!formData.jabatan?.trim()) newErrors.jabatan = "Jabatan wajib diisi!";
+    if (!formData.no_hp?.trim()) newErrors.no_hp = "Nomor HP wajib diisi!";
     if (!formData.role) newErrors.role = "Role wajib dipilih!";
 
     setErrors(newErrors);
@@ -74,7 +87,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   const handleSubmit = async () => {
     if (!validate()) {
-      setApiError("Format data tidak sesuai. Silahkan periksa kembali data yang dimasukkan");
+      setApiError("Format data tidak sesuai. Silahkan periksa field yang ditandai merah");
       return;
     }
     setApiError(null);
@@ -93,6 +106,15 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
       }
       onSuccess();
     } catch (err: unknown) {
+      if (err instanceof ApiValidationError && err.errors) {
+        const fieldErrors: Record<string, string> = {};
+        for (const [key, messages] of Object.entries(err.errors)) {
+          if (Array.isArray(messages) && messages.length > 0) {
+            fieldErrors[key] = messages[0];
+          }
+        }
+        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      }
       setApiError(err instanceof Error ? err.message : "Terjadi kesalahan pada server");
     } finally {
       setIsLoading(false);
@@ -143,9 +165,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Nama"
               placeholder="Contoh: dr. Budi Santoso, Sp.PD"
               value={formData.nama || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, nama: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, nama: e.target.value });
+                if (errors.nama) setErrors((prev) => ({ ...prev, nama: "" }));
+              }}
               error={errors.nama}
               required
             />
@@ -154,9 +177,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="NIP / Nomor Induk Pegawai"
               placeholder="Contoh: 198504122010121002"
               value={formData.nip || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, nip: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, nip: e.target.value });
+                if (errors.nip) setErrors((prev) => ({ ...prev, nip: "" }));
+              }}
               error={errors.nip}
               required
             />
@@ -172,9 +196,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
                     isEdit ? "Biarkan kosong jika tidak diubah" : "Masukkan kata sandi baru"
                   }
                   value={formData.password || ""}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
+                  }}
                   className={`w-full rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 pr-10 ${
                     errors.password ? "border-red-500" : "border-slate-300"
                   }`}
@@ -201,9 +226,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               </label>
               <select
                 value={formData.unit_id || ""}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setFormData({ ...formData, unit_id: Number(e.target.value) })
-                }
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  setFormData({ ...formData, unit_id: Number(e.target.value) });
+                  if (errors.unit_id) setErrors((prev) => ({ ...prev, unit_id: "" }));
+                }}
                 className={`w-full rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
                   errors.unit_id ? "border-red-500" : "border-slate-300"
                 }`}
@@ -229,9 +255,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Jabatan"
               placeholder="Contoh: Dokter Spesialis Penyakit Dalam"
               value={formData.jabatan || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, jabatan: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, jabatan: e.target.value });
+                if (errors.jabatan) setErrors((prev) => ({ ...prev, jabatan: "" }));
+              }}
               error={errors.jabatan}
               required
             />
@@ -240,9 +267,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Nomor HP"
               placeholder="Contoh: 081234567890"
               value={formData.no_hp || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, no_hp: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, no_hp: e.target.value });
+                if (errors.no_hp) setErrors((prev) => ({ ...prev, no_hp: "" }));
+              }}
               error={errors.no_hp}
               required
             />
@@ -253,9 +281,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               </label>
               <select
                 value={formData.role || ""}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setFormData({ ...formData, role: e.target.value as CreateUserPayload["role"] })
-                }
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  setFormData({ ...formData, role: e.target.value as CreateUserPayload["role"] });
+                  if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
+                }}
                 className={`w-full md:w-1/2 rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
                   errors.role ? "border-red-500" : "border-slate-300"
                 }`}
