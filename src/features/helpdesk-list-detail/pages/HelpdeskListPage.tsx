@@ -122,6 +122,7 @@ export default function HelpdeskSAPage() {
 
   useEffect(() => {
     let isActive = true;
+    const controller = new AbortController();
 
     const fetchTickets = async () => {
       try {
@@ -140,6 +141,7 @@ export default function HelpdeskSAPage() {
 
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
+          signal: controller.signal,
         });
 
         if (!isActive) return;
@@ -159,7 +161,7 @@ export default function HelpdeskSAPage() {
         setTickets(response.data);
         setMeta(response.meta);
       } catch (error) {
-        if (!isActive) return;
+        if (!isActive || (error instanceof Error && error.name === "AbortError")) return;
 
         setError(error instanceof Error ? error.message : "Gagal mengambil data tiket.");
       } finally {
@@ -173,6 +175,7 @@ export default function HelpdeskSAPage() {
 
     return () => {
       isActive = false;
+      controller.abort();
     };
   }, [currentPage, search, status, priority, dateFrom, dateTo, service]);
 
