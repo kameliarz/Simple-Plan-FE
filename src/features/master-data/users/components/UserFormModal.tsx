@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { X, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { getUnits, getRoles, createUser, updateUser } from "../services/userApi";
+import { X, AlertCircle, Eye, EyeOff, ChevronDown } from "lucide-react";
+import {
+  getUnits,
+  getRoles,
+  createUser,
+  updateUser,
+  ApiValidationError,
+} from "../services/userApi";
 import type { ApiUser, CreateUserPayload } from "../types/user";
 
 interface Props {
@@ -33,6 +39,9 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setErrors({});
+      setApiError(null);
       getUnits().then(setUnits).catch(console.error);
       getRoles().then(setRoles).catch(console.error);
     }
@@ -60,13 +69,59 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.nama) newErrors.nama = "Nama lengkap wajib diisi!";
-    if (!formData.nip) newErrors.nip = "NIP wajib diisi!";
-    if (!isEdit && !formData.password) newErrors.password = "Password wajib diisi!";
-    if (!formData.unit_id) newErrors.unit_id = "Unit wajib dipilih!";
-    if (!formData.jabatan) newErrors.jabatan = "Jabatan wajib diisi!";
-    if (!formData.no_hp) newErrors.no_hp = "Nomor HP wajib diisi!";
-    if (!formData.role) newErrors.role = "Role wajib dipilih!";
+
+    // 1. Nama
+    if (!formData.nama || !formData.nama.trim()) {
+      newErrors.nama = "Nama lengkap wajib diisi!";
+    } else if (formData.nama.trim().length < 3) {
+      newErrors.nama = "Nama lengkap minimal 3 karakter!";
+    }
+
+    // 2. NIP
+    const rawNip = (formData.nip || "").trim();
+    if (!rawNip) {
+      newErrors.nip = "NIP wajib diisi!";
+    } else if (!/^\d+$/.test(rawNip)) {
+      newErrors.nip = "NIP harus berupa angka (tidak boleh mengandung huruf atau simbol)!";
+    } else if (rawNip.length < 8 || rawNip.length > 18) {
+      newErrors.nip = "NIP harus berjumlah antara 8 hingga 18 digit angka!";
+    }
+
+    // 3. Password
+    if (!isEdit) {
+      if (!formData.password) {
+        newErrors.password = "Password wajib diisi!";
+      } else if (formData.password.length < 6) {
+        newErrors.password = "Password minimal 6 karakter!";
+      }
+    } else if (formData.password && formData.password.length < 6) {
+      newErrors.password = "Password baru minimal 6 karakter!";
+    }
+
+    // 4. Unit
+    if (!formData.unit_id) {
+      newErrors.unit_id = "Unit wajib dipilih!";
+    }
+
+    // 5. Jabatan
+    if (!formData.jabatan || !formData.jabatan.trim()) {
+      newErrors.jabatan = "Jabatan wajib diisi!";
+    }
+
+    // 6. Nomor HP (Validasi format nomor HP Indonesia)
+    const rawPhone = (formData.no_hp || "").trim();
+    const phoneRegex = /^08[0-9]{8,11}$/;
+    if (!rawPhone) {
+      newErrors.no_hp = "Nomor HP wajib dipilih!";
+    } else if (!phoneRegex.test(rawPhone)) {
+      newErrors.no_hp =
+        "Format nomor HP tidak valid (harus diawali '08' dengan total 10-13 digit angka, contoh: 081234567890)!";
+    }
+
+    // 7. Role
+    if (!formData.role) {
+      newErrors.role = "Role wajib dipilih!";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -93,7 +148,14 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
       }
       onSuccess();
     } catch (err: unknown) {
-      setApiError(err instanceof Error ? err.message : "Terjadi kesalahan pada server");
+      if (err instanceof ApiValidationError) {
+        setErrors(err.errors);
+        setApiError(
+          err.message || "Format data tidak sesuai. Silahkan periksa kembali data yang dimasukkan",
+        );
+      } else {
+        setApiError(err instanceof Error ? err.message : "Terjadi kesalahan pada server");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +167,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-900">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
               <svg
                 width="20"
                 height="20"
@@ -120,11 +182,11 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-lg font-bold text-gray-900">
               {isEdit ? "Ubah Data" : "Tambah User"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -132,9 +194,9 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
         {/* Body */}
         <div className="overflow-y-auto p-6">
           {apiError && (
-            <div className="mb-6 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-600">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <span className="text-sm font-medium">{apiError}</span>
+            <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50/70 p-3 text-red-600">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+              <span className="text-[13px] font-normal leading-tight">{apiError}</span>
             </div>
           )}
 
@@ -143,83 +205,91 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Nama"
               placeholder="Contoh: dr. Budi Santoso, Sp.PD"
               value={formData.nama || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, nama: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, nama: e.target.value });
+                if (errors.nama) setErrors((prev) => ({ ...prev, nama: "" }));
+              }}
               error={errors.nama}
               required
             />
 
             <FormInput
               label="NIP / Nomor Induk Pegawai"
-              placeholder="Contoh: 198504122010121002"
+              placeholder="Contoh: 198804122019031002"
               value={formData.nip || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, nip: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const val = e.target.value.replace(/\D/g, "");
+                setFormData({ ...formData, nip: val });
+                if (errors.nip) setErrors((prev) => ({ ...prev, nip: "" }));
+              }}
               error={errors.nip}
               required
             />
 
             <div>
-              <label className="mb-1.5 block text-sm font-bold text-slate-800">
-                Password {isEdit ? "" : <span className="text-red-500">*</span>}
+              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder={
-                    isEdit ? "Biarkan kosong jika tidak diubah" : "Masukkan kata sandi baru"
+                    isEdit ? "Biarkan kosong jika tidak diubah" : "Masukkan kata sandi akun"
                   }
                   value={formData.password || ""}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
+                  }}
                   className={`w-full rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 pr-10 ${
-                    errors.password ? "border-red-500" : "border-slate-300"
+                    errors.password ? "border-red-500 bg-white" : "border-slate-300 bg-white"
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <div className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-red-500">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   <span>{errors.password}</span>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-bold text-slate-800">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Unit <span className="text-red-500">*</span>
               </label>
-              <select
-                value={formData.unit_id || ""}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setFormData({ ...formData, unit_id: Number(e.target.value) })
-                }
-                className={`w-full rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
-                  errors.unit_id ? "border-red-500" : "border-slate-300"
-                }`}
-              >
-                <option value="" disabled>
-                  Pilih Unit
-                </option>
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name}
+              <div className="relative">
+                <select
+                  value={formData.unit_id || ""}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    setFormData({ ...formData, unit_id: Number(e.target.value) });
+                    if (errors.unit_id) setErrors((prev) => ({ ...prev, unit_id: "" }));
+                  }}
+                  className={`w-full appearance-none rounded-xl border px-3.5 py-3 pr-10 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
+                    errors.unit_id ? "border-red-500 bg-white" : "border-slate-300 bg-white"
+                  }`}
+                >
+                  <option value="" disabled>
+                    Pilih unit
                   </option>
-                ))}
-              </select>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-3.5 h-4 w-4 text-slate-400" />
+              </div>
               {errors.unit_id && (
-                <div className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-red-500">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   <span>{errors.unit_id}</span>
                 </div>
               )}
@@ -229,9 +299,10 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Jabatan"
               placeholder="Contoh: Dokter Spesialis Penyakit Dalam"
               value={formData.jabatan || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, jabatan: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setFormData({ ...formData, jabatan: e.target.value });
+                if (errors.jabatan) setErrors((prev) => ({ ...prev, jabatan: "" }));
+              }}
               error={errors.jabatan}
               required
             />
@@ -240,38 +311,44 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Nomor HP"
               placeholder="Contoh: 081234567890"
               value={formData.no_hp || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData({ ...formData, no_hp: e.target.value })
-              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const val = e.target.value.replace(/\D/g, "");
+                setFormData({ ...formData, no_hp: val });
+                if (errors.no_hp) setErrors((prev) => ({ ...prev, no_hp: "" }));
+              }}
               error={errors.no_hp}
               required
             />
 
             <div className="md:col-span-2">
-              <label className="mb-1.5 block text-sm font-bold text-slate-800">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
                 Role <span className="text-red-500">*</span>
               </label>
-              <select
-                value={formData.role || ""}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setFormData({ ...formData, role: e.target.value as CreateUserPayload["role"] })
-                }
-                className={`w-full md:w-1/2 rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
-                  errors.role ? "border-red-500" : "border-slate-300"
-                }`}
-              >
-                <option value="" disabled>
-                  Pilih Role
-                </option>
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
+              <div className="relative">
+                <select
+                  value={formData.role || ""}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    setFormData({ ...formData, role: e.target.value as CreateUserPayload["role"] });
+                    if (errors.role) setErrors((prev) => ({ ...prev, role: "" }));
+                  }}
+                  className={`w-full appearance-none rounded-xl border px-3.5 py-3 pr-10 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
+                    errors.role ? "border-red-500 bg-white" : "border-slate-300 bg-white"
+                  }`}
+                >
+                  <option value="" disabled>
+                    Pilih Role
                   </option>
-                ))}
-              </select>
+                  {roles.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-3.5 h-4 w-4 text-slate-400" />
+              </div>
               {errors.role && (
-                <div className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-red-500">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   <span>{errors.role}</span>
                 </div>
               )}
@@ -284,7 +361,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="w-full md:w-auto rounded-xl bg-[#002f6c] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[#002050] disabled:opacity-70"
+            className="w-full md:w-auto rounded-xl bg-[#003178] px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-[#00255c] disabled:opacity-70 cursor-pointer"
           >
             {isLoading ? "Menyimpan..." : "Simpan"}
           </button>
@@ -306,7 +383,7 @@ interface FormInputProps {
 function FormInput({ label, required, placeholder, value, onChange, error }: FormInputProps) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-bold text-slate-800">
+      <label className="mb-1.5 block text-sm font-semibold text-slate-800">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
@@ -315,12 +392,12 @@ function FormInput({ label, required, placeholder, value, onChange, error }: For
         value={value}
         onChange={onChange}
         className={`w-full rounded-xl border px-3.5 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-blue-600 focus:ring-1 focus:ring-blue-600 ${
-          error ? "border-red-500 bg-white" : "border-slate-300"
+          error ? "border-red-500 bg-white" : "border-slate-300 bg-white"
         }`}
       />
       {error && (
-        <div className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-red-500">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}

@@ -95,6 +95,10 @@ export default function MainLayout({
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
 
+    if (path.startsWith("/master-data")) {
+      return [{ label: "Super Admin" }, { label: "Master Data" }];
+    }
+
     if (path === "/maintenance") {
       return [{ label: "Maintenance" }];
     }
