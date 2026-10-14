@@ -1,0 +1,60 @@
+import type { Notification } from "../types/notification.types";
+
+export const dummyNotifications: Notification[] = [
+  {
+    id: "1",
+    title: "Tiket baru TIK-2026-001 masuk",
+    message: "Terdapat tiket baru yang membutuhkan tindak lanjut.",
+    createdAt: "11 Okt 2026, 08:15 WIB",
+    category: "sistem",
+    isRead: false,
+  },
+  {
+    id: "2",
+    title: "Pengajuan mutasi aset monitor diterima",
+    message: "Pengajuan mutasi aset monitor telah diterima dan sedang diproses.",
+    createdAt: "11 Okt 2026, 08:00 WIB",
+    category: "aset",
+    isRead: false,
+  },
+  {
+    id: "3",
+    title: "Tiket SPR-2026-507 berhasil diperbarui",
+    message: "Informasi tiket telah berhasil diperbarui.",
+    createdAt: "10 Okt 2026, 14:40 WIB",
+    category: "sistem",
+    isRead: false,
+  },
+  {
+    id: "4",
+    title: "Pengajuan mutasi aset monitor berhasil",
+    message: "Pengajuan mutasi aset telah berhasil diselesaikan.",
+    createdAt: "10 Okt 2026, 13:30 WIB",
+    category: "aset",
+    isRead: true,
+  },
+  {
+    id: "5",
+    title: "Pengajuan mutasi aset monitor diterima",
+    message: "Permintaan mutasi aset telah diterima oleh admin.",
+    createdAt: "09 Okt 2026, 09:20 WIB",
+    category: "aset",
+    isRead: true,
+  },
+  {
+    id: "6",
+    title: "Pengajuan mutasi aset monitor berhasil",
+    message: "Proses mutasi aset telah selesai.",
+    createdAt: "08 Okt 2026, 15:10 WIB",
+    category: "aset",
+    isRead: true,
+  },
+  {
+    id: "7",
+    title: "Pengajuan mutasi aset monitor diterima",
+    message: "Pengajuan mutasi aset sedang menunggu proses berikutnya.",
+    createdAt: "07 Okt 2026, 10:00 WIB",
+    category: "aset",
+    isRead: true,
+  },
+];

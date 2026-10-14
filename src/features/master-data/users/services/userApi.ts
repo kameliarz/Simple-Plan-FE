@@ -62,9 +62,9 @@ export async function getUserDetail(userId: number | string): Promise<ApiUser> {
 }
 
 export class ApiValidationError extends Error {
-  errors?: Record<string, string[]>;
+  errors: Record<string, string>;
 
-  constructor(message: string, errors?: Record<string, string[]>) {
+  constructor(message: string, errors: Record<string, string>) {
     super(message);
     this.name = "ApiValidationError";
     this.errors = errors;
@@ -80,10 +80,18 @@ export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new ApiValidationError(
-      errorData?.message || `Gagal menambah user (${response.status})`,
-      errorData?.errors,
-    );
+    if (response.status === 422 && errorData?.errors) {
+      const fieldErrors: Record<string, string> = {};
+      for (const [key, val] of Object.entries(errorData.errors)) {
+        fieldErrors[key] = Array.isArray(val) ? (val as string[])[0] : String(val);
+      }
+      throw new ApiValidationError(
+        errorData.message ||
+          "Format data tidak sesuai. Silahkan periksa kembali data yang dimasukkan.",
+        fieldErrors,
+      );
+    }
+    throw new Error(errorData?.message || `Gagal menambah user (${response.status})`);
   }
 
   const result: UserDetailResponse = await response.json();
@@ -102,10 +110,18 @@ export async function updateUser(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new ApiValidationError(
-      errorData?.message || `Gagal mengubah data user (${response.status})`,
-      errorData?.errors,
-    );
+    if (response.status === 422 && errorData?.errors) {
+      const fieldErrors: Record<string, string> = {};
+      for (const [key, val] of Object.entries(errorData.errors)) {
+        fieldErrors[key] = Array.isArray(val) ? (val as string[])[0] : String(val);
+      }
+      throw new ApiValidationError(
+        errorData.message ||
+          "Format data tidak sesuai. Silahkan periksa kembali data yang dimasukkan.",
+        fieldErrors,
+      );
+    }
+    throw new Error(errorData?.message || `Gagal mengubah data user (${response.status})`);
   }
 
   const result: UserDetailResponse = await response.json();

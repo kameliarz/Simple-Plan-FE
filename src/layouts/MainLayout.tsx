@@ -95,30 +95,8 @@ export default function MainLayout({
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
 
-    if (path.startsWith("/inventaris/tik")) {
-      const user = getUser();
-      const role = user?.role;
-      let label = "Super Admin";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "management") label = "Manajemen";
-
-      const base = [{ label }, { label: "Inventaris Aset" }];
-      return [...base, { label: "Inventaris TIK" }];
-    }
-
-    if (path.startsWith("/inventaris/sarpras")) {
-      const user = getUser();
-      const role = user?.role;
-      let label = "Super Admin";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "management") label = "Manajemen";
-
-      const base = [{ label }, { label: "Inventaris Aset" }];
-      return [...base, { label: "Inventaris Sarpras" }];
+    if (path.startsWith("/master-data")) {
+      return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
 
     if (path === "/maintenance") {
@@ -132,30 +110,37 @@ export default function MainLayout({
 
   return (
     <div className="min-h-screen bg-background text-text transition-colors">
-      {/* =========================
-          MOBILE
-          ========================= */}
-      <div className="min-h-screen bg-background lg:hidden">
-        <MobileHeader isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
+      <div className="flex h-screen overflow-hidden">
+        {/* =========================
+            SIDEBAR (DESKTOP)
+            ========================= */}
+        <div className="hidden lg:flex shrink-0">
+          <Sidebar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+        </div>
 
-        <main className="min-h-screen bg-background pb-20">{children}</main>
+        {/* =========================
+            MAIN AREA (MOBILE & DESKTOP)
+            ========================= */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background h-screen overflow-hidden">
+          {/* Header Mobile */}
+          <div className="lg:hidden shrink-0">
+            <MobileHeader isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
+          </div>
 
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
+          {/* Header Desktop */}
+          <div className="hidden lg:block shrink-0">
+            <NavbarHeader breadcrumbs={currentBreadcrumbs} notificationCount={notificationCount} />
+          </div>
 
-      {/* =========================
-          DESKTOP
-          ========================= */}
-      <div className="hidden h-screen overflow-hidden bg-background lg:flex">
-        {/* Sidebar */}
-        <Sidebar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+          {/* Content (HANYA SATU KALI DI-MOUNT) */}
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-20 lg:pb-0">
+            {children}
+          </main>
 
-        {/* Main Area */}
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-background">
-          <NavbarHeader breadcrumbs={currentBreadcrumbs} notificationCount={notificationCount} />
-
-          {/* Content */}
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background">{children}</main>
+          {/* Bottom Nav Mobile */}
+          <div className="lg:hidden shrink-0">
+            <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>
         </div>
       </div>
     </div>

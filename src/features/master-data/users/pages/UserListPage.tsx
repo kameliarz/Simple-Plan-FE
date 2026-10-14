@@ -91,10 +91,10 @@ export default function UserListPage() {
           <h1 className="text-xl font-bold text-gray-800">Daftar Pengguna Sistem</h1>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-900"
+            className="flex items-center gap-2 rounded-lg bg-[#003178] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#00255c] cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            Tambah User
+            Tambah Pengguna
           </button>
         </div>
 

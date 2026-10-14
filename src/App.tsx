@@ -17,6 +17,9 @@ import InventarisTikDetailPage from "@/features/inventaris/pages/InventarisTikDe
 import InventarisSarprasListPage from "@/features/inventaris/pages/InventarisSarprasListPage";
 import InventarisSarprasDetailPage from "@/features/inventaris/pages/InventarisSarprasDetailPage";
 
+import CreateInventoryPage from "@/features/inventory-create-change/pages/CreateInventoryPage";
+import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
@@ -41,6 +44,7 @@ function App() {
           <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
 
           {/* Helpdesk */}
+          <Route path="/helpdesk" element={<HelpdeskListPage />} />
           <Route path="/helpdesk/tik" element={<HelpdeskListPage />} />
           <Route path="/helpdesk/sarpras" element={<HelpdeskListPage />} />
           <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
@@ -57,6 +61,24 @@ function App() {
           <Route path="/inventaris/tik/:id" element={<InventarisTikDetailPage />} />
           <Route path="/inventaris/sarpras" element={<InventarisSarprasListPage />} />
           <Route path="/inventaris/sarpras/:id" element={<InventarisSarprasDetailPage />} />
+
+          {/* Inventory */}
+          <Route
+            path="/inventory/tik/create"
+            element={<CreateInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/create"
+            element={<CreateInventoryPage inventoryType="sarpras" />}
+          />
+          <Route
+            path="/inventory/tik/:id/edit"
+            element={<EditInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/:id/edit"
+            element={<EditInventoryPage inventoryType="sarpras" />}
+          />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />

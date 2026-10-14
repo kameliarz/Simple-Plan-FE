@@ -2,6 +2,26 @@ import DetailCard from "./DetailCard";
 import Dropdown, { type DropdownOption } from "../../../../components/ui/ui-template/Dropdown";
 import Input from "../../../../components/ui/ui-template/Input";
 
+type ClassificationDetail = {
+  tik_detail?: {
+    quality_category?: {
+      id: number;
+      name: string;
+    } | null;
+    it_tag?: {
+      id: number;
+      name: string;
+    } | null;
+    custom_it_tag_text?: string | null;
+  } | null;
+  sarpras_detail?: {
+    sarpras_category?: {
+      id: number;
+      name: string;
+    } | null;
+  } | null;
+};
+
 type ClassificationCardProps = {
   isClassifying: boolean;
   isClassificationSaved: boolean;
@@ -30,6 +50,8 @@ type ClassificationCardProps = {
   setCustomITTag: (value: string) => void;
   customITTagError: string;
   setCustomITTagError: (value: string) => void;
+
+  classificationDetail?: ClassificationDetail | null;
 };
 
 export default function ClassificationCard({
@@ -60,24 +82,29 @@ export default function ClassificationCard({
   setCustomITTag,
   customITTagError,
   setCustomITTagError,
+
+  classificationDetail,
 }: ClassificationCardProps) {
   const title = `Klasifikasi Tiket ${isSarpras ? "Sarpras" : "TIK"}`;
 
-  const kategoriSarprasLabel =
-    kategoriSarprasOptions.find((option) => option.value === kategoriSarpras)?.label ??
-    kategoriSarpras;
+  // Untuk mode klasifikasi
+  const selectedITTag = tagsITOptions.find((option) => String(option.value) === String(tagsIT));
 
-  const kategoriMutuLabel =
-    kategoriMutuOptions.find((option) => option.value === kategoriMutu)?.label ?? kategoriMutu;
+  const isCustomITTag = selectedITTag?.label.trim().toLowerCase() === "lain-lain";
 
-  const selectedITTag = tagsITOptions.find((option) => option.value === tagsIT);
+  // Untuk mode saved (mengambil nama langsung dari API)
+  const kategoriSarprasLabel = classificationDetail?.sarpras_detail?.sarpras_category?.name ?? "-";
 
-  const tagsITLabel = selectedITTag?.label ?? tagsIT;
+  const kategoriMutuLabel = classificationDetail?.tik_detail?.quality_category?.name ?? "-";
 
-  // Lain-lain ditentukan berdasarkan label dari API,
-  // bukan berdasarkan value "lain-lain".
-  const isCustomITTag = selectedITTag?.label.toLowerCase() === "lain-lain";
+  const savedITTagName = classificationDetail?.tik_detail?.it_tag?.name ?? "";
 
+  const savedCustomITTag = classificationDetail?.tik_detail?.custom_it_tag_text?.trim() ?? "";
+
+  const tagsITLabel =
+    savedITTagName.trim().toLowerCase() === "lain-lain"
+      ? savedCustomITTag || savedITTagName
+      : savedITTagName || "-";
   return (
     <>
       {isClassifying && (
@@ -219,9 +246,7 @@ export default function ClassificationCard({
                   <div>
                     <p className="text-xs text-slate-400">Tags IT</p>
 
-                    <p className="mt-1.5 text-sm font-medium text-text-title">
-                      {isCustomITTag && customITTag ? customITTag : tagsITLabel}
-                    </p>
+                    <p className="mt-1.5 text-sm font-medium text-text-title">{tagsITLabel}</p>
                   </div>
                 </>
               )}
