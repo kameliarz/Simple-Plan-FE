@@ -15,6 +15,8 @@ import UserListPage from "@/features/master-data/users/pages/UserListPage";
 import CreateInventoryPage from "@/features/inventory-create-change/pages/CreateInventoryPage";
 import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
 
+import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
@@ -68,6 +70,8 @@ function App() {
             path="/inventory/sarpras/:id/edit"
             element={<EditInventoryPage inventoryType="sarpras" />}
           />
+
+          <Route path="/notification" element={<NotificationMobilePage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />

@@ -1,9 +1,10 @@
 import React from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun, Bell } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface MobileHeaderProps {
   onMenuClick?: () => void;
+  onNotificationClick?: () => void;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
   className?: string;
@@ -11,6 +12,7 @@ interface MobileHeaderProps {
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onMenuClick,
+  onNotificationClick,
   isDarkMode,
   onToggleDarkMode,
   className,
@@ -45,6 +47,44 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
       {/* Kanan: Dark Mode Toggle & Hospital Emblem Logo */}
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onNotificationClick}
+          className="
+            relative
+            p-1.5
+            rounded-lg
+            text-slate-600
+            dark:text-slate-300
+            hover:bg-slate-100
+            dark:hover:bg-slate-800
+            transition
+          "
+          aria-label="Buka Notifikasi"
+        >
+          <Bell className="w-5 h-5" />
+
+          {/* Badge jumlah unread */}
+          <span
+            className="
+              absolute
+              -right-0.5
+              -top-0.5
+              flex
+              h-3.5
+              w-3.5
+              items-center
+              justify-center
+              rounded-full
+              bg-red-500
+              text-[8px]
+              text-white
+            "
+          >
+            3
+          </span>
+        </button>
+
         {onToggleDarkMode && (
           <button
             type="button"

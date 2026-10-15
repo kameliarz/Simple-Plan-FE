@@ -8,6 +8,7 @@ import { getUser } from "@/features/auth-login/services/authStorage";
 import MobileHeader from "@/components/layout/MobileHeader";
 import NavbarHeader from "@/components/layout/NavbarHeader";
 import Sidebar from "@/components/Sidebar/Sidebar";
+import { useNavigate } from "react-router-dom";
 
 interface BreadcrumbItem {
   label: string;
@@ -25,6 +26,7 @@ export default function MainLayout({
   breadcrumbs = [],
   notificationCount = 0,
 }: MainLayoutProps) {
+  const navigate = useNavigate();
   // Menyimpan status dark mode
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -124,7 +126,11 @@ export default function MainLayout({
         <div className="flex min-w-0 flex-1 flex-col bg-background h-screen overflow-hidden">
           {/* Header Mobile */}
           <div className="lg:hidden shrink-0">
-            <MobileHeader isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
+            <MobileHeader
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={toggleDarkMode}
+              onNotificationClick={() => navigate("/notification")}
+            />
           </div>
 
           {/* Header Desktop */}
