@@ -11,6 +11,7 @@ export interface DropdownProps {
   value: string;
   options: (string | DropdownOption)[];
   onChange: (value: string) => void;
+  disabled?: boolean;
   placeholder?: string;
   className?: string;
   error?: string;
@@ -26,6 +27,7 @@ export default function Dropdown({
   value,
   options,
   onChange,
+  disabled = false,
   placeholder = "Pilih...",
   className,
   error,
@@ -120,6 +122,7 @@ export default function Dropdown({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => (open ? handleClose() : handleOpen())}
         className={cn(
           "flex h-11 w-full items-center justify-between rounded-md border px-4 text-sm transition",
@@ -129,7 +132,7 @@ export default function Dropdown({
         )}
       >
         <span className="truncate">{triggerLabel}</span>
-        <IconChevronDown size={22} strokeWidth={1.5} className="shrink-0" />
+        {!disabled && <IconChevronDown size={22} strokeWidth={1.5} className="shrink-0" />}
       </button>
 
       {/* Desktop Dropdown */}

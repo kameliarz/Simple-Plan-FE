@@ -123,6 +123,7 @@ export default function InventoryForm({
             value={inventoryType === "tik" ? "alat-it" : form.classification}
             options={classificationOptions[inventoryType]}
             onChange={(value) => handleChange("classification", value)}
+            disabled={inventoryType === "tik"}
             placeholder="Pilih klasifikasi"
             className="w-full"
           />
