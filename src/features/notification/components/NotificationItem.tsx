@@ -12,7 +12,7 @@ export default function NotificationItem({ notification, onRead }: NotificationI
   const [expanded, setExpanded] = useState(false);
 
   const handleClick = () => {
-    setExpanded((previous) => !previous);
+    setExpanded((prev) => !prev);
 
     if (!notification.isRead) {
       onRead(notification.id);
@@ -22,60 +22,98 @@ export default function NotificationItem({ notification, onRead }: NotificationI
   return (
     <div
       className={`
-        border-b border-slate-100
-        transition-colors
-        dark:border-slate-800
-        ${notification.isRead ? "bg-white dark:bg-slate-900" : "bg-blue-50/50 dark:bg-blue-950/20"}
+        mx-3 mb-2
+        rounded-lg
+        border
+        border-slate-100
+        overflow-hidden
+        transition-all
+        ${notification.isRead ? "bg-white" : "bg-blue-50/70"}
       `}
     >
+      {/* ITEM HEADER */}
       <button
-        type="button"
         onClick={handleClick}
-        aria-expanded={expanded}
         className="
-          flex w-full items-start gap-2
-          px-4 py-3 text-left
-          transition-colors
-          hover:bg-slate-50
-          dark:hover:bg-slate-800
+          flex
+          w-full
+          items-start
+          gap-2
+          px-3
+          py-3
+          text-left
         "
       >
-        {/* INDIKATOR BELUM DIBACA */}
-        <span className="flex h-5 shrink-0 items-center">
-          {!notification.isRead && <span className="h-2 w-2 rounded-full bg-primary-600" />}
-        </span>
+        {/* DOT */}
+        <div className="pt-1">
+          {!notification.isRead && (
+            <span
+              className="
+                block
+                h-2
+                w-2
+                rounded-full
+                bg-blue-600
+              "
+            />
+          )}
+        </div>
 
-        {/* INFORMASI NOTIFIKASI */}
-        <div className="min-w-0 flex-1">
+        {/* CONTENT */}
+        <div className="flex-1">
           <p
             className={`
-              text-xs leading-5 text-slate-700
-              dark:text-slate-200
+              text-[11px]
+              leading-4
+              text-slate-700
               ${!notification.isRead ? "font-semibold" : "font-normal"}
             `}
           >
             {notification.title}
           </p>
 
-          <p className="mt-1 text-[10px] text-slate-400">{notification.createdAt}</p>
+          <p
+            className="
+              mt-1
+              text-[10px]
+              text-slate-400
+            "
+          >
+            {notification.createdAt}
+          </p>
         </div>
 
-        {/* ICON EXPAND */}
+        {/* CHEVRON */}
         <IconChevronDown
-          size={16}
-          strokeWidth={1.5}
+          size={15}
           className={`
-            mt-0.5 shrink-0 text-slate-400
-            transition-transform duration-200
+            mt-1
+            text-slate-400
+            transition-transform
             ${expanded ? "rotate-180" : ""}
           `}
         />
       </button>
 
-      {/* DETAIL NOTIFIKASI */}
+      {/* DETAIL */}
       {expanded && (
-        <div className="px-4 pb-4 pl-10">
-          <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">
+        <div
+          className="
+            border-t
+            border-slate-100
+            px-3
+            py-3
+            pl-7
+            bg-white
+          "
+        >
+          <p
+            className="
+              text-[11px]
+              leading-5
+              text-slate-600
+            "
+          >
             {notification.message}
           </p>
         </div>
