@@ -117,6 +117,49 @@ export interface CreateTicketResponse {
   };
 }
 
+// GET /asset-locations
+
+export interface SearchedAssetLocation {
+  id: number;
+  code: number;
+  name: string;
+}
+
+interface SearchAssetLocationsResponse {
+  data: SearchedAssetLocation[];
+}
+
+export async function searchAssetLocations(
+  searchKeyword: string = "",
+): Promise<SearchedAssetLocation[]> {
+  const token = getToken();
+
+  const params = new URLSearchParams();
+
+  if (searchKeyword.trim()) {
+    params.set("search", searchKeyword.trim());
+  }
+
+  const query = params.toString();
+
+  const response = await fetch(`/api/v1/asset-locations${query ? `?${query}` : ""}`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gagal memuat lokasi aset: HTTP ${response.status}`);
+  }
+
+  const result: SearchAssetLocationsResponse = await response.json();
+
+  return Array.isArray(result.data) ? result.data : [];
+}
+
 export async function createTicket(payload: CreateTicketPayload): Promise<CreateTicketResponse> {
   const token = getToken();
   const formData = new FormData();
