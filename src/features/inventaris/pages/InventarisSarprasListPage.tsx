@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Download, X, FolderSearch, QrCode } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Filter,
+  Download,
+  X,
+  FolderSearch,
+  QrCode,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
 import { getUser } from "@/features/auth-login/services/authStorage";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
@@ -11,11 +21,10 @@ import Checkbox from "@/components/ui/Checkbox";
 import RadioButton from "@/components/ui/RadioButton";
 import EmptyState from "@/components/ui/EmptyState";
 import BottomSheet from "@/components/ui/BottomSheet";
+import { getAssets, getAssetLocations, getAssetClassifications } from "../services/inventarisApi";
+import type { ApiAsset, AssetLocation, InventarisStatus } from "../types/inventaris";
 
-// Mock Data
-type InventarisStatus = "Digunakan" | "Tidak Digunakan" | "Dipinjam" | "Rusak" | "Aktif";
-
-interface InventarisSarpras {
+export interface InventarisSarprasRow {
   id: string;
   nomor: string;
   nama: string;
@@ -23,92 +32,8 @@ interface InventarisSarpras {
   status: InventarisStatus;
   klasifikasi?: string;
   perpindahanTerkini?: boolean;
+  raw: ApiAsset;
 }
-
-const mockData: InventarisSarpras[] = [
-  {
-    id: "1",
-    nomor: "INV-SRP-2023-001",
-    nama: "Kursi Aula",
-    lokasi: "Poli Penyakit Dalam",
-    status: "Tidak Digunakan",
-    klasifikasi: "Sarpras Umum",
-  },
-  {
-    id: "2",
-    nomor: "INV-SRP-2023-002",
-    nama: "Meja Kerja Staff",
-    lokasi: "Farmasi Rawat Jalan",
-    status: "Dipinjam",
-    klasifikasi: "Mebel & Furniture",
-  },
-  {
-    id: "3",
-    nomor: "INV-SRP-2023-003",
-    nama: "Lemari Arsip Besi",
-    lokasi: "Server & Jaringan Lantai 3",
-    status: "Dipinjam",
-    klasifikasi: "Mebel & Furniture",
-  },
-  {
-    id: "4",
-    nomor: "INV-SRP-2023-004",
-    nama: "Rak Dokumen 4 Susun",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Mebel & Furniture",
-  },
-  {
-    id: "5",
-    nomor: "INV-SRP-2023-005",
-    nama: "Proyektor Epson EB-X06",
-    lokasi: "Akreditasi & Penjaminan Mutu",
-    status: "Digunakan",
-    klasifikasi: "Elektronik & Multimedia",
-    perpindahanTerkini: true,
-  },
-  {
-    id: "6",
-    nomor: "INV-SRP-2023-006",
-    nama: "Dispenser Air Galon",
-    lokasi: "Pendaftaran Rawat Inap (TPPRI)",
-    status: "Rusak",
-    klasifikasi: "Peralatan Rumah Tangga",
-  },
-  {
-    id: "7",
-    nomor: "INV-SRP-2023-007",
-    nama: "Meja Basecamp IT",
-    lokasi: "Radiologi",
-    status: "Digunakan",
-    klasifikasi: "Mebel & Furniture",
-  },
-  {
-    id: "8",
-    nomor: "INV-SRP-2023-008",
-    nama: "AC Aula Lantai 2",
-    lokasi: "Ruang Isolasi Teratai Lt. 2",
-    status: "Tidak Digunakan",
-    klasifikasi: "Elektronik & Pendingin",
-  },
-  {
-    id: "9",
-    nomor: "INV-SRP-2023-009",
-    nama: "Pintu Kamar Mandi Aula",
-    lokasi: "Radiologi",
-    status: "Rusak",
-    klasifikasi: "Perlengkapan Bangunan",
-  },
-  {
-    id: "10",
-    nomor: "INV-SRP-2023-010",
-    nama: "Pompa Galon Teratai",
-    lokasi: "Ruang Isolasi Teratai Lt. 2",
-    status: "Digunakan",
-    klasifikasi: "Peralatan Rumah Tangga",
-    perpindahanTerkini: true,
-  },
-];
 
 const getBadgeVariant = (status: InventarisStatus): BadgeVariant => {
   switch (status) {
@@ -134,6 +59,11 @@ export default function InventarisSarprasListPage() {
   const canCreate =
     role === "super-admin" || role === "koordinator-sarpras" || role === "petugas-sarpras";
 
+  const [assets, setAssets] = useState<ApiAsset[]>([]);
+  const [locations, setLocations] = useState<AssetLocation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   // Mode Unduh Label Massal & Seleksi Baris
@@ -157,6 +87,44 @@ export default function InventarisSarprasListPage() {
   const [tempStatus, setTempStatus] = useState("Semua status");
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
+
+  // Fetch initial data (classifications, locations, assets)
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Ambil klasifikasi untuk sarpras
+      const classifications = await getAssetClassifications().catch(() => []);
+      const sarprasClass = classifications.find(
+        (c) =>
+          c.name.toLowerCase().includes("sarpras") ||
+          c.name.toLowerCase().includes("sarana") ||
+          c.code === 3,
+      );
+      const targetClassId = sarprasClass ? sarprasClass.id : 1;
+
+      // 2. Ambil lokasi
+      const locs = await getAssetLocations().catch(() => []);
+      setLocations(locs);
+
+      // 3. Ambil data aset sarpras
+      const assetRes = await getAssets({
+        asset_classification_id: targetClassId,
+        per_page: 100,
+      });
+
+      setAssets(assetRes.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memuat data inventaris sarpras");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   // Close filter when clicking outside
   useEffect(() => {
@@ -211,16 +179,16 @@ export default function InventarisSarprasListPage() {
 
   const columns = [
     {
-      key: "nomor" as keyof InventarisSarpras,
+      key: "nomor" as keyof InventarisSarprasRow,
       label: "NOMOR INVENTARIS",
       render: (value: unknown) => (
         <span className="font-semibold text-blue-700 hover:underline">{String(value ?? "")}</span>
       ),
     },
-    { key: "nama" as keyof InventarisSarpras, label: "NAMA BARANG" },
-    { key: "lokasi" as keyof InventarisSarpras, label: "LOKASI RUANGAN" },
+    { key: "nama" as keyof InventarisSarprasRow, label: "NAMA BARANG" },
+    { key: "lokasi" as keyof InventarisSarprasRow, label: "LOKASI RUANGAN" },
     {
-      key: "status" as keyof InventarisSarpras,
+      key: "status" as keyof InventarisSarprasRow,
       label: "STATUS",
       render: (value: unknown) => (
         <Badge variant={getBadgeVariant(value as InventarisStatus)} size="sm">
@@ -230,7 +198,19 @@ export default function InventarisSarprasListPage() {
     },
   ];
 
-  const filteredData = mockData.filter((item) => {
+  // Map raw API assets into table rows
+  const tableData: InventarisSarprasRow[] = assets.map((item) => ({
+    id: String(item.id),
+    nomor: item.asset_code?.full_code || item.asset_uid,
+    nama: item.asset_code?.item?.name || item.brand || item.model_specification || "Barang Sarpras",
+    lokasi: item.asset_code?.location?.name || "-",
+    status: item.status,
+    klasifikasi: item.asset_code?.classification?.name || "Sarana dan Prasarana",
+    perpindahanTerkini: Boolean(item.histories && item.histories.length > 0),
+    raw: item,
+  }));
+
+  const filteredData = tableData.filter((item) => {
     const matchesSearch =
       item.nomor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -249,6 +229,11 @@ export default function InventarisSarprasListPage() {
       matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
     );
   });
+
+  const previewAsset =
+    selectedIds.length > 0
+      ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
+      : tableData[0];
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900">
@@ -330,24 +315,11 @@ export default function InventarisSarprasListPage() {
                             className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="Semua lokasi">Semua lokasi</option>
-                            <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
-                            <option value="Farmasi Rawat Jalan">Farmasi Rawat Jalan</option>
-                            <option value="Server & Jaringan Lantai 3">
-                              Server & Jaringan Lantai 3
-                            </option>
-                            <option value="Unit Gawat Darurat (UGD)">
-                              Unit Gawat Darurat (UGD)
-                            </option>
-                            <option value="Akreditasi & Penjaminan Mutu">
-                              Akreditasi & Penjaminan Mutu
-                            </option>
-                            <option value="Pendaftaran Rawat Inap (TPPRI)">
-                              Pendaftaran Rawat Inap (TPPRI)
-                            </option>
-                            <option value="Radiologi">Radiologi</option>
-                            <option value="Ruang Isolasi Teratai Lt. 2">
-                              Ruang Isolasi Teratai Lt. 2
-                            </option>
+                            {locations.map((loc) => (
+                              <option key={loc.id} value={loc.name}>
+                                {loc.name}
+                              </option>
+                            ))}
                           </Select>
                         </div>
 
@@ -369,26 +341,6 @@ export default function InventarisSarprasListPage() {
                           </Select>
                         </div>
 
-                        {/* Jenis Klasifikasi */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Jenis Klasifikasi
-                          </label>
-                          <Select
-                            value={tempKlasifikasi}
-                            onChange={(e) => setTempKlasifikasi(e.target.value)}
-                            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="Semua jenis">Semua jenis</option>
-                            <option value="Sarpras Umum">Sarpras Umum</option>
-                            <option value="Mebel & Furniture">Mebel & Furniture</option>
-                            <option value="Elektronik & Multimedia">Elektronik & Multimedia</option>
-                            <option value="Peralatan Rumah Tangga">Peralatan Rumah Tangga</option>
-                            <option value="Elektronik & Pendingin">Elektronik & Pendingin</option>
-                            <option value="Perlengkapan Bangunan">Perlengkapan Bangunan</option>
-                          </Select>
-                        </div>
-
                         {/* Perpindahan Unit Terkini */}
                         <div className="pt-1">
                           <Checkbox
@@ -398,7 +350,7 @@ export default function InventarisSarprasListPage() {
                             label="Perpindahan Unit Terkini"
                           />
                           <div className="text-[11px] text-slate-400 pl-6">
-                            Hanya aset yang berpindah unit dalam 3 bulan terakhir
+                            Hanya aset yang memiliki catatan mutasi
                           </div>
                         </div>
 
@@ -441,6 +393,7 @@ export default function InventarisSarprasListPage() {
                   <Button
                     type="button"
                     variant="default"
+                    onClick={() => navigate("/inventory/sarpras/create")}
                     className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
                   >
                     <Plus className="h-4 w-4" /> Tambah Aset
@@ -496,7 +449,24 @@ export default function InventarisSarprasListPage() {
             </div>
           )}
 
-          {filteredData.length > 0 ? (
+          {isLoading ? (
+            <div className="py-16 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-3" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Memuat data inventaris sarpras...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-full text-red-600 dark:text-red-400">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{error}</p>
+              <Button variant="outline" className="py-1 px-3 text-xs" onClick={fetchData}>
+                Coba Lagi
+              </Button>
+            </div>
+          ) : filteredData.length > 0 ? (
             <BaseTable
               columns={columns}
               data={filteredData}
@@ -534,7 +504,11 @@ export default function InventarisSarprasListPage() {
             <div className="py-8">
               <EmptyState
                 title="Data Aset Tidak Ditemukan"
-                description={`Pencarian untuk "${searchTerm}" tidak membuahkan hasil.`}
+                description={
+                  searchTerm
+                    ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil.`
+                    : "Belum ada aset sarpras yang terdaftar."
+                }
                 icon={<FolderSearch className="h-12 w-12 text-slate-400" />}
               />
             </div>
@@ -542,7 +516,7 @@ export default function InventarisSarprasListPage() {
         </div>
       </div>
 
-      {/* Pilih uk Label */}
+      {/* Pilih ukuran Label Modal */}
       {isDownloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -599,45 +573,25 @@ export default function InventarisSarprasListPage() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   Pratinjau Label
                 </label>
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm text-slate-800">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs font-bold tracking-tight">3/1/1/6/2021</div>
-                      <div className="text-[9px] text-slate-400 font-semibold tracking-wider">
-                        INVENTARIS ASET SARPRAS
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {previewAsset?.nomor || "3/1/1/1/2020"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">SARPRAS</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-slate-400">Nama Barang</div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                        {previewAsset?.nama || "Kursi Aula"}
                       </div>
-                      <div className="h-px bg-slate-200 my-2"></div>
-
-                      <div className="space-y-1.5 text-[11px]">
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            NAMA BARANG
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">
-                            Pendingin Ruangan AC Split 1 PK
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            LOKASI RUANGAN
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">
-                            Ruang Rawat Inap Melati 3
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            STATUS
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">Aktif</div>
-                        </div>
+                      <div className="text-[10px] text-slate-400">Lokasi</div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                        {previewAsset?.lokasi || "Poli Penyakit Dalam"}
                       </div>
                     </div>
-
-                    {/* QR Code */}
-                    <div className="shrink-0 pt-1">
-                      <QrCode className="h-20 w-20 text-slate-900" />
-                    </div>
+                    <QrCode className="h-14 w-14 text-slate-700 dark:text-slate-300 shrink-0" />
                   </div>
                 </div>
               </div>
@@ -702,14 +656,11 @@ export default function InventarisSarprasListPage() {
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="Semua lokasi">Semua lokasi</option>
-              <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
-              <option value="Farmasi Rawat Jalan">Farmasi Rawat Jalan</option>
-              <option value="Server & Jaringan Lantai 3">Server & Jaringan Lantai 3</option>
-              <option value="Unit Gawat Darurat (UGD)">Unit Gawat Darurat (UGD)</option>
-              <option value="Akreditasi & Penjaminan Mutu">Akreditasi & Penjaminan Mutu</option>
-              <option value="Pendaftaran Rawat Inap (TPPRI)">Pendaftaran Rawat Inap (TPPRI)</option>
-              <option value="Radiologi">Radiologi</option>
-              <option value="Ruang Isolasi Teratai Lt. 2">Ruang Isolasi Teratai Lt. 2</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.name}>
+                  {loc.name}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -730,25 +681,6 @@ export default function InventarisSarprasListPage() {
             </Select>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Jenis Klasifikasi
-            </label>
-            <Select
-              value={tempKlasifikasi}
-              onChange={(e) => setTempKlasifikasi(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Semua jenis">Semua jenis</option>
-              <option value="Sarpras Umum">Sarpras Umum</option>
-              <option value="Mebel & Furniture">Mebel & Furniture</option>
-              <option value="Elektronik & Multimedia">Elektronik & Multimedia</option>
-              <option value="Peralatan Rumah Tangga">Peralatan Rumah Tangga</option>
-              <option value="Elektronik & Pendingin">Elektronik & Pendingin</option>
-              <option value="Perlengkapan Bangunan">Perlengkapan Bangunan</option>
-            </Select>
-          </div>
-
           <div className="pt-1">
             <Checkbox
               id="mobile-sarpras-perpindahan"
@@ -757,7 +689,7 @@ export default function InventarisSarprasListPage() {
               label="Perpindahan Unit Terkini"
             />
             <div className="text-[11px] text-slate-400 pl-6 mt-0.5">
-              Hanya aset yang berpindah unit dalam 3 bulan terakhir
+              Hanya aset yang memiliki catatan mutasi
             </div>
           </div>
         </div>

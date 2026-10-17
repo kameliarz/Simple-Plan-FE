@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Download, X, FolderSearch, QrCode } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Filter,
+  Download,
+  X,
+  FolderSearch,
+  QrCode,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
 import { getUser } from "@/features/auth-login/services/authStorage";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
@@ -11,11 +21,10 @@ import Checkbox from "@/components/ui/Checkbox";
 import RadioButton from "@/components/ui/RadioButton";
 import EmptyState from "@/components/ui/EmptyState";
 import BottomSheet from "@/components/ui/BottomSheet";
+import { getAssets, getAssetLocations, getAssetClassifications } from "../services/inventarisApi";
+import type { ApiAsset, AssetLocation, InventarisStatus } from "../types/inventaris";
 
-// Mock Data
-type InventarisStatus = "Digunakan" | "Tidak Digunakan" | "Dipinjam" | "Rusak" | "Aktif";
-
-interface InventarisTIK {
+export interface InventarisTikRow {
   id: string;
   nomor: string;
   nama: string;
@@ -23,92 +32,8 @@ interface InventarisTIK {
   status: InventarisStatus;
   klasifikasi?: string;
   perpindahanTerkini?: boolean;
+  raw: ApiAsset;
 }
-
-const mockData: InventarisTIK[] = [
-  {
-    id: "1",
-    nomor: "INV-TIK-2023-001",
-    nama: "PC All-in-One Core i5 Poli Dalam",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-  },
-  {
-    id: "2",
-    nomor: "INV-TIK-2023-002",
-    nama: "Printer Thermal Kasir Farmasi 2",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Bergerak)",
-  },
-  {
-    id: "3",
-    nomor: "INV-TIK-2023-003",
-    nama: "Switch Cisco Catalyst 24 Port Lt.3",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-  },
-  {
-    id: "4",
-    nomor: "INV-TIK-2023-004",
-    nama: "Monitor Pasien Mindray Bed 4 UGD",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-  },
-  {
-    id: "5",
-    nomor: "INV-TIK-2023-005",
-    nama: "Laptop Lenovo ThinkPad L14 SIMRS",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Bergerak)",
-    perpindahanTerkini: true,
-  },
-  {
-    id: "6",
-    nomor: "INV-TIK-2023-006",
-    nama: "Barcode Scanner Datalogic QuickScan",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Bergerak)",
-  },
-  {
-    id: "7",
-    nomor: "INV-TIK-2023-007",
-    nama: "Workstation PACS Display Eizo Radiologi",
-    lokasi: "Unit Gawat Darurat (UGD)",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-  },
-  {
-    id: "8",
-    nomor: "INV-TIK-2023-008",
-    nama: "Access Point Aruba AP-505 Gedung B",
-    lokasi: "Ruang Isolasi Teratai Lt. 2",
-    status: "Tidak Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-  },
-  {
-    id: "9",
-    nomor: "INV-TIK-2023-009",
-    nama: "Laptop Lenovo ThinkPad L14 SIMRS",
-    lokasi: "Radiologi",
-    status: "Rusak",
-    klasifikasi: "Alat IT (Bergerak)",
-  },
-  {
-    id: "10",
-    nomor: "INV-TIK-2023-010",
-    nama: "Access Point Aruba AP-505 Gedung B",
-    lokasi: "Ruang Isolasi Teratai Lt. 2",
-    status: "Digunakan",
-    klasifikasi: "Alat IT (Tetap)",
-    perpindahanTerkini: true,
-  },
-];
 
 const getBadgeVariant = (status: InventarisStatus): BadgeVariant => {
   switch (status) {
@@ -130,12 +55,17 @@ export default function InventarisTikListPage() {
   const user = getUser();
   const role = user?.role || "";
 
-  // Sembunyikan aksi jika bukan role yang diizinkan (misal Management hanya view-only)
+  // Hak akses create aset (hanya super-admin dan petugas-tik)
   const canCreate = role === "super-admin" || role === "petugas-tik";
+
+  const [assets, setAssets] = useState<ApiAsset[]>([]);
+  const [locations, setLocations] = useState<AssetLocation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Mode Unduh
+  // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -151,10 +81,49 @@ export default function InventarisTikListPage() {
   const [filterKlasifikasi, setFilterKlasifikasi] = useState("Semua jenis");
   const [filterPerpindahan, setFilterPerpindahan] = useState(false);
 
+  // Temporary filter states for the popover/sheet
   const [tempLokasi, setTempLokasi] = useState("Semua lokasi");
   const [tempStatus, setTempStatus] = useState("Semua status");
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
+
+  // Fetch data
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Ambil klasifikasi untuk TIK / Alat IT
+      const classifications = await getAssetClassifications().catch(() => []);
+      const tikClass = classifications.find(
+        (c) =>
+          c.name.toLowerCase().includes("it") ||
+          c.name.toLowerCase().includes("tik") ||
+          c.code === 5,
+      );
+      const targetClassId = tikClass ? tikClass.id : 2;
+
+      // 2. Ambil lokasi
+      const locs = await getAssetLocations().catch(() => []);
+      setLocations(locs);
+
+      // 3. Ambil data aset TIK
+      const assetRes = await getAssets({
+        asset_classification_id: targetClassId,
+        per_page: 100,
+      });
+
+      setAssets(assetRes.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memuat data inventaris TIK");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   // Close filter when clicking outside
   useEffect(() => {
@@ -209,16 +178,16 @@ export default function InventarisTikListPage() {
 
   const columns = [
     {
-      key: "nomor" as keyof InventarisTIK,
+      key: "nomor" as keyof InventarisTikRow,
       label: "NOMOR INVENTARIS",
       render: (value: unknown) => (
         <span className="font-semibold text-blue-700 hover:underline">{String(value ?? "")}</span>
       ),
     },
-    { key: "nama" as keyof InventarisTIK, label: "NAMA BARANG" },
-    { key: "lokasi" as keyof InventarisTIK, label: "LOKASI RUANGAN" },
+    { key: "nama" as keyof InventarisTikRow, label: "NAMA BARANG" },
+    { key: "lokasi" as keyof InventarisTikRow, label: "LOKASI RUANGAN" },
     {
-      key: "status" as keyof InventarisTIK,
+      key: "status" as keyof InventarisTikRow,
       label: "STATUS",
       render: (value: unknown) => (
         <Badge variant={getBadgeVariant(value as InventarisStatus)} size="sm">
@@ -228,7 +197,19 @@ export default function InventarisTikListPage() {
     },
   ];
 
-  const filteredData = mockData.filter((item) => {
+  // Map API assets to table rows
+  const tableData: InventarisTikRow[] = assets.map((item) => ({
+    id: String(item.id),
+    nomor: item.asset_code?.full_code || item.asset_uid,
+    nama: item.asset_code?.item?.name || item.brand || item.model_specification || "Barang TIK",
+    lokasi: item.asset_code?.location?.name || "-",
+    status: item.status,
+    klasifikasi: item.asset_code?.classification?.name || "Alat IT",
+    perpindahanTerkini: Boolean(item.histories && item.histories.length > 0),
+    raw: item,
+  }));
+
+  const filteredData = tableData.filter((item) => {
     const matchesSearch =
       item.nomor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -247,6 +228,11 @@ export default function InventarisTikListPage() {
       matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
     );
   });
+
+  const previewAsset =
+    selectedIds.length > 0
+      ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
+      : tableData[0];
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900">
@@ -328,24 +314,11 @@ export default function InventarisTikListPage() {
                             className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="Semua lokasi">Semua lokasi</option>
-                            <option value="Unit Gawat Darurat (UGD)">
-                              Unit Gawat Darurat (UGD)
-                            </option>
-                            <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
-                            <option value="Farmasi Rawat Jalan">Farmasi Rawat Jalan</option>
-                            <option value="Server & Jaringan Lantai 3">
-                              Server & Jaringan Lantai 3
-                            </option>
-                            <option value="Akreditasi & Penjaminan Mutu">
-                              Akreditasi & Penjaminan Mutu
-                            </option>
-                            <option value="Pendaftaran Rawat Inap (TPPRI)">
-                              Pendaftaran Rawat Inap (TPPRI)
-                            </option>
-                            <option value="Radiologi">Radiologi</option>
-                            <option value="Ruang Isolasi Teratai Lt. 2">
-                              Ruang Isolasi Teratai Lt. 2
-                            </option>
+                            {locations.map((loc) => (
+                              <option key={loc.id} value={loc.name}>
+                                {loc.name}
+                              </option>
+                            ))}
                           </Select>
                         </div>
 
@@ -367,22 +340,6 @@ export default function InventarisTikListPage() {
                           </Select>
                         </div>
 
-                        {/* Jenis Klasifikasi */}
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Jenis Klasifikasi
-                          </label>
-                          <Select
-                            value={tempKlasifikasi}
-                            onChange={(e) => setTempKlasifikasi(e.target.value)}
-                            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="Semua jenis">Semua jenis</option>
-                            <option value="Alat IT (Tetap)">Alat IT (Tetap)</option>
-                            <option value="Alat IT (Bergerak)">Alat IT (Bergerak)</option>
-                          </Select>
-                        </div>
-
                         {/* Perpindahan Unit Terkini */}
                         <div className="pt-1">
                           <Checkbox
@@ -392,7 +349,7 @@ export default function InventarisTikListPage() {
                             label="Perpindahan Unit Terkini"
                           />
                           <div className="text-[11px] text-slate-400 pl-6">
-                            Hanya aset yang berpindah unit dalam 3 bulan terakhir
+                            Hanya aset yang memiliki catatan mutasi
                           </div>
                         </div>
 
@@ -424,10 +381,7 @@ export default function InventarisTikListPage() {
                 <Button
                   type="button"
                   variant="default"
-                  onClick={() => {
-                    setIsSelectMode(true);
-                    setSelectedIds(["2", "4", "5"]);
-                  }}
+                  onClick={() => setIsSelectMode(true)}
                   className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
                 >
                   <Download className="h-4 w-4" /> Unduh Label Massal
@@ -438,6 +392,7 @@ export default function InventarisTikListPage() {
                   <Button
                     type="button"
                     variant="default"
+                    onClick={() => navigate("/inventory/tik/create")}
                     className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
                   >
                     <Plus className="h-4 w-4" /> Tambah Aset
@@ -448,13 +403,13 @@ export default function InventarisTikListPage() {
           </div>
         </div>
 
-        {/* Content Table / Empty State */}
+        {/* Tabel Konten */}
         <div className="p-6 flex flex-col">
           {isSelectMode && (
             <div className="flex items-center justify-between p-3.5 mb-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg text-sm text-slate-700 dark:text-slate-200">
               <div className="flex items-center gap-3">
                 <Checkbox
-                  id="select-all-header-tik"
+                  id="select-all-header"
                   checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
                   onChange={(e) => {
                     if (e.target.checked) {
@@ -493,7 +448,24 @@ export default function InventarisTikListPage() {
             </div>
           )}
 
-          {filteredData.length > 0 ? (
+          {isLoading ? (
+            <div className="py-16 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-3" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Memuat data inventaris TIK...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-full text-red-600 dark:text-red-400">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{error}</p>
+              <Button variant="outline" className="py-1 px-3 text-xs" onClick={fetchData}>
+                Coba Lagi
+              </Button>
+            </div>
+          ) : filteredData.length > 0 ? (
             <BaseTable
               columns={columns}
               data={filteredData}
@@ -531,7 +503,11 @@ export default function InventarisTikListPage() {
             <div className="py-8">
               <EmptyState
                 title="Data Aset Tidak Ditemukan"
-                description={`Pencarian untuk "${searchTerm}" tidak membuahkan hasil.`}
+                description={
+                  searchTerm
+                    ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil.`
+                    : "Belum ada aset TIK yang terdaftar."
+                }
                 icon={<FolderSearch className="h-12 w-12 text-slate-400" />}
               />
             </div>
@@ -539,6 +515,7 @@ export default function InventarisTikListPage() {
         </div>
       </div>
 
+      {/* Pilih ukuran Label Modal */}
       {isDownloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -595,45 +572,25 @@ export default function InventarisTikListPage() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   Pratinjau Label
                 </label>
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm text-slate-800">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1">
-                      <div className="text-xs font-bold tracking-tight">3/1/1/6/2021</div>
-                      <div className="text-[9px] text-slate-400 font-semibold tracking-wider">
-                        INVENTARIS ASET TIK
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {previewAsset?.nomor || "5/2/1/31/2024"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">TIK</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-slate-400">Nama Barang</div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                        {previewAsset?.nama || "PC All-in-One"}
                       </div>
-                      <div className="h-px bg-slate-200 my-2"></div>
-
-                      <div className="space-y-1.5 text-[11px]">
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            NAMA BARANG
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">
-                            Monitor Pasien Multi-Para Bionet BM3
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            LOKASI RUANGAN
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">
-                            Ruang Rawat Inap Melati 3
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[8px] text-slate-400 uppercase font-semibold">
-                            STATUS
-                          </div>
-                          <div className="font-semibold text-slate-800 leading-tight">Aktif</div>
-                        </div>
+                      <div className="text-[10px] text-slate-400">Lokasi</div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                        {previewAsset?.lokasi || "Ruang IT"}
                       </div>
                     </div>
-
-                    {/* QR Code */}
-                    <div className="shrink-0 pt-1">
-                      <QrCode className="h-20 w-20 text-slate-900" />
-                    </div>
+                    <QrCode className="h-14 w-14 text-slate-700 dark:text-slate-300 shrink-0" />
                   </div>
                 </div>
               </div>
@@ -698,14 +655,11 @@ export default function InventarisTikListPage() {
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="Semua lokasi">Semua lokasi</option>
-              <option value="Unit Gawat Darurat (UGD)">Unit Gawat Darurat (UGD)</option>
-              <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
-              <option value="Farmasi Rawat Jalan">Farmasi Rawat Jalan</option>
-              <option value="Server & Jaringan Lantai 3">Server & Jaringan Lantai 3</option>
-              <option value="Akreditasi & Penjaminan Mutu">Akreditasi & Penjaminan Mutu</option>
-              <option value="Pendaftaran Rawat Inap (TPPRI)">Pendaftaran Rawat Inap (TPPRI)</option>
-              <option value="Radiologi">Radiologi</option>
-              <option value="Ruang Isolasi Teratai Lt. 2">Ruang Isolasi Teratai Lt. 2</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.name}>
+                  {loc.name}
+                </option>
+              ))}
             </Select>
           </div>
 
@@ -726,21 +680,6 @@ export default function InventarisTikListPage() {
             </Select>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Jenis Klasifikasi
-            </label>
-            <Select
-              value={tempKlasifikasi}
-              onChange={(e) => setTempKlasifikasi(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Semua jenis">Semua jenis</option>
-              <option value="Alat IT (Tetap)">Alat IT (Tetap)</option>
-              <option value="Alat IT (Bergerak)">Alat IT (Bergerak)</option>
-            </Select>
-          </div>
-
           <div className="pt-1">
             <Checkbox
               id="mobile-tik-perpindahan"
@@ -749,7 +688,7 @@ export default function InventarisTikListPage() {
               label="Perpindahan Unit Terkini"
             />
             <div className="text-[11px] text-slate-400 pl-6 mt-0.5">
-              Hanya aset yang berpindah unit dalam 3 bulan terakhir
+              Hanya aset yang memiliki catatan mutasi
             </div>
           </div>
         </div>
