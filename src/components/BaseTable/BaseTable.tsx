@@ -11,9 +11,25 @@ interface BaseTableProps<T> {
   columns: Column<T>[];
   data: T[];
   itemsPerPage?: number;
+  onRowClick?: (row: T) => void;
+  selectable?: boolean;
+  selectedIds?: string[];
+  getId?: (row: T) => string;
+  onSelectRow?: (id: string, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
 }
 
-function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
+function BaseTable<T>({
+  columns,
+  data,
+  itemsPerPage = 4,
+  onRowClick,
+  selectable = false,
+  selectedIds = [],
+  getId,
+  onSelectRow,
+  onSelectAll,
+}: BaseTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +107,24 @@ function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
         <table className="w-full min-w-175">
           <thead>
             <tr className="border-b border-gray-200 bg-background">
+              {selectable && (
+                <th className="w-12 px-5 py-3.5 text-left">
+                  <input
+                    type="checkbox"
+                    checked={
+                      paginatedData.length > 0 &&
+                      paginatedData.every((row) => {
+                        const id = getId
+                          ? getId(row)
+                          : String((row as { id?: string | number }).id ?? "");
+                        return selectedIds.includes(id);
+                      })
+                    }
+                    onChange={(e) => onSelectAll?.(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
@@ -116,25 +150,52 @@ function BaseTable<T>({ columns, data, itemsPerPage = 4 }: BaseTableProps<T>) {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
             {paginatedData.length > 0 ? (
-              paginatedData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="transition hover:bg-background">
-                  {columns.map((column) => {
-                    const value = row[column.key];
+              paginatedData.map((row, rowIndex) => {
+                const rowId = getId
+                  ? getId(row)
+                  : String((row as { id?: string | number }).id ?? rowIndex);
+                const isSelected = selectedIds.includes(rowId);
 
-                    return (
-                      <td key={String(column.key)} className="px-5 py-3 text-sm text-text">
-                        {column.render ? column.render(value, row) : String(value ?? "-")}
+                return (
+                  <tr
+                    key={rowIndex}
+                    onClick={() => onRowClick?.(row)}
+                    className={`transition ${
+                      isSelected
+                        ? "bg-blue-50/70 dark:bg-blue-900/20"
+                        : onRowClick
+                          ? "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                          : "hover:bg-background"
+                    } ${onRowClick ? "cursor-pointer" : ""}`}
+                  >
+                    {selectable && (
+                      <td className="w-12 px-5 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => onSelectRow?.(rowId, e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
                       </td>
-                    );
-                  })}
-                </tr>
-              ))
+                    )}
+                    {columns.map((column) => {
+                      const value = row[column.key];
+
+                      return (
+                        <td key={String(column.key)} className="px-5 py-3 text-sm text-text">
+                          {column.render ? column.render(value, row) : String(value ?? "-")}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={columns.length + (selectable ? 1 : 0)}
                   className="px-5 py-8 text-center text-sm text-text-secondary"
                 >
                   No entries found.

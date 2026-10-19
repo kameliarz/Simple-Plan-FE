@@ -129,7 +129,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
 
   const handleSubmit = async () => {
     if (!validate()) {
-      setApiError("Format data tidak sesuai. Silahkan periksa kembali data yang dimasukkan");
+      setApiError("Format data tidak sesuai. Silahkan periksa field yang ditandai merah");
       return;
     }
     setApiError(null);
@@ -219,8 +219,11 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               value={formData.nip || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const val = e.target.value.replace(/\D/g, "");
-                setFormData({ ...formData, nip: val });
-                if (errors.nip) setErrors((prev) => ({ ...prev, nip: "" }));
+                {
+                  setFormData({ ...formData, nip: val });
+                  if (errors.nip) setErrors((prev) => ({ ...prev, nip: "" }));
+                  if (errors.nip) setErrors((prev) => ({ ...prev, nip: "" }));
+                }
               }}
               error={errors.nip}
               required
@@ -311,11 +314,9 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: Prop
               label="Nomor HP"
               placeholder="Contoh: 081234567890"
               value={formData.no_hp || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const val = e.target.value.replace(/\D/g, "");
-                setFormData({ ...formData, no_hp: val });
-                if (errors.no_hp) setErrors((prev) => ({ ...prev, no_hp: "" }));
-              }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setFormData({ ...formData, no_hp: e.target.value })
+              }
               error={errors.no_hp}
               required
             />

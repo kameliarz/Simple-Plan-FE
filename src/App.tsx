@@ -14,8 +14,10 @@ import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskC
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
 
-import CreateInventoryPage from "@/features/inventory-create-change/pages/CreateInventoryPage";
-import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
+import InventarisTikListPage from "@/features/inventaris/pages/InventarisTikListPage";
+import InventarisTikDetailPage from "@/features/inventaris/pages/InventarisTikDetailPage";
+import InventarisSarprasListPage from "@/features/inventaris/pages/InventarisSarprasListPage";
+import InventarisSarprasDetailPage from "@/features/inventaris/pages/InventarisSarprasDetailPage";
 
 import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
 
@@ -99,23 +101,11 @@ function App() {
           <Route path="/master-data/users" element={<UserListPage />} />
           <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
 
-          {/* Inventory */}
-          <Route
-            path="/inventory/tik/create"
-            element={<CreateInventoryPage inventoryType="tik" />}
-          />
-          <Route
-            path="/inventory/sarpras/create"
-            element={<CreateInventoryPage inventoryType="sarpras" />}
-          />
-          <Route
-            path="/inventory/tik/:id/edit"
-            element={<EditInventoryPage inventoryType="tik" />}
-          />
-          <Route
-            path="/inventory/sarpras/:id/edit"
-            element={<EditInventoryPage inventoryType="sarpras" />}
-          />
+          {/* Inventaris Aset */}
+          <Route path="/inventaris/tik" element={<InventarisTikListPage />} />
+          <Route path="/inventaris/tik/:id" element={<InventarisTikDetailPage />} />
+          <Route path="/inventaris/sarpras" element={<InventarisSarprasListPage />} />
+          <Route path="/inventaris/sarpras/:id" element={<InventarisSarprasDetailPage />} />
 
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
 
