@@ -8,6 +8,8 @@ import { getUser } from "@/features/auth-login/services/authStorage";
 import MobileHeader from "@/components/layout/MobileHeader";
 import NavbarHeader from "@/components/layout/NavbarHeader";
 import Sidebar from "@/components/Sidebar/Sidebar";
+import NotificationDrawer from "@/features/notification/components/NotificationDrawer";
+import { dummyNotifications } from "@/features/notification/data/dummyNotifications";
 import { useNavigate } from "react-router-dom";
 
 interface BreadcrumbItem {
@@ -32,6 +34,11 @@ export default function MainLayout({
 
   // Menyimpan tab aktif pada navigasi mobile
   const [activeTab, setActiveTab] = useState<MobileNavTab>("helpdesk");
+
+  // State untuk drawer notifikasi desktop
+  const [showNotification, setShowNotification] = useState(false);
+  const unreadCount =
+    notificationCount > 0 ? notificationCount : dummyNotifications.filter((n) => !n.isRead).length;
 
   // Membaca URL halaman saat ini
   const location = useLocation();
@@ -101,6 +108,33 @@ export default function MainLayout({
       return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
 
+    if (path.startsWith("/inventaris")) {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "management") label = "Manajemen";
+
+      const base = [{ label }, { label: "Inventaris Aset" }];
+      if (path === "/inventaris/tik") return [...base, { label: "Inventaris TIK" }];
+      if (path.startsWith("/inventaris/tik/"))
+        return [
+          ...base,
+          { label: "Inventaris TIK", href: "/inventaris/tik" },
+          { label: "Detail Aset" },
+        ];
+      if (path === "/inventaris/sarpras") return [...base, { label: "Inventaris Sarpras" }];
+      if (path.startsWith("/inventaris/sarpras/"))
+        return [
+          ...base,
+          { label: "Inventaris Sarpras", href: "/inventaris/sarpras" },
+          { label: "Detail Aset" },
+        ];
+      return base;
+    }
+
     if (path === "/maintenance") {
       return [{ label: "Maintenance" }];
     }
@@ -135,7 +169,11 @@ export default function MainLayout({
 
           {/* Header Desktop */}
           <div className="hidden lg:block shrink-0">
-            <NavbarHeader breadcrumbs={currentBreadcrumbs} notificationCount={notificationCount} />
+            <NavbarHeader
+              breadcrumbs={currentBreadcrumbs}
+              notificationCount={unreadCount}
+              onNotificationClick={() => setShowNotification(true)}
+            />
           </div>
 
           {/* Content (HANYA SATU KALI DI-MOUNT) */}
@@ -149,6 +187,9 @@ export default function MainLayout({
           </div>
         </div>
       </div>
+
+      {/* Drawer Notifikasi Desktop */}
+      <NotificationDrawer show={showNotification} onClose={() => setShowNotification(false)} />
     </div>
   );
 }

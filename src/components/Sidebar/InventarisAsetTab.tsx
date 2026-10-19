@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Package, ChevronDown, Wrench, Monitor } from "lucide-react";
+import { Package, ChevronDown, Wrench, Plus } from "lucide-react";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 export default function InventarisAsetTab() {
@@ -28,10 +28,10 @@ export default function InventarisAsetTab() {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center justify-between pl-12 pr-4 py-2 text-sm transition-colors ${
+        `flex items-center justify-between mx-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
           isActive
-            ? "text-blue-700 dark:text-blue-400 font-medium"
-            : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
+            ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-semibold"
+            : "text-gray-600 dark:text-slate-400 hover:bg-gray-100/70 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-slate-200"
         }`
       }
     >
@@ -56,7 +56,7 @@ export default function InventarisAsetTab() {
           e.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2 w-full ${
+        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-[3px] w-full ${
           isActive
             ? "border-blue-700 text-blue-700 dark:text-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10"
             : "border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50"
@@ -70,9 +70,9 @@ export default function InventarisAsetTab() {
       </button>
 
       {isOpen && (
-        <div className="flex flex-col bg-gray-50/50 dark:bg-slate-800/30 py-1">
-          {canAccessTik && renderNavLink("/inventaris/tik", "Inventaris TIK", Monitor)}
-          {canAccessSarpras && renderNavLink("/inventaris/sarpras", "Inventaris Sarpras", Wrench)}
+        <div className="flex flex-col space-y-1 py-1.5 bg-gray-50/40 dark:bg-slate-800/20 pl-2 pr-1">
+          {canAccessTik && renderNavLink("/inventaris/tik", "Inventaris TIK", Wrench)}
+          {canAccessSarpras && renderNavLink("/inventaris/sarpras", "Inventaris Sarpras", Plus)}
         </div>
       )}
     </div>

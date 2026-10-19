@@ -1,4 +1,4 @@
-import { Menu, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth-login/context/AuthContext";
 
@@ -11,7 +11,6 @@ import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
-import NotifikasiTab from "./NotifikasiTab";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 interface SidebarProps {
@@ -47,14 +46,22 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 dark:border-slate-800 bg-sidebar transition-colors">
-      <div className="flex h-18 items-center gap-3 px-4 border-b border-gray-200 dark:border-slate-800">
-        <button className="text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200">
-          <Menu className="h-5 w-5" />
-        </button>
+      <div className="flex h-18 items-center gap-3 px-5 border-b border-gray-200 dark:border-slate-800">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+          <img
+            src="/logo.png"
+            alt="Simple-Plan Logo"
+            className="h-8 w-8 object-contain drop-shadow-sm"
+          />
+        </div>
 
-        <div>
-          <h1 className="text-sm font-bold text-blue-950 dark:text-blue-300">Simple-Plan</h1>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400">Rumah Sakit Citra Husada</p>
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-blue-950 dark:text-blue-300 leading-tight">
+            Simple-Plan
+          </h1>
+          <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium truncate">
+            Rumah Sakit Citra Husada
+          </p>
         </div>
       </div>
 
@@ -66,7 +73,6 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         <MaintenanceTab />
         <CadanganDataTab />
         <LaporanTab />
-        <NotifikasiTab />
         <LogoutTab onLogout={handleLogout} />
       </nav>
 
