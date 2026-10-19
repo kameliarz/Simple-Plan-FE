@@ -21,6 +21,9 @@ export interface DropdownProps {
   sheetTitle?: string;
   displayValue?: string;
   onSearchChange?: (value: string) => void;
+  emptyMessage?: string;
+  emptyActionLabel?: string;
+  onEmptyActionClick?: (search: string) => void;
 }
 
 export default function Dropdown({
@@ -37,6 +40,9 @@ export default function Dropdown({
   sheetTitle = "Pilih pilihan",
   displayValue,
   onSearchChange,
+  emptyMessage,
+  emptyActionLabel,
+  onEmptyActionClick,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -178,9 +184,26 @@ export default function Dropdown({
             ))}
 
             {filteredOptions.length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-slate-500">
-                Pilihan tidak ditemukan.
-              </p>
+              <div className="px-3 py-4 text-center text-sm text-slate-500">
+                {onEmptyActionClick && search.trim() ? (
+                  <p>
+                    {emptyMessage ?? "Pilihan tidak ditemukan."}{" "}
+                    <button
+                      type="button"
+                      className="font-semibold text-blue-700 underline hover:text-blue-900"
+                      onClick={() => {
+                        const searchValue = search.trim();
+                        handleClose();
+                        onEmptyActionClick(searchValue);
+                      }}
+                    >
+                      {emptyActionLabel ?? "Tambah data baru"}
+                    </button>
+                  </p>
+                ) : (
+                  <p>Pilihan tidak ditemukan.</p>
+                )}
+              </div>
             )}
           </div>
         </div>

@@ -1,4 +1,6 @@
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import MainLayout from "@/layouts/MainLayout";
@@ -21,6 +23,50 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+function ResponsiveNotificationRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      const previousPath = location.state?.from;
+
+      const destination =
+        typeof previousPath === "string" &&
+        previousPath.startsWith("/") &&
+        !previousPath.startsWith("//") &&
+        !previousPath.startsWith("/\\") &&
+        previousPath.split(/[?#]/)[0] !== "/notification"
+          ? previousPath
+          : "/helpdesk/tik";
+
+      navigate(destination, { replace: true });
+    }
+  }, [isMobile, navigate, location.state]);
+
+  if (!isMobile) {
+    return null;
+  }
+
+  return <NotificationMobilePage />;
 }
 
 function App() {
@@ -71,7 +117,7 @@ function App() {
             element={<EditInventoryPage inventoryType="sarpras" />}
           />
 
-          <Route path="/notification" element={<NotificationMobilePage />} />
+          <Route path="/notification" element={<ResponsiveNotificationRoute />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />

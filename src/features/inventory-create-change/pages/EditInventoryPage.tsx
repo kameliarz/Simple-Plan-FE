@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import InventoryForm from "../components/InventoryForm";
-import { dummyInventories } from "../data/dummyInventory";
+import { inventoryService, mapAssetToForm, type AssetDetail } from "../services/inventoryService";
 
 import type { FormState, InventoryType } from "../types/inventory.types";
 
@@ -17,17 +18,68 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
 
   const isTik = inventoryType === "tik";
 
-  // Cari data inventaris sesuai ID dan jenis inventaris
-  const inventory = dummyInventories.find(
-    (item) => item.id === id && item.inventoryType === inventoryType,
-  );
+  const [inventory, setInventory] = useState<AssetDetail | null>(null);
+  const [formValues, setFormValues] = useState<FormState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchInventory = async () => {
+      if (!id) {
+        setError("ID inventaris tidak ditemukan.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        setInventory(null);
+        setFormValues(null);
+
+        const asset = await inventoryService.getAssetById(id);
+        const mappedForm = mapAssetToForm(asset);
+
+        if (active) {
+          setInventory(asset);
+          setFormValues(mappedForm);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil detail inventory:", error);
+
+        if (active) {
+          setError("Gagal memuat data inventaris.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchInventory();
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   // Jika inventaris tidak ditemukan
-  if (!inventory) {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FC] dark:bg-slate-950">
+        <p className="text-sm text-text-secondary">Memuat data inventaris...</p>
+      </div>
+    );
+  }
+
+  if (error || !inventory || !formValues) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F7F8FC] dark:bg-slate-950">
         <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-          Data inventaris tidak ditemukan
+          {error ?? "Data inventaris tidak ditemukan."}
         </h2>
 
         <button
@@ -41,18 +93,13 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
     );
   }
 
-  // Simulasi update inventaris
   const handleUpdate = (data: FormState) => {
     console.log("Update inventory:", {
       id: inventory.id,
-      inventoryNumber: inventory.inventoryNumber,
-      inventoryType,
       ...data,
     });
 
-    window.alert(`Simulasi: Data inventaris ${isTik ? "TIK" : "Sarpras"} berhasil diperbarui!`);
-
-    // TODO: Integrasi API update inventory
+    window.alert("Simulasi: Perubahan data inventaris belum dikirim ke backend.");
   };
 
   return (
@@ -73,9 +120,9 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
         key={inventory.id}
         mode="edit"
         inventoryType={inventoryType}
-        initialValues={inventory}
-        inventoryId={inventory.id}
-        inventoryNumber={inventory.inventoryNumber}
+        initialValues={formValues}
+        inventoryId={String(inventory.id)}
+        inventoryNumber={inventory.asset_code.full_code}
         onSubmit={handleUpdate}
       />
     </div>

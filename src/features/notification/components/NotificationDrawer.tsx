@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Modal from "@/components/ui/ui-template/Modal";
-
 import NotificationItem from "./NotificationItem";
 
-import { dummyNotifications } from "../data/dummyNotifications";
+import { notificationService, mapNotification } from "../services/notificationService";
+
+import { notifyNotificationUpdated } from "../utils/notificationEvents";
 
 import type { Notification } from "../types/notification.types";
 
@@ -18,24 +19,97 @@ interface NotificationDrawerProps {
 export default function NotificationDrawer({ show, onClose }: NotificationDrawerProps) {
   const [activeTab, setActiveTab] = useState<NotificationTab>("all");
 
-  const [notifications, setNotifications] = useState<Notification[]>(dummyNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Hitung jumlah belum dibaca
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  const readingIds = useRef(new Set<string>());
+  const notificationsRef = useRef<Notification[]>([]);
+  const unreadCountRef = useRef(0);
 
-  // Filter berdasarkan tab
+  useEffect(() => {
+    if (!show) return;
+
+    let active = true;
+
+    const fetchNotifications = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await notificationService.getNotifications();
+
+        if (!active) return;
+
+        const mappedNotifications = response.data.map(mapNotification);
+
+        notificationsRef.current = mappedNotifications;
+        unreadCountRef.current = response.unread_count;
+
+        setNotifications(mappedNotifications);
+        setUnreadCount(response.unread_count);
+      } catch (error) {
+        console.error("Gagal mengambil notifikasi:", error);
+
+        if (active) {
+          setError("Gagal memuat notifikasi.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void fetchNotifications();
+
+    return () => {
+      active = false;
+    };
+  }, [show]);
+
   const filteredNotifications =
     activeTab === "unread"
       ? notifications.filter((notification) => !notification.isRead)
       : notifications;
 
-  // Ubah status notifikasi menjadi sudah dibaca
-  const handleRead = (id: string) => {
-    setNotifications((previous) =>
-      previous.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification,
-      ),
-    );
+  const handleRead = async (id: string) => {
+    const notification = notificationsRef.current.find((item) => item.id === id);
+
+    if (!notification || notification.isRead || readingIds.current.has(id)) {
+      return;
+    }
+
+    readingIds.current.add(id);
+
+    try {
+      // Update status notifikasi di backend
+      await notificationService.markAsRead(id);
+
+      // Update daftar notifikasi lokal
+      const updatedNotifications = notificationsRef.current.map((item) =>
+        item.id === id ? { ...item, isRead: true } : item,
+      );
+
+      notificationsRef.current = updatedNotifications;
+      setNotifications(updatedNotifications);
+
+      // Update jumlah notifikasi belum dibaca
+      const newUnreadCount = Math.max(0, unreadCountRef.current - 1);
+
+      unreadCountRef.current = newUnreadCount;
+      setUnreadCount(newUnreadCount);
+
+      // Beritahu MainLayout untuk memperbarui badge header
+      notifyNotificationUpdated();
+    } catch (error) {
+      console.error("Gagal menandai notifikasi:", error);
+
+      window.alert("Gagal menandai notifikasi sebagai sudah dibaca.");
+    } finally {
+      readingIds.current.delete(id);
+    }
   };
 
   return (
@@ -97,7 +171,15 @@ export default function NotificationDrawer({ show, onClose }: NotificationDrawer
 
         {/* DAFTAR NOTIFIKASI */}
         <div>
-          {filteredNotifications.length > 0 ? (
+          {isLoading ? (
+            <div className="px-6 py-16 text-center">
+              <p className="text-sm text-slate-500">Memuat notifikasi...</p>
+            </div>
+          ) : error ? (
+            <div className="px-6 py-16 text-center">
+              <p className="text-sm text-red-500">{error}</p>
+            </div>
+          ) : filteredNotifications.length > 0 ? (
             filteredNotifications.map((notification) => (
               <NotificationItem
                 key={notification.id}
@@ -111,7 +193,7 @@ export default function NotificationDrawer({ show, onClose }: NotificationDrawer
                 Tidak ada notifikasi
               </p>
 
-              <p className="mt-1 text-xs text-slate-400">Semua notifikasi sudah dibaca.</p>
+              <p className="mt-1 text-xs text-slate-400">Tidak ada notifikasi yang tersedia.</p>
             </div>
           )}
         </div>

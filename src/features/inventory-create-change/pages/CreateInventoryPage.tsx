@@ -4,11 +4,26 @@ import { useNavigate } from "react-router-dom";
 import InventoryForm from "../components/InventoryForm";
 import { initialForm } from "../constants/inventoryOptions";
 
+import { inventoryService } from "../services/inventoryService";
+
 import type { FormState, InventoryType } from "../types/inventory.types";
 
 interface CreateInventoryPageProps {
   inventoryType: InventoryType;
 }
+
+const statusMapping = {
+  digunakan: "Digunakan",
+  "tidak-digunakan": "Tidak Digunakan",
+  rusak: "Rusak",
+  dipinjam: "Dipinjam",
+} as const;
+
+const conditionMapping = {
+  baik: "Baik",
+  "rusak-ringan": "Rusak Ringan",
+  "rusak-berat": "Rusak Berat",
+} as const;
 
 export default function CreateInventoryPage({ inventoryType }: CreateInventoryPageProps) {
   const navigate = useNavigate();
@@ -17,16 +32,47 @@ export default function CreateInventoryPage({ inventoryType }: CreateInventoryPa
 
   const formInitialValues: FormState = {
     ...initialForm,
-    classification: isTik ? "alat-it" : "",
+    classification: "",
   };
 
-  const handleCreate = (data: FormState) => {
-    console.log("Create inventory:", {
-      inventoryType,
-      ...data,
-    });
+  const handleCreate = async (data: FormState) => {
+    try {
+      const formData = new FormData();
 
-    window.alert(`Simulasi: Inventaris ${isTik ? "TIK" : "Sarpras"} berhasil dibuat!`);
+      formData.append("asset_classification_id", data.classification);
+      formData.append("asset_location_id", data.roomLocation);
+      formData.append("asset_item_id", data.itemName);
+
+      formData.append("location_detail", data.location.trim());
+      formData.append("model_specification", data.model.trim());
+      formData.append("serial_number", data.serialNumber.trim());
+      formData.append("purchase_year", data.purchaseYear);
+
+      formData.append("status", statusMapping[data.status]);
+      formData.append("condition", conditionMapping[data.condition]);
+
+      if (data.warrantyUntil) {
+        formData.append("warranty_until", data.warrantyUntil);
+      }
+
+      if (data.description.trim()) {
+        formData.append("notes", data.description.trim());
+      }
+
+      formData.append("brand", "");
+
+      await inventoryService.createAsset(formData);
+
+      window.alert(`Inventaris ${isTik ? "TIK" : "Sarpras"} berhasil disimpan!`);
+
+      navigate(-1);
+    } catch (error) {
+      console.error("Gagal menyimpan inventory:", error);
+
+      window.alert(
+        error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan inventory.",
+      );
+    }
   };
 
   return (
