@@ -140,7 +140,10 @@ export async function toggleUserStatus(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Gagal mengubah status user (${response.status})`);
+    throw new ApiValidationError(
+      errorData?.message || `Gagal mengubah status user (${response.status})`,
+      errorData?.errors,
+    );
   }
 
   const result: UserDetailResponse = await response.json();
