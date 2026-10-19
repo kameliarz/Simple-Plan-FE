@@ -7,6 +7,7 @@ interface MobileHeaderProps {
   onNotificationClick?: () => void;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
+  notificationCount?: number;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onNotificationClick,
   isDarkMode,
   onToggleDarkMode,
+  notificationCount = 0,
   className,
 }) => {
   return (
@@ -64,25 +66,22 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         >
           <Bell className="w-5 h-5" />
 
-          {/* Badge jumlah unread */}
-          <span
-            className="
-              absolute
-              -right-0.5
-              -top-0.5
-              flex
-              h-3.5
-              w-3.5
-              items-center
-              justify-center
-              rounded-full
-              bg-red-500
-              text-[8px]
-              text-white
-            "
-          >
-            3
-          </span>
+          {notificationCount > 0 && (
+            <span
+              className="
+                absolute
+                right-0
+                top-0
+                h-2.5
+                w-2.5
+                rounded-full
+                bg-red-500
+                border-2
+                border-white
+                dark:border-slate-900
+              "
+            />
+          )}
         </button>
 
         {onToggleDarkMode && (
