@@ -11,7 +11,6 @@ import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
-import NotifikasiTab from "./NotifikasiTab";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 interface SidebarProps {
@@ -66,7 +65,6 @@ export default function Sidebar({ isDarkMode, toggleDarkMode }: SidebarProps) {
         <MaintenanceTab />
         <CadanganDataTab />
         <LaporanTab />
-        <NotifikasiTab />
         <LogoutTab onLogout={handleLogout} />
       </nav>
 

@@ -19,6 +19,9 @@ import InventarisTikDetailPage from "@/features/inventaris/pages/InventarisTikDe
 import InventarisSarprasListPage from "@/features/inventaris/pages/InventarisSarprasListPage";
 import InventarisSarprasDetailPage from "@/features/inventaris/pages/InventarisSarprasDetailPage";
 
+import CreateInventoryPage from "@/features/inventory-create-change/pages/CreateInventoryPage";
+import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
+
 import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -106,6 +109,22 @@ function App() {
           <Route path="/inventaris/tik/:id" element={<InventarisTikDetailPage />} />
           <Route path="/inventaris/sarpras" element={<InventarisSarprasListPage />} />
           <Route path="/inventaris/sarpras/:id" element={<InventarisSarprasDetailPage />} />
+          <Route
+            path="/inventory/tik/create"
+            element={<CreateInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/create"
+            element={<CreateInventoryPage inventoryType="sarpras" />}
+          />
+          <Route
+            path="/inventory/tik/:id/edit"
+            element={<EditInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/:id/edit"
+            element={<EditInventoryPage inventoryType="sarpras" />}
+          />
 
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
 
