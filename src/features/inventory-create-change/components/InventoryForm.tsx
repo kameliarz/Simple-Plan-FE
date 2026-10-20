@@ -183,14 +183,19 @@ export default function InventoryForm({
 
     if (isSubmitting) return;
 
+    const submissionData: FormState = {
+      ...form,
+      classification: effectiveClassification,
+    };
+
     if (
-      !form.classification ||
-      !form.roomLocation ||
-      !form.location.trim() ||
-      !form.itemName ||
-      !form.model.trim() ||
-      !form.serialNumber.trim() ||
-      !form.purchaseYear
+      !submissionData.classification ||
+      !submissionData.roomLocation ||
+      !submissionData.location.trim() ||
+      !submissionData.itemName ||
+      !submissionData.model.trim() ||
+      !submissionData.serialNumber.trim() ||
+      !submissionData.purchaseYear
     ) {
       window.alert("Mohon lengkapi semua field wajib.");
       return;
@@ -198,7 +203,7 @@ export default function InventoryForm({
 
     try {
       setIsSubmitting(true);
-      await onSubmit(form);
+      await onSubmit(submissionData);
     } finally {
       setIsSubmitting(false);
     }
@@ -213,6 +218,29 @@ export default function InventoryForm({
     value: String(item.id),
     label: item.name,
   }));
+
+  const handleNewItemSaved = (newItem: AssetItem) => {
+    setItems((previous) => {
+      const exists = previous.some((item) => item.id === newItem.id);
+
+      return exists ? previous : [...previous, newItem];
+    });
+
+    // Otomatis pilih barang yang baru dibuat
+    handleChange("itemName", String(newItem.id));
+  };
+
+  // Setelah berhasil menambahkan lokasi ruangan
+  const handleNewRoomSaved = (newLocation: AssetLocation) => {
+    setLocations((previous) => {
+      const exists = previous.some((location) => location.id === newLocation.id);
+
+      return exists ? previous : [...previous, newLocation];
+    });
+
+    // Otomatis pilih ruangan yang baru dibuat
+    handleChange("roomLocation", String(newLocation.id));
+  };
 
   return (
     <>
@@ -449,20 +477,21 @@ export default function InventoryForm({
         </div>
       </form>
 
+      {/* MODAL TAMBAH NAMA BARANG */}
       <AddItemNameModal
         show={showAddItemModal}
         onClose={() => setShowAddItemModal(false)}
-        onSave={(itemName) => {
-          console.log("Nama barang baru:", itemName);
-        }}
+        onSaved={handleNewItemSaved}
+        inventoryType={inventoryType}
+        classificationOptions={classificationDropdownOptions}
+        defaultClassification={effectiveClassification}
       />
 
+      {/* MODAL TAMBAH LOKASI RUANGAN */}
       <AddRoomLocationModal
         show={showAddRoomModal}
         onClose={() => setShowAddRoomModal(false)}
-        onSave={(roomName) => {
-          console.log("Lokasi ruangan baru:", roomName);
-        }}
+        onSaved={handleNewRoomSaved}
       />
     </>
   );

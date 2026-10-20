@@ -1,5 +1,4 @@
-import { apiGet, apiPost } from "./api";
-
+import { apiGet, apiPost, apiPostJson } from "./api";
 import type { FormState, InventoryStatus, InventoryCondition } from "../types/inventory.types";
 
 export interface AssetClassification {
@@ -99,6 +98,31 @@ export const inventoryService = {
 
     return response.data;
   },
+
+  updateAsset: async (id: string, data: FormData) => {
+    return apiPost<AssetDetailResponse>(`/assets/${encodeURIComponent(id)}`, data);
+  },
+
+  createLocation: async (name: string): Promise<AssetLocation> => {
+    const response = await apiPostJson<{
+      data: AssetLocation;
+    }>("/asset-locations", {
+      name,
+    });
+
+    return response.data;
+  },
+
+  createItem: async (classificationId: number, name: string): Promise<AssetItem> => {
+    const response = await apiPostJson<{
+      data: AssetItem;
+    }>("/asset-items", {
+      asset_classification_id: classificationId,
+      name,
+    });
+
+    return response.data;
+  },
 };
 
 const statusMap: Record<string, InventoryStatus> = {
@@ -135,4 +159,45 @@ export function mapAssetToForm(asset: AssetDetail): FormState {
     status,
     condition,
   };
+}
+
+const statusApiMap: Record<InventoryStatus, string> = {
+  digunakan: "Digunakan",
+  "tidak-digunakan": "Tidak Digunakan",
+  rusak: "Rusak",
+  dipinjam: "Dipinjam",
+};
+
+const conditionApiMap: Record<InventoryCondition, string> = {
+  baik: "Baik",
+  "rusak-ringan": "Rusak Ringan",
+  "rusak-berat": "Rusak Berat",
+};
+
+export function mapFormToUpdateAsset(form: FormState, classificationId?: string): FormData {
+  const formData = new FormData();
+
+  // Laravel method spoofing
+  formData.append("_method", "PUT");
+
+  // Relasi aset
+  formData.append("asset_classification_id", classificationId || form.classification);
+  formData.append("asset_location_id", form.roomLocation);
+  formData.append("asset_item_id", form.itemName);
+
+  // Detail aset
+  formData.append("purchase_year", form.purchaseYear);
+  formData.append("serial_number", form.serialNumber.trim());
+  formData.append("model_specification", form.model.trim());
+  formData.append("location_detail", form.location.trim());
+
+  // Status dan kondisi
+  formData.append("status", statusApiMap[form.status]);
+  formData.append("condition", conditionApiMap[form.condition]);
+
+  // Field opsional
+  formData.append("warranty_until", form.warrantyUntil || "");
+  formData.append("notes", form.description.trim());
+
+  return formData;
 }

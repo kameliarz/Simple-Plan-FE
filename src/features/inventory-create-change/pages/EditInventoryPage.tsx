@@ -3,7 +3,14 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import InventoryForm from "../components/InventoryForm";
-import { inventoryService, mapAssetToForm, type AssetDetail } from "../services/inventoryService";
+import { useToast } from "@/components/ui/ui-template/UseToast";
+
+import {
+  inventoryService,
+  mapAssetToForm,
+  mapFormToUpdateAsset,
+  type AssetDetail,
+} from "../services/inventoryService";
 
 import type { FormState, InventoryType } from "../types/inventory.types";
 
@@ -13,16 +20,22 @@ interface EditInventoryPageProps {
 
 export default function EditInventoryPage({ inventoryType }: EditInventoryPageProps) {
   const navigate = useNavigate();
-
   const { id } = useParams<{ id: string }>();
+
+  const { showToast } = useToast();
 
   const isTik = inventoryType === "tik";
 
   const [inventory, setInventory] = useState<AssetDetail | null>(null);
+
   const [formValues, setFormValues] = useState<FormState | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ==============================
+  // FETCH DETAIL INVENTORY
+  // ==============================
   useEffect(() => {
     let active = true;
 
@@ -66,7 +79,43 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
     };
   }, [id]);
 
-  // Jika inventaris tidak ditemukan
+  // ==============================
+  // UPDATE INVENTORY
+  // ==============================
+  const handleUpdate = async (data: FormState) => {
+    if (!inventory) return;
+
+    try {
+      const formData = mapFormToUpdateAsset(data);
+
+      await inventoryService.updateAsset(String(inventory.id), formData);
+
+      const destination = isTik
+        ? `/inventaris/tik/${inventory.id}`
+        : `/inventaris/sarpras/${inventory.id}`;
+
+      navigate(destination, {
+        replace: true,
+        state: {
+          toast: {
+            message: "Data Aset Berhasil Diubah!",
+            type: "success",
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Gagal update inventory:", error);
+
+      const message =
+        error instanceof Error ? error.message : "Terjadi kesalahan saat memperbarui inventaris.";
+
+      showToast(message, "error");
+    }
+  };
+
+  // ==============================
+  // LOADING STATE
+  // ==============================
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F7F8FC] dark:bg-slate-950">
@@ -75,6 +124,9 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
     );
   }
 
+  // ==============================
+  // ERROR STATE
+  // ==============================
   if (error || !inventory || !formValues) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F7F8FC] dark:bg-slate-950">
@@ -93,15 +145,9 @@ export default function EditInventoryPage({ inventoryType }: EditInventoryPagePr
     );
   }
 
-  const handleUpdate = (data: FormState) => {
-    console.log("Update inventory:", {
-      id: inventory.id,
-      ...data,
-    });
-
-    window.alert("Simulasi: Perubahan data inventaris belum dikirim ke backend.");
-  };
-
+  // ==============================
+  // RENDER EDIT INVENTORY
+  // ==============================
   return (
     <div className="min-h-screen bg-[#F7F8FC] px-4 py-4 dark:bg-slate-950 md:px-6">
       {/* BACK BUTTON */}

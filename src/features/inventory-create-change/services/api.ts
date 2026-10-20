@@ -42,3 +42,27 @@ export async function apiPost<T>(endpoint: string, data: FormData): Promise<T> {
 
   return response.json() as Promise<T>;
 }
+
+export async function apiPostJson<T>(endpoint: string, data: object): Promise<T> {
+  const token = getToken();
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    const message = errorData?.message || `Gagal menyimpan data. Status: ${response.status}`;
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<T>;
+}
