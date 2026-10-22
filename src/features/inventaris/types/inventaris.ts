@@ -81,6 +81,7 @@ export interface GetAssetsParams {
   status?: string;
   condition?: string;
   purchase_year?: number | string;
+  moved_last_3_months?: boolean;
 }
 
 export interface AssetCollectionResponse {
@@ -105,3 +106,39 @@ export interface AssetDetailResponse {
   data: ApiAsset;
   message?: string;
 }
+
+export type BulkAssetLabelSelectionMode = "selected" | "all_filtered";
+
+export interface BulkAssetLabelFilters {
+  search?: string;
+  location_id?: number;
+  asset_location_id?: number;
+  classification_id?: number;
+  asset_classification_id?: number;
+  asset_item_id?: number;
+  status?: string;
+  condition?: string;
+  purchase_year?: number;
+  year?: number;
+  moved_last_3_months?: boolean;
+  page?: number;
+  per_page?: number;
+  [key: string]: unknown;
+}
+
+export interface BulkAssetLabelExportSelectedParams {
+  selection_mode: "selected";
+  asset_ids: number[];
+  width_mm: number;
+  height_mm: number;
+}
+
+export interface BulkAssetLabelExportFilteredParams {
+  selection_mode: "all_filtered";
+  filters: BulkAssetLabelFilters;
+  width_mm: number;
+  height_mm: number;
+}
+
+export type BulkAssetLabelExportParams =
+  BulkAssetLabelExportSelectedParams | BulkAssetLabelExportFilteredParams;

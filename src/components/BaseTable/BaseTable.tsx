@@ -17,6 +17,7 @@ interface BaseTableProps<T> {
   getId?: (row: T) => string;
   onSelectRow?: (id: string, selected: boolean) => void;
   onSelectAll?: (selected: boolean) => void;
+  showHeaderCheckbox?: boolean;
 }
 
 function BaseTable<T>({
@@ -29,6 +30,7 @@ function BaseTable<T>({
   getId,
   onSelectRow,
   onSelectAll,
+  showHeaderCheckbox = false,
 }: BaseTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -109,20 +111,22 @@ function BaseTable<T>({
             <tr className="border-b border-gray-200 bg-background">
               {selectable && (
                 <th className="w-12 px-5 py-3.5 text-left">
-                  <input
-                    type="checkbox"
-                    checked={
-                      paginatedData.length > 0 &&
-                      paginatedData.every((row) => {
-                        const id = getId
-                          ? getId(row)
-                          : String((row as { id?: string | number }).id ?? "");
-                        return selectedIds.includes(id);
-                      })
-                    }
-                    onChange={(e) => onSelectAll?.(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
+                  {showHeaderCheckbox && (
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedData.length > 0 &&
+                        paginatedData.every((row) => {
+                          const id = getId
+                            ? getId(row)
+                            : String((row as { id?: string | number }).id ?? "");
+                          return selectedIds.includes(id);
+                        })
+                      }
+                      onChange={(e) => onSelectAll?.(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  )}
                 </th>
               )}
               {columns.map((column) => (
