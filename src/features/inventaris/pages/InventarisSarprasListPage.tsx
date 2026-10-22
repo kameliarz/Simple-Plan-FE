@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
-import { getUser } from "@/features/auth-login/services/authStorage";
+import { clearAuth, getUser } from "@/features/auth-login/services/authStorage";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -21,8 +21,19 @@ import Checkbox from "@/components/ui/Checkbox";
 import RadioButton from "@/components/ui/RadioButton";
 import EmptyState from "@/components/ui/EmptyState";
 import BottomSheet from "@/components/ui/BottomSheet";
-import { getAssets, getAssetLocations, getAssetClassifications } from "../services/inventarisApi";
-import type { ApiAsset, AssetLocation, InventarisStatus } from "../types/inventaris";
+import Toast from "@/components/ui/Toast";
+import {
+  getAssets,
+  getAssetLocations,
+  getAssetClassifications,
+  exportBulkAssetLabels,
+} from "../services/inventarisApi";
+import type {
+  ApiAsset,
+  AssetLocation,
+  BulkAssetLabelFilters,
+  InventarisStatus,
+} from "../types/inventaris";
 
 export interface InventarisSarprasRow {
   id: string;
@@ -66,11 +77,24 @@ export default function InventarisSarprasListPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [classificationId, setClassificationId] = useState<number | undefined>(1);
+
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [labelSize, setLabelSize] = useState<"standard" | "small" | "large">("standard");
+  const [exportMode, setExportMode] = useState<"selected" | "all_filtered">("selected");
+  const [labelSize, setLabelSize] = useState<"standard" | "medium" | "small" | "large">("standard");
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    variant?: "success" | "danger" | "info";
+  }>({
+    show: false,
+    message: "",
+    variant: "info",
+  });
 
   // Filter state
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -89,10 +113,11 @@ export default function InventarisSarprasListPage() {
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
   // Fetch initial data (classifications, locations, assets)
-  const fetchData = async () => {
+  const fetchData = async (overridePerpindahan?: boolean) => {
     setIsLoading(true);
     setError(null);
     try {
+      const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
       // 1. Ambil klasifikasi untuk sarpras
       const classifications = await getAssetClassifications().catch(() => []);
       const sarprasClass = classifications.find(
@@ -101,7 +126,8 @@ export default function InventarisSarprasListPage() {
           c.name.toLowerCase().includes("sarana") ||
           c.code === 3,
       );
-      const targetClassId = sarprasClass ? sarprasClass.id : 1;
+      const targetClassId = sarprasClass ? sarprasClass.id : classificationId;
+      if (sarprasClass) setClassificationId(sarprasClass.id);
 
       // 2. Ambil lokasi
       const locs = await getAssetLocations().catch(() => []);
@@ -111,6 +137,7 @@ export default function InventarisSarprasListPage() {
       const assetRes = await getAssets({
         asset_classification_id: targetClassId,
         per_page: 100,
+        moved_last_3_months: isMoved,
       });
 
       setAssets(assetRes.data || []);
@@ -124,6 +151,7 @@ export default function InventarisSarprasListPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close filter when clicking outside
@@ -156,6 +184,7 @@ export default function InventarisSarprasListPage() {
     setFilterPerpindahan(tempPerpindahan);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
+    fetchData(tempPerpindahan);
   };
 
   const handleResetFilter = () => {
@@ -169,6 +198,7 @@ export default function InventarisSarprasListPage() {
     setFilterPerpindahan(false);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
+    fetchData(false);
   };
 
   const isFilterActive =
@@ -206,7 +236,7 @@ export default function InventarisSarprasListPage() {
     lokasi: item.asset_code?.location?.name || "-",
     status: item.status,
     klasifikasi: item.asset_code?.classification?.name || "Sarana dan Prasarana",
-    perpindahanTerkini: Boolean(item.histories && item.histories.length > 0),
+    perpindahanTerkini: filterPerpindahan || Boolean(item.histories && item.histories.length > 0),
     raw: item,
   }));
 
@@ -234,6 +264,88 @@ export default function InventarisSarprasListPage() {
     selectedIds.length > 0
       ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
       : tableData[0];
+
+  const handleDownloadBulk = async () => {
+    setIsDownloading(true);
+    try {
+      const dimensions = {
+        standard: { width_mm: 70, height_mm: 35 },
+        medium: { width_mm: 90, height_mm: 50 },
+        small: { width_mm: 50, height_mm: 25 },
+        large: { width_mm: 100, height_mm: 50 },
+      }[labelSize];
+
+      if (exportMode === "selected") {
+        if (selectedIds.length === 0) {
+          setToast({
+            show: true,
+            message: "Pilih minimal 1 aset untuk diunduh.",
+            variant: "danger",
+          });
+          setIsDownloading(false);
+          return;
+        }
+
+        await exportBulkAssetLabels({
+          selection_mode: "selected",
+          asset_ids: selectedIds.map(Number),
+          width_mm: dimensions.width_mm,
+          height_mm: dimensions.height_mm,
+        });
+
+        setToast({
+          show: true,
+          message: `Berhasil mengunduh label untuk ${selectedIds.length} aset terpilih!`,
+          variant: "success",
+        });
+      } else {
+        // Mode: all_filtered
+        const matchedLocation = locations.find((l) => l.name === filterLokasi);
+        const filters: BulkAssetLabelFilters = {};
+
+        if (matchedLocation?.id) {
+          filters.location_id = matchedLocation.id;
+        }
+        if (filterStatus && filterStatus !== "Semua status") {
+          filters.status = filterStatus;
+        }
+        if (classificationId) {
+          filters.classification_id = classificationId;
+        }
+        if (filterPerpindahan) {
+          filters.moved_last_3_months = true;
+        }
+        if (searchTerm.trim()) {
+          filters.search = searchTerm.trim();
+        }
+
+        await exportBulkAssetLabels({
+          selection_mode: "all_filtered",
+          filters,
+          width_mm: dimensions.width_mm,
+          height_mm: dimensions.height_mm,
+        });
+
+        setToast({
+          show: true,
+          message: "Berhasil mengunduh label untuk seluruh aset yang terfilter!",
+          variant: "success",
+        });
+      }
+
+      setIsDownloadModalOpen(false);
+      setSelectedIds([]);
+      setIsSelectMode(false);
+    } catch (err) {
+      setToast({
+        show: true,
+        message: err instanceof Error ? err.message : "Gagal mengunduh label massal",
+        variant: "danger",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900">
@@ -263,8 +375,10 @@ export default function InventarisSarprasListPage() {
               <Button
                 type="button"
                 variant="default"
-                onClick={() => setIsDownloadModalOpen(true)}
-                disabled={selectedIds.length === 0}
+                onClick={() => {
+                  setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
+                  setIsDownloadModalOpen(true);
+                }}
                 className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
               >
                 <Download className="h-4 w-4" /> Unduh Label
@@ -350,7 +464,7 @@ export default function InventarisSarprasListPage() {
                             label="Perpindahan Unit Terkini"
                           />
                           <div className="text-[11px] text-slate-400 pl-6">
-                            Hanya aset yang memiliki catatan mutasi
+                            Hanya aset yang berpindah unit / memiliki catatan mutasi
                           </div>
                         </div>
 
@@ -408,31 +522,41 @@ export default function InventarisSarprasListPage() {
         <div className="p-6 flex flex-col">
           {isSelectMode && (
             <div className="flex items-center justify-between p-3.5 mb-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg text-sm text-slate-700 dark:text-slate-200">
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="select-all-header"
-                  checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedIds(filteredData.map((d) => d.id));
-                    } else {
-                      setSelectedIds([]);
-                    }
-                  }}
-                />
-                <span className="font-medium text-slate-800 dark:text-slate-100">
-                  <span className="text-blue-700 font-semibold">{selectedIds.length}</span> aset
-                  terpilih untuk unduh label
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                  {selectedIds.length}
+                </span>
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  dari {filteredData.length} aset terpilih
                 </span>
               </div>
 
               <div className="flex items-center gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => setSelectedIds(filteredData.map((d) => d.id))}
-                  className="text-blue-700 font-semibold hover:underline"
+                  onClick={() => {
+                    if (selectedIds.length === filteredData.length) {
+                      setSelectedIds([]);
+                    } else {
+                      setSelectedIds(filteredData.map((d) => d.id));
+                    }
+                  }}
+                  className="text-blue-700 dark:text-blue-400 font-semibold hover:underline"
                 >
-                  Pilih Semua ({filteredData.length})
+                  {selectedIds.length === filteredData.length
+                    ? "Batal Pilih Semua"
+                    : `Pilih Semua (${filteredData.length})`}
+                </button>
+                <span className="text-slate-400">•</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportMode("all_filtered");
+                    setIsDownloadModalOpen(true);
+                  }}
+                  className="text-blue-700 dark:text-blue-400 font-semibold hover:underline"
+                >
+                  Unduh Semua Terfilter
                 </button>
                 <span className="text-slate-400">•</span>
                 <button
@@ -443,7 +567,7 @@ export default function InventarisSarprasListPage() {
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium"
                 >
-                  Batalkan
+                  Selesai
                 </button>
               </div>
             </div>
@@ -461,10 +585,27 @@ export default function InventarisSarprasListPage() {
               <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-full text-red-600 dark:text-red-400">
                 <AlertCircle className="h-8 w-8" />
               </div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{error}</p>
-              <Button variant="outline" className="py-1 px-3 text-xs" onClick={fetchData}>
-                Coba Lagi
-              </Button>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {error.includes("401")
+                  ? "Sesi login Anda telah berakhir (401). Silakan login kembali untuk melanjutkan."
+                  : error}
+              </p>
+              {error.includes("401") ? (
+                <Button
+                  variant="default"
+                  className="py-1.5 px-4 text-xs bg-blue-800 hover:bg-blue-900 text-white"
+                  onClick={() => {
+                    clearAuth();
+                    navigate("/login");
+                  }}
+                >
+                  Login Kembali
+                </Button>
+              ) : (
+                <Button variant="outline" className="py-1 px-3 text-xs" onClick={() => fetchData()}>
+                  Coba Lagi
+                </Button>
+              )}
             </div>
           ) : filteredData.length > 0 ? (
             <BaseTable
@@ -472,6 +613,7 @@ export default function InventarisSarprasListPage() {
               data={filteredData}
               itemsPerPage={10}
               selectable={isSelectMode}
+              showHeaderCheckbox={false}
               selectedIds={selectedIds}
               getId={(row) => row.id}
               onSelectRow={(id, selected) => {
@@ -519,12 +661,17 @@ export default function InventarisSarprasListPage() {
       {/* Pilih ukuran Label Modal */}
       {isDownloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                Pilih Ukuran Label
-              </h3>
+              <div>
+                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  Unduh Label Massal
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Pilih mode pemilihan aset dan ukuran label yang diinginkan
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsDownloadModalOpen(false)}
@@ -535,80 +682,248 @@ export default function InventarisSarprasListPage() {
             </div>
 
             {/* Body */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left: Ukuran */}
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Section 1: Mode Pemilihan Aset */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
-                  Ukuran <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Mode Pemilihan Aset <span className="text-rose-500">*</span>
                 </label>
-                <div className="space-y-2.5">
-                  {[
-                    { id: "standard" as const, label: "Standar (70 x 35 mm)" },
-                    { id: "small" as const, label: "Kecil (50 x 25 mm)" },
-                    { id: "large" as const, label: "Besar (100 x 50 mm)" },
-                  ].map((opt) => (
-                    <div
-                      key={opt.id}
-                      onClick={() => setLabelSize(opt.id)}
-                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-                        labelSize === opt.id
-                          ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-200 font-medium"
-                          : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                      }`}
-                    >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Mode Selected */}
+                  <div
+                    onClick={() => {
+                      if (selectedIds.length > 0) {
+                        setExportMode("selected");
+                      }
+                    }}
+                    className={`p-3.5 rounded-lg border transition-all ${
+                      selectedIds.length === 0
+                        ? "opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50"
+                        : exportMode === "selected"
+                          ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 ring-1 ring-blue-600 cursor-pointer"
+                          : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 cursor-pointer"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
                       <RadioButton
-                        id={`sarpras-size-${opt.id}`}
-                        name="labelSize"
-                        checked={labelSize === opt.id}
-                        onChange={() => setLabelSize(opt.id)}
-                        label={opt.label}
+                        id="sarpras-export-mode-selected"
+                        name="exportMode"
+                        checked={exportMode === "selected"}
+                        disabled={selectedIds.length === 0}
+                        onChange={() => setExportMode("selected")}
+                        label=""
                       />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            Aset Terpilih Manual
+                          </span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              selectedIds.length > 0
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                            }`}
+                          >
+                            {selectedIds.length} Aset
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {selectedIds.length > 0
+                            ? `Mengunduh label berdasarkan ${selectedIds.length} aset yang dicentang secara manual di tabel.`
+                            : "Belum ada aset yang dicentang di tabel. Centang baris aset terlebih dahulu."}
+                        </p>
+                      </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Mode All Filtered */}
+                  <div
+                    onClick={() => setExportMode("all_filtered")}
+                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      exportMode === "all_filtered"
+                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 ring-1 ring-blue-600"
+                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <RadioButton
+                        id="sarpras-export-mode-all-filtered"
+                        name="exportMode"
+                        checked={exportMode === "all_filtered"}
+                        onChange={() => setExportMode("all_filtered")}
+                        label=""
+                      />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            Seluruh Aset Terfilter
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            Semua Halaman
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          Mengunduh label seluruh aset yang memenuhi filter saat ini, termasuk di
+                          luar pagination.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Filter Summary Pill jika Mode All Filtered Aktif */}
+                {exportMode === "all_filtered" && (
+                  <div className="mt-2.5 p-2.5 rounded-md bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
+                      Kriteria Filter Aktif:
+                    </span>{" "}
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        Kategori: Sarana & Prasarana
+                      </span>
+                      {filterLokasi !== "Semua lokasi" && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          Lokasi: {filterLokasi}
+                        </span>
+                      )}
+                      {filterStatus !== "Semua status" && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          Status: {filterStatus}
+                        </span>
+                      )}
+                      {filterPerpindahan && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          Perpindahan 3 Bulan Terakhir
+                        </span>
+                      )}
+                      {searchTerm.trim() && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          Pencarian: &quot;{searchTerm.trim()}&quot;
+                        </span>
+                      )}
+                      {filterLokasi === "Semua lokasi" &&
+                        filterStatus === "Semua status" &&
+                        !filterPerpindahan &&
+                        !searchTerm.trim() && (
+                          <span className="text-slate-400 italic">
+                            Tanpa filter tambahan (semua aset Sarpras akan diunduh)
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Right: Pratinjau Label */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
-                  Pratinjau Label
-                </label>
-                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {previewAsset?.nomor || "3/1/1/1/2020"}
+              {/* Section 2 & 3: Ukuran & Preview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100 dark:border-slate-700">
+                {/* Ukuran */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    Ukuran Label <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    {[
+                      { id: "standard" as const, label: "Standar (70 x 35 mm)" },
+                      { id: "medium" as const, label: "Sedang (90 x 50 mm)" },
+                      { id: "small" as const, label: "Kecil (50 x 25 mm)" },
+                      { id: "large" as const, label: "Besar (100 x 50 mm)" },
+                    ].map((opt) => (
+                      <div
+                        key={opt.id}
+                        onClick={() => setLabelSize(opt.id)}
+                        className={`flex items-center p-2.5 rounded-lg border cursor-pointer transition-all ${
+                          labelSize === opt.id
+                            ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-200 font-medium"
+                            : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                        }`}
+                      >
+                        <RadioButton
+                          id={`sarpras-size-${opt.id}`}
+                          name="labelSize"
+                          checked={labelSize === opt.id}
+                          onChange={() => setLabelSize(opt.id)}
+                          label={opt.label}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Pratinjau Label
+                    </label>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                      {
+                        {
+                          standard: "70 × 35 mm",
+                          medium: "90 × 50 mm",
+                          small: "50 × 25 mm",
+                          large: "100 × 50 mm",
+                        }[labelSize]
+                      }
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">SARPRAS</span>
                   </div>
-                  <div className="flex justify-between items-center gap-2">
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-slate-400">Nama Barang</div>
-                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
-                        {previewAsset?.nama || "Kursi Aula"}
-                      </div>
-                      <div className="text-[10px] text-slate-400">Lokasi</div>
-                      <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
-                        {previewAsset?.lokasi || "Poli Penyakit Dalam"}
-                      </div>
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                      <span className="font-bold text-slate-800 dark:text-slate-100">
+                        {previewAsset?.nomor || "3/1/1/1/2020"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">SARPRAS</span>
                     </div>
-                    <QrCode className="h-14 w-14 text-slate-700 dark:text-slate-300 shrink-0" />
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-slate-400">Nama Barang</div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                          {previewAsset?.nama || "Kursi Aula"}
+                        </div>
+                        <div className="text-[10px] text-slate-400">Lokasi</div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
+                          {previewAsset?.lokasi || "Poli Penyakit Dalam"}
+                        </div>
+                      </div>
+                      <QrCode className="h-14 w-14 text-slate-700 dark:text-slate-300 shrink-0" />
+                    </div>
                   </div>
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    File diekspor dalam format dokumen PDF (kertas A4) siap cetak.
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end px-6 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
+            <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDownloadModalOpen(false)}
+                className="text-xs"
+              >
+                Batal
+              </Button>
               <Button
                 type="button"
                 variant="default"
-                onClick={() => {
-                  alert(`Berhasil mengunduh label untuk ${selectedIds.length} aset terpilih!`);
-                  setIsDownloadModalOpen(false);
-                }}
-                className="gap-2 px-5 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
+                disabled={isDownloading || (exportMode === "selected" && selectedIds.length === 0)}
+                onClick={handleDownloadBulk}
+                className="gap-2 px-5 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium disabled:opacity-50"
               >
-                <Download className="h-4 w-4" /> Unduh Label
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    {exportMode === "selected"
+                      ? `Unduh ${selectedIds.length} Label Terpilih`
+                      : "Unduh Seluruh Label Terfilter"}
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -689,11 +1004,18 @@ export default function InventarisSarprasListPage() {
               label="Perpindahan Unit Terkini"
             />
             <div className="text-[11px] text-slate-400 pl-6 mt-0.5">
-              Hanya aset yang memiliki catatan mutasi
+              Hanya aset yang berpindah unit / memiliki catatan mutasi
             </div>
           </div>
         </div>
       </BottomSheet>
+
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        variant={toast.variant}
+        onClose={() => setToast((prev) => ({ ...prev, show: false }))}
+      />
     </div>
   );
 }

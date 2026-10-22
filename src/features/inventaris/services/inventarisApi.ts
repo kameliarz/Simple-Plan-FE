@@ -5,9 +5,15 @@ import type {
   AssetDetailResponse,
   AssetItem,
   AssetLocation,
+  BulkAssetLabelExportParams,
   GetAssetsParams,
 } from "../types/inventaris";
-import { getToken } from "@/features/auth-login/services/authStorage";
+export type {
+  BulkAssetLabelExportParams,
+  BulkAssetLabelFilters,
+  BulkAssetLabelSelectionMode,
+} from "../types/inventaris";
+import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
 
 const API_BASE_URL = "/api/v1";
 
@@ -36,6 +42,7 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
   if (params.condition && params.condition !== "Semua kondisi")
     query.set("condition", params.condition);
   if (params.purchase_year) query.set("purchase_year", String(params.purchase_year));
+  if (params.moved_last_3_months) query.set("moved_last_3_months", "true");
 
   const queryString = query.toString();
   const url = queryString ? `${API_BASE_URL}/assets?${queryString}` : `${API_BASE_URL}/assets`;
@@ -46,6 +53,10 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
     throw new Error(`Gagal mengambil data aset (${response.status})`);
   }
 
@@ -59,6 +70,10 @@ export async function getAssetDetail(id: number | string): Promise<ApiAsset> {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
     throw new Error(`Gagal mengambil detail aset (${response.status})`);
   }
 
@@ -170,4 +185,180 @@ export async function updateAsset(
 
   const result: AssetDetailResponse = await response.json();
   return result.data;
+}
+
+export async function exportBulkAssetLabels(
+  params: BulkAssetLabelExportParams | number[],
+  fallbackWidthMm = 70,
+  fallbackHeightMm = 35,
+): Promise<void> {
+  let bodyPayload: Record<string, unknown>;
+
+  if (Array.isArray(params)) {
+    bodyPayload = {
+      selection_mode: "selected",
+      asset_ids: params,
+      width_mm: fallbackWidthMm,
+      height_mm: fallbackHeightMm,
+    };
+  } else if (params.selection_mode === "all_filtered") {
+    // Pastikan filters hanya berisi nilai yang terdefinisi
+    const cleanedFilters: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(params.filters || {})) {
+      if (
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        value !== "Semua status" &&
+        value !== "Semua lokasi" &&
+        value !== "Semua jenis" &&
+        value !== "Semua kondisi"
+      ) {
+        cleanedFilters[key] = value;
+      }
+    }
+
+    bodyPayload = {
+      selection_mode: "all_filtered",
+      filters: cleanedFilters,
+      width_mm: params.width_mm ?? fallbackWidthMm,
+      height_mm: params.height_mm ?? fallbackHeightMm,
+    };
+  } else {
+    bodyPayload = {
+      selection_mode: "selected",
+      asset_ids: params.asset_ids,
+      width_mm: params.width_mm ?? fallbackWidthMm,
+      height_mm: params.height_mm ?? fallbackHeightMm,
+    };
+  }
+
+  const response = await fetch(`${API_BASE_URL}/asset-label-exports`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/pdf",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify(bodyPayload),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || `Gagal mengunduh label massal (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `asset-labels-massal-${new Date().toISOString().slice(0, 10)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    window.URL.revokeObjectURL(downloadUrl);
+    if (document.body.contains(a)) {
+      document.body.removeChild(a);
+    }
+  }, 1000);
+}
+
+export async function downloadSingleAssetLabel(
+  assetId: number | string,
+  widthMm = 70,
+  heightMm = 35,
+  assetUid?: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/assets/${assetId}/label?format=pdf&width_mm=${widthMm}&height_mm=${heightMm}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/pdf",
+        Authorization: `Bearer ${getToken()}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || `Gagal mengunduh label (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `asset-label-${assetUid || assetId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    window.URL.revokeObjectURL(downloadUrl);
+    if (document.body.contains(a)) {
+      document.body.removeChild(a);
+    }
+  }, 1000);
+}
+
+export async function printSingleAssetLabel(
+  assetId: number | string,
+  widthMm = 70,
+  heightMm = 35,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/assets/${assetId}/label?format=html&width_mm=${widthMm}&height_mm=${heightMm}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "text/html",
+        Authorization: `Bearer ${getToken()}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuth();
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
+    throw new Error(`Gagal memuat template cetak label (${response.status})`);
+  }
+
+  const html = await response.text();
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.left = "-9999px";
+  iframe.style.top = "-9999px";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    throw new Error("Gagal menginisialisasi dialog cetak");
+  }
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.contentWindow?.focus();
+  setTimeout(() => {
+    iframe.contentWindow?.print();
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 2000);
+  }, 500);
 }

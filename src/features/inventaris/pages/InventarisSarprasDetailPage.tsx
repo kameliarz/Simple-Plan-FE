@@ -22,7 +22,12 @@ import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AttachmentCard } from "@/components/ui/AttachmentCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getAssetDetail } from "../services/inventarisApi";
+import Toast from "@/components/ui/Toast";
+import {
+  getAssetDetail,
+  downloadSingleAssetLabel,
+  printSingleAssetLabel,
+} from "../services/inventarisApi";
 import type { ApiAsset, InventarisStatus, InventarisCondition } from "../types/inventaris";
 
 function formatFileSize(bytes?: number): string {
@@ -74,6 +79,17 @@ export default function InventarisSarprasDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isPreviewLabelOpen, setIsPreviewLabelOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    variant?: "success" | "danger" | "info";
+  }>({
+    show: false,
+    message: "",
+    variant: "info",
+  });
 
   const [asset, setAsset] = useState<ApiAsset | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +101,44 @@ export default function InventarisSarprasDetailPage() {
   // Hak akses edit: Super Admin, Koordinator Sarpras, Petugas Sarpras
   const canEdit =
     role === "super-admin" || role === "koordinator-sarpras" || role === "petugas-sarpras";
+
+  const handleDownloadLabel = async () => {
+    if (!asset) return;
+    setIsDownloading(true);
+    try {
+      await downloadSingleAssetLabel(asset.id, 70, 35, asset.asset_uid);
+      setToast({
+        show: true,
+        message: "Label aset berhasil diunduh!",
+        variant: "success",
+      });
+      setIsPreviewLabelOpen(false);
+    } catch (err) {
+      setToast({
+        show: true,
+        message: err instanceof Error ? err.message : "Gagal mengunduh label aset",
+        variant: "danger",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePrintLabel = async () => {
+    if (!asset) return;
+    setIsPrinting(true);
+    try {
+      await printSingleAssetLabel(asset.id, 70, 35);
+    } catch (err) {
+      setToast({
+        show: true,
+        message: err instanceof Error ? err.message : "Gagal mencetak label aset",
+        variant: "danger",
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const fetchDetail = () => {
     if (!id) return;
@@ -544,26 +598,48 @@ export default function InventarisSarprasDetailPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => window.print()}
-                className="gap-2 px-4 py-2 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 text-sm font-medium"
+                disabled={isPrinting || isDownloading}
+                onClick={handlePrintLabel}
+                className="gap-2 px-4 py-2 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 text-sm font-medium disabled:opacity-50"
               >
-                <Printer className="h-4 w-4" /> Cetak
+                {isPrinting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan...
+                  </>
+                ) : (
+                  <>
+                    <Printer className="h-4 w-4" /> Cetak
+                  </>
+                )}
               </Button>
               <Button
                 type="button"
                 variant="default"
-                onClick={() => {
-                  alert("Label berhasil diunduh!");
-                  setIsPreviewLabelOpen(false);
-                }}
-                className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
+                disabled={isDownloading || isPrinting}
+                onClick={handleDownloadLabel}
+                className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium disabled:opacity-50"
               >
-                <Download className="h-4 w-4" /> Unduh
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" /> Unduh
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        variant={toast.variant}
+        onClose={() => setToast((prev) => ({ ...prev, show: false }))}
+      />
     </div>
   );
 }
