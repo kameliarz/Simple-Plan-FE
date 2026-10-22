@@ -94,7 +94,7 @@ export default function Modal({
                   >
                     <div className="flex h-full flex-col overflow-y-scroll border-l border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
                       {/* Slide-over header */}
-                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-6 dark:border-slate-800 dark:bg-slate-950/50 sm:px-6">
+                      <div className="border-b border-slate-200  px-4 py-6 dark:border-slate-800 dark:bg-slate-950/50 sm:px-6">
                         <div className="flex items-start justify-between">
                           <DialogTitle className="text-lg font-semibold leading-6 text-slate-900 dark:text-slate-100">
                             {title}

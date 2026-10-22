@@ -5,6 +5,7 @@ import Input from "@/components/ui/ui-template/Input";
 import TextArea from "@/components/ui/ui-template/TextArea";
 import CategorySelector from "@/components/ui/ui-template/CategorySelector";
 import Button from "@/components/ui/ui-template/Button";
+import { IconAlertCircle } from "@tabler/icons-react";
 
 import AddItemNameModal from "./AddItemNameModal";
 import AddRoomLocationModal from "./AddRoomLocationModal";
@@ -43,6 +44,8 @@ export default function InventoryForm({
   inventoryNumber,
 }: InventoryFormProps) {
   const [form, setForm] = useState<FormState>(() => ({ ...initialValues }));
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -176,6 +179,12 @@ export default function InventoryForm({
       ...previous,
       [key]: value,
     }));
+
+    // Hapus error setelah field diisi
+    setErrors((previous) => ({
+      ...previous,
+      [key]: undefined,
+    }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -188,16 +197,46 @@ export default function InventoryForm({
       classification: effectiveClassification,
     };
 
-    if (
-      !submissionData.classification ||
-      !submissionData.roomLocation ||
-      !submissionData.location.trim() ||
-      !submissionData.itemName ||
-      !submissionData.model.trim() ||
-      !submissionData.serialNumber.trim() ||
-      !submissionData.purchaseYear
-    ) {
-      window.alert("Mohon lengkapi semua field wajib.");
+    const newErrors: Partial<Record<keyof FormState, string>> = {};
+
+    if (!submissionData.classification) {
+      newErrors.classification = "Klasifikasi wajib diisi!";
+    }
+
+    if (!submissionData.roomLocation) {
+      newErrors.roomLocation = "Lokasi Ruangan wajib diisi!";
+    }
+
+    if (!submissionData.location.trim()) {
+      newErrors.location = "Lokasi wajib diisi!";
+    }
+
+    if (!submissionData.itemName) {
+      newErrors.itemName = "Nama Barang wajib diisi!";
+    }
+
+    if (!submissionData.model.trim()) {
+      newErrors.model = "Model/Spesifikasi wajib diisi!";
+    }
+
+    if (!submissionData.serialNumber.trim()) {
+      newErrors.serialNumber = "Serial Number wajib diisi!";
+    }
+
+    if (!submissionData.purchaseYear) {
+      newErrors.purchaseYear = "Tahun Beli wajib diisi!";
+    }
+    if (!submissionData.status) {
+      newErrors.status = "Status wajib dipilih!";
+    }
+
+    if (!submissionData.condition) {
+      newErrors.condition = "Kondisi wajib dipilih!";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
       return;
     }
 
@@ -245,6 +284,7 @@ export default function InventoryForm({
   return (
     <>
       <form
+        noValidate
         onSubmit={handleSubmit}
         className="
         rounded-xl border border-slate-200
@@ -286,7 +326,7 @@ export default function InventoryForm({
             </label>
 
             <Dropdown
-              value={effectiveClassification}
+              value={isLoadingClassifications ? "" : effectiveClassification}
               options={classificationDropdownOptions}
               onChange={(value) => handleChange("classification", value)}
               disabled={inventoryType === "tik" || isLoadingClassifications}
@@ -294,6 +334,12 @@ export default function InventoryForm({
               placeholder={isLoadingClassifications ? "Memuat klasifikasi..." : "Pilih klasifikasi"}
               className="w-full"
             />
+            {errors.classification && (
+              <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+                <IconAlertCircle size={14} strokeWidth={2} />
+                <span>{errors.classification}</span>
+              </small>
+            )}
           </div>
 
           {/* LOKASI RUANGAN */}
@@ -304,7 +350,7 @@ export default function InventoryForm({
             </label>
 
             <Dropdown
-              value={form.roomLocation}
+              value={isLoadingLocations || locationError ? "" : form.roomLocation}
               options={locationDropdownOptions}
               onChange={(value) => handleChange("roomLocation", value)}
               disabled={isLoadingLocations || !!locationError}
@@ -326,6 +372,12 @@ export default function InventoryForm({
                 setShowAddRoomModal(true);
               }}
             />
+            {errors.roomLocation && (
+              <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+                <IconAlertCircle size={14} strokeWidth={2} />
+                <span>{errors.roomLocation}</span>
+              </small>
+            )}
           </div>
 
           {/* LOKASI */}
@@ -336,6 +388,7 @@ export default function InventoryForm({
             onChange={(event) => handleChange("location", event.target.value)}
             placeholder="Contoh: Lantai 1"
             required
+            error={errors.location}
           />
 
           {/* NAMA BARANG */}
@@ -346,7 +399,7 @@ export default function InventoryForm({
             </label>
 
             <Dropdown
-              value={form.itemName}
+              value={isLoadingItems || itemError ? "" : form.itemName}
               options={itemDropdownOptions}
               onChange={(value) => handleChange("itemName", value)}
               disabled={isLoadingItems || !!itemError}
@@ -368,6 +421,12 @@ export default function InventoryForm({
                 setShowAddItemModal(true);
               }}
             />
+            {errors.itemName && (
+              <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+                <IconAlertCircle size={14} strokeWidth={2} />
+                <span>{errors.itemName}</span>
+              </small>
+            )}
           </div>
 
           {/* MODEL */}
@@ -378,6 +437,7 @@ export default function InventoryForm({
             onChange={(event) => handleChange("model", event.target.value)}
             placeholder="Contoh: Core i7-12700, 16GB RAM, 512GB SSD"
             required
+            error={errors.model}
           />
 
           {/* SERIAL NUMBER */}
@@ -388,6 +448,7 @@ export default function InventoryForm({
             onChange={(event) => handleChange("serialNumber", event.target.value)}
             placeholder="Contoh: 4CE2460NSL"
             required
+            error={errors.serialNumber}
           />
 
           {/* TAHUN BELI */}
@@ -401,6 +462,7 @@ export default function InventoryForm({
             onChange={(event) => handleChange("purchaseYear", event.target.value)}
             placeholder="2024"
             required
+            error={errors.purchaseYear}
           />
 
           {/* GARANSI */}
@@ -430,6 +492,12 @@ export default function InventoryForm({
             [&_label]:py-2.5
           "
           />
+          {errors.status && (
+            <small className="mt-2 flex items-center gap-1 text-xs font-normal text-danger-500">
+              <IconAlertCircle size={14} strokeWidth={2} />
+              <span>{errors.status}</span>
+            </small>
+          )}
         </div>
 
         {/* KONDISI */}
@@ -450,6 +518,12 @@ export default function InventoryForm({
             [&_label]:py-2.5
           "
           />
+          {errors.condition && (
+            <small className="mt-2 flex items-center gap-1 text-xs font-normal text-danger-500">
+              <IconAlertCircle size={14} strokeWidth={2} />
+              <span>{errors.condition}</span>
+            </small>
+          )}
         </div>
 
         {/* KETERANGAN */}

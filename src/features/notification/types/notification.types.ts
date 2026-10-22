@@ -7,16 +7,17 @@ export interface Notification {
   createdAt: string;
   category: NotificationCategory;
   isRead: boolean;
+  url?: string | null;
+  createdAtRaw: string;
 }
-
 export interface NotificationApi {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
-  color: string;
-  time: string;
-  read_at: string | null;
+  ticket_id: string | null;
+  nomor_tiket: string | null;
+  url: string | null;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -32,5 +33,7 @@ export interface NotificationActivityApi {
 export interface NotificationResponse {
   data: NotificationApi[];
   unread_count: number;
-  activity: NotificationActivityApi[];
+  current_page: number;
+  last_page: number;
+  total: number;
 }

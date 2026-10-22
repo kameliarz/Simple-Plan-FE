@@ -53,8 +53,17 @@ export function mapNotification(notification: NotificationApi): Notification {
     id: notification.id,
     title: notification.title,
     message: notification.subtitle,
-    createdAt: notification.time,
+    createdAt: new Date(notification.created_at).toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta",
+    }),
+    createdAtRaw: notification.created_at,
     category: "sistem",
-    isRead: notification.read_at !== null,
+    isRead: notification.is_read,
+    url: notification.url,
   };
 }
