@@ -49,11 +49,9 @@ export default function DetailJadwalMaintenancePage() {
 
   const handleOpenDeactivateModal = () => {
     if (!item?.isActive) {
-      // Jika saat ini nonaktif, klik langsung mengaktifkan kembali
       void handleToggleActive(true);
       return;
     }
-    // Jika aktif, tampilkan modal konfirmasi (Screenshot 5)
     setShowDeactivateModal(true);
   };
 
@@ -147,7 +145,6 @@ export default function DetailJadwalMaintenancePage() {
         </div>
       </div>
 
-      {/* SUCCESS DEACTIVATED BANNER (Screenshot 1) */}
       {showDeactivatedBanner && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
           <div className="flex items-center gap-2">
@@ -175,7 +172,6 @@ export default function DetailJadwalMaintenancePage() {
           </h2>
 
           <div className="flex items-center gap-2">
-            {/* Badge Aktif / Nonaktif (Screenshot 1: Nonaktif badge warna merah) */}
             {item.isActive ? (
               <Badge variant="success" dot={true}>
                 Aktif
@@ -283,7 +279,6 @@ export default function DetailJadwalMaintenancePage() {
         </div>
       </div>
 
-      {/* BOTTOM CARD: Hasil Maintenance (Screenshot 4 - hanya muncul jika status Selesai) */}
       {item.status === "Selesai" && item.hasilMaintenance && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 space-y-6">
           <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 border-b border-gray-100 pb-4 dark:border-slate-800">

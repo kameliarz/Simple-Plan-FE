@@ -185,7 +185,6 @@ export default function UbahJadwalMaintenancePage() {
         <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Ubah Jadwal</h1>
       </div>
 
-      {/* Success alert banner (Screenshot 2) */}
       {showSuccessAlert && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
           <div className="flex items-center gap-2">
