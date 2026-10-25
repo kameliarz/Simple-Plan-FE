@@ -24,6 +24,8 @@ import EditInventoryPage from "@/features/inventory-create-change/pages/EditInve
 
 import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
 
+import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
@@ -127,6 +129,8 @@ function App() {
           />
 
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
+
+          <Route path="/back-up-data" element={<BackupDataPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />

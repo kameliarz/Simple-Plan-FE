@@ -131,7 +131,7 @@ export default function Dropdown({
         disabled={disabled}
         onClick={() => (open ? handleClose() : handleOpen())}
         className={cn(
-          "flex h-11 w-full items-center justify-between rounded-md border px-4 text-sm transition",
+          "flex h-10 w-full items-center justify-between rounded-md border px-4 text-sm transition",
           error
             ? "border-danger-500 bg-table-card text-danger-500"
             : "border-transparent bg-button text-text-secondary",
@@ -175,7 +175,7 @@ export default function Dropdown({
                 className={cn(
                   "flex min-h-10 w-full items-center border-b border-slate-200 px-4 py-2 text-left text-sm text-text-secondary transition hover:bg-blue-100 dark:border-slate-600 dark:hover:bg-blue-800",
                   index === filteredOptions.length - 1 && "border-b-0",
-                  value === option.value && "font-medium text-slate-700",
+                  value === option.value && "font-medium text-text-secondary",
                 )}
                 onClick={() => handleSelect(option.value)}
               >

@@ -89,7 +89,7 @@ function Thead({ children, className, ...props }: HTMLAttributes<HTMLTableSectio
       className={cn(
         `
         border-b
-        bg-table-head
+        bg-button
         border-slate-200
         dark:border-slate-800
         `,

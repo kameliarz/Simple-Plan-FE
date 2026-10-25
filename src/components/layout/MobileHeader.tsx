@@ -1,6 +1,6 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Menu, Moon, Sun, Bell } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
+
 import { cn } from "../../lib/utils";
 
 interface MobileHeaderProps {
@@ -15,138 +15,94 @@ interface MobileHeaderProps {
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onMenuClick,
   onNotificationClick,
-  isDarkMode,
-  onToggleDarkMode,
   notificationCount = 0,
   className,
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // BUKA HALAMAN NOTIFIKASI
-  const handleNotificationClick = () => {
-    // Tetap dukung handler dari parent jika tersedia
-    if (onNotificationClick) {
-      onNotificationClick();
-      return;
-    }
-
-    // Simpan halaman asal sebelum membuka notifikasi
-    const currentPage = location.pathname + location.search + location.hash;
-
-    navigate("/notifications", {
-      state: {
-        from: currentPage,
-      },
-    });
-  };
-
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-[#111827]/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 transition-colors",
+        `
+          sticky top-0 z-30
+          flex h-16 items-center
+          justify-between
+          border-b border-slate-100
+          bg-white/95 px-4
+          backdrop-blur-sm
+          transition-colors
+          dark:border-slate-800
+          dark:bg-[#111827]/95
+        `,
         className,
       )}
     >
-      {/* Kiri: Hamburger Menu & Title */}
-      <div className="flex items-center gap-3">
+      {/* ======================================
+          LEFT: MENU & APP NAME
+      ====================================== */}
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onMenuClick}
-          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           aria-label="Buka Menu"
+          className="
+            shrink-0 rounded-lg p-1.5
+            text-slate-700 transition
+            hover:bg-slate-100
+            dark:text-slate-200
+            dark:hover:bg-slate-800
+          "
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex flex-col">
-          <h1 className="text-sm font-bold text-blue-950 dark:text-blue-300 leading-tight">
+        <div className="flex min-w-0 flex-col">
+          <h1 className="text-sm font-bold leading-tight text-blue-950 dark:text-blue-300">
             Simple-Plan
           </h1>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+
+          <p className="truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">
             Rumah Sakit Citra Husada Jember
           </p>
         </div>
       </div>
 
-      {/* Kanan: Notification, Dark Mode & Hospital Emblem */}
-      <div className="flex items-center gap-2">
-        {/* TOMBOL NOTIFIKASI */}
+      {/* ======================================
+          RIGHT: NOTIFICATION & LOGO
+      ====================================== */}
+      <div className="flex shrink-0 items-center gap-2">
+        {/* NOTIFICATION */}
         <button
           type="button"
-          onClick={handleNotificationClick}
-          className="
-            relative
-            p-1.5
-            rounded-lg
-            text-slate-600
-            dark:text-slate-300
-            hover:bg-slate-100
-            dark:hover:bg-slate-800
-            transition
-          "
+          onClick={onNotificationClick}
           aria-label="Buka Notifikasi"
+          className="
+            relative rounded-lg p-1.5
+            text-slate-600 transition
+            hover:bg-slate-100
+            dark:text-slate-300
+            dark:hover:bg-slate-800
+          "
         >
-          <Bell className="w-5 h-5" />
+          <Bell className="h-5 w-5" />
 
           {notificationCount > 0 && (
             <span
               className="
-                absolute
-                right-0
-                top-0
-                h-2.5
-                w-2.5
-                rounded-full
-                bg-red-500
-                border-2
-                border-white
+                absolute right-0 top-0
+                h-2.5 w-2.5
+                rounded-full bg-red-500
+                border-2 border-white
                 dark:border-slate-900
               "
             />
           )}
         </button>
 
-        {/* TOMBOL DARK MODE */}
-        {onToggleDarkMode && (
-          <button
-            type="button"
-            onClick={onToggleDarkMode}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            title="Toggle Tema"
-            aria-label="Ganti tema"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-          </button>
-        )}
-
-        {/* Emblem Logo RS Citra Husada Jember */}
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center p-0.5"
-          title="RS Citra Husada Jember"
-        >
-          <svg viewBox="0 0 48 48" className="w-full h-full drop-shadow-sm" fill="none">
-            {/* Perisai Lambang */}
-            <path
-              d="M24 4L8 10V22C8 33 15 42 24 45C33 42 40 33 40 22V10L24 4Z"
-              fill="#ffffff"
-              stroke="#0f766e"
-              strokeWidth="2.5"
-            />
-
-            {/* Garis Aksen Hijau/Teal */}
-            <path
-              d="M24 6L10 11.5V22C10 31.5 16 39.5 24 42.5C32 39.5 38 31.5 38 22V11.5L24 6Z"
-              fill="#f0fdf4"
-            />
-
-            {/* Palang Medis Merah */}
-            <path d="M21 16H27V21H32V27H27V32H21V27H16V21H21V16Z" fill="#ef4444" />
-
-            {/* Bintang / Garis Simbol Medis */}
-            <circle cx="24" cy="24" r="2.5" fill="#ffffff" />
-          </svg>
-        </div>
+        {/* LOGO SIMPLE-PLAN */}
+        <img
+          src="/logo-simple-plan.png"
+          alt="Logo Simple-Plan"
+          className="h-7 w-7 shrink-0 object-contain"
+        />
       </div>
     </header>
   );
