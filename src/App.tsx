@@ -23,6 +23,10 @@ import CreateInventoryPage from "@/features/inventory-create-change/pages/Create
 import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
 
 import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
+import DaftarMaintenancePage from "@/features/maintenance/pages/DaftarMaintenancePage";
+import TambahJadwalMaintenancePage from "@/features/maintenance/pages/TambahJadwalMaintenancePage";
+import DetailJadwalMaintenancePage from "@/features/maintenance/pages/DetailJadwalMaintenancePage";
+import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMaintenancePage";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
@@ -127,6 +131,12 @@ function App() {
           />
 
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
+
+          {/* Maintenance */}
+          <Route path="/maintenance" element={<DaftarMaintenancePage />} />
+          <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
