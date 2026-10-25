@@ -9,6 +9,7 @@ export interface FormState {
   roomLocation: string;
   location: string;
   itemName: string;
+  detailItem: string;
   model: string;
   serialNumber: string;
   purchaseYear: string;
