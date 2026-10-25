@@ -185,8 +185,15 @@ export default function MainLayout({
       return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
 
-    if (path === "/maintenance") {
-      return [{ label: "Maintenance" }];
+    if (path.startsWith("/maintenance")) {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+
+      return [{ label }, { label: "Maintenance" }];
     }
 
     return [];

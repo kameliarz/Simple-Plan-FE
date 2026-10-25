@@ -8,6 +8,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "11 Okt 2026, 08:15 WIB",
     category: "sistem",
     isRead: false,
+    createdAtRaw: "2026-10-11T08:15:00Z",
   },
   {
     id: "2",
@@ -16,6 +17,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "11 Okt 2026, 08:00 WIB",
     category: "aset",
     isRead: false,
+    createdAtRaw: "2026-10-11T08:00:00Z",
   },
   {
     id: "3",
@@ -24,6 +26,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "10 Okt 2026, 14:40 WIB",
     category: "sistem",
     isRead: false,
+    createdAtRaw: "2026-10-10T14:40:00Z",
   },
   {
     id: "4",
@@ -32,6 +35,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "10 Okt 2026, 13:30 WIB",
     category: "aset",
     isRead: true,
+    createdAtRaw: "2026-10-10T13:30:00Z",
   },
   {
     id: "5",
@@ -40,6 +44,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "09 Okt 2026, 09:20 WIB",
     category: "aset",
     isRead: true,
+    createdAtRaw: "2026-10-09T09:20:00Z",
   },
   {
     id: "6",
@@ -48,6 +53,7 @@ export const dummyNotifications: Notification[] = [
     createdAt: "08 Okt 2026, 15:10 WIB",
     category: "aset",
     isRead: true,
+    createdAtRaw: "2026-10-08T15:10:00Z",
   },
   {
     id: "7",
@@ -56,5 +62,6 @@ export const dummyNotifications: Notification[] = [
     createdAt: "07 Okt 2026, 10:00 WIB",
     category: "aset",
     isRead: true,
+    createdAtRaw: "2026-10-07T10:00:00Z",
   },
 ];
