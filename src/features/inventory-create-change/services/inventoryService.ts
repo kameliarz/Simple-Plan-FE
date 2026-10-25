@@ -192,6 +192,9 @@ export function mapFormToUpdateAsset(form: FormState, classificationId?: string)
   formData.append("serial_number", form.serialNumber.trim());
   formData.append("model_specification", form.model.trim());
   formData.append("location_detail", form.location.trim());
+  if (form.detailItem?.trim()) {
+    formData.append("detail_item", form.detailItem.trim());
+  }
 
   // Status dan kondisi
   formData.append("status", statusApiMap[form.status]);

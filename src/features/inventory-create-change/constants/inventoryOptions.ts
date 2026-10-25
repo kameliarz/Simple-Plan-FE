@@ -71,6 +71,7 @@ export const initialForm: FormState = {
   roomLocation: "",
   location: "",
   itemName: "",
+  detailItem: "",
   model: "",
   serialNumber: "",
   purchaseYear: "",
