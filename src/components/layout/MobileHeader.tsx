@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Menu, Moon, Sun, Bell } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -19,6 +20,27 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   notificationCount = 0,
   className,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // BUKA HALAMAN NOTIFIKASI
+  const handleNotificationClick = () => {
+    // Tetap dukung handler dari parent jika tersedia
+    if (onNotificationClick) {
+      onNotificationClick();
+      return;
+    }
+
+    // Simpan halaman asal sebelum membuka notifikasi
+    const currentPage = location.pathname + location.search + location.hash;
+
+    navigate("/notifications", {
+      state: {
+        from: currentPage,
+      },
+    });
+  };
+
   return (
     <header
       className={cn(
@@ -47,11 +69,12 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         </div>
       </div>
 
-      {/* Kanan: Dark Mode Toggle & Hospital Emblem Logo */}
+      {/* Kanan: Notification, Dark Mode & Hospital Emblem */}
       <div className="flex items-center gap-2">
+        {/* TOMBOL NOTIFIKASI */}
         <button
           type="button"
-          onClick={onNotificationClick}
+          onClick={handleNotificationClick}
           className="
             relative
             p-1.5
@@ -84,12 +107,14 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           )}
         </button>
 
+        {/* TOMBOL DARK MODE */}
         {onToggleDarkMode && (
           <button
             type="button"
             onClick={onToggleDarkMode}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             title="Toggle Tema"
+            aria-label="Ganti tema"
           >
             {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
@@ -108,13 +133,16 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               stroke="#0f766e"
               strokeWidth="2.5"
             />
+
             {/* Garis Aksen Hijau/Teal */}
             <path
               d="M24 6L10 11.5V22C10 31.5 16 39.5 24 42.5C32 39.5 38 31.5 38 22V11.5L24 6Z"
               fill="#f0fdf4"
             />
+
             {/* Palang Medis Merah */}
             <path d="M21 16H27V21H32V27H27V32H21V27H16V21H21V16Z" fill="#ef4444" />
+
             {/* Bintang / Garis Simbol Medis */}
             <circle cx="24" cy="24" r="2.5" fill="#ffffff" />
           </svg>
