@@ -58,6 +58,9 @@ export default function CreateInventoryPage({ inventoryType }: CreateInventoryPa
       formData.append("model_specification", data.model.trim());
       formData.append("serial_number", data.serialNumber.trim());
       formData.append("purchase_year", data.purchaseYear);
+      if (data.detailItem?.trim()) {
+        formData.append("detail_item", data.detailItem.trim());
+      }
 
       // Status dan kondisi
       formData.append("status", statusMapping[data.status]);
