@@ -28,6 +28,8 @@ import TambahJadwalMaintenancePage from "@/features/maintenance/pages/TambahJadw
 import DetailJadwalMaintenancePage from "@/features/maintenance/pages/DetailJadwalMaintenancePage";
 import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMaintenancePage";
 
+import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
@@ -132,6 +134,9 @@ function App() {
 
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
 
+          {/* Backup */}
+          <Route path="/back-up-data" element={<BackupDataPage />} />
+          
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
           <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />

@@ -15,6 +15,8 @@ import { notificationService } from "@/features/notification/services/notificati
 
 import { NOTIFICATION_UPDATED_EVENT } from "@/features/notification/utils/notificationEvents";
 
+import MobileSidebar from "@/components/layout/MobileSidebar";
+
 interface BreadcrumbItem {
   label: string;
   href?: string;
@@ -41,6 +43,8 @@ export default function MainLayout({
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
 
   const [unreadCount, setUnreadCount] = useState(notificationCount);
+
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // DARK MODE
   const toggleDarkMode = () => {
@@ -215,6 +219,7 @@ export default function MainLayout({
                 onToggleDarkMode={toggleDarkMode}
                 onNotificationClick={handleMobileNotificationClick}
                 notificationCount={unreadCount}
+                onMenuClick={() => setShowMobileSidebar(true)}
               />
             </div>
             {/* HEADER DESKTOP */}
@@ -229,7 +234,7 @@ export default function MainLayout({
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-20 lg:pb-0">
               {children}
             </main>
-            BOTTOM NAV MOBILE
+
             <div className="lg:hidden shrink-0">
               <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
             </div>
@@ -239,6 +244,13 @@ export default function MainLayout({
 
       {/* NOTIFICATION DRAWER DESKTOP */}
       <NotificationDrawer show={showNotificationDrawer} onClose={handleCloseNotification} />
+      {/* MOBILE SIDEBAR */}
+      <MobileSidebar
+        show={showMobileSidebar}
+        onClose={() => setShowMobileSidebar(false)}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
+      />
     </>
   );
 }
