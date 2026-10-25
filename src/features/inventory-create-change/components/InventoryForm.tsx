@@ -207,21 +207,21 @@ export default function InventoryForm({
       newErrors.roomLocation = "Lokasi Ruangan wajib diisi!";
     }
 
-    if (!submissionData.location.trim()) {
-      newErrors.location = "Lokasi wajib diisi!";
-    }
+    // if (!submissionData.location.trim()) {
+    //   newErrors.location = "Lokasi wajib diisi!";
+    // }
 
     if (!submissionData.itemName) {
       newErrors.itemName = "Nama Barang wajib diisi!";
     }
 
-    if (!submissionData.model.trim()) {
-      newErrors.model = "Model/Spesifikasi wajib diisi!";
-    }
+    // if (!submissionData.model.trim()) {
+    //   newErrors.model = "Model/Spesifikasi wajib diisi!";
+    // }
 
-    if (!submissionData.serialNumber.trim()) {
-      newErrors.serialNumber = "Serial Number wajib diisi!";
-    }
+    // if (!submissionData.serialNumber.trim()) {
+    //   newErrors.serialNumber = "Serial Number wajib diisi!";
+    // }
 
     if (!submissionData.purchaseYear) {
       newErrors.purchaseYear = "Tahun Beli wajib diisi!";
@@ -317,31 +317,31 @@ export default function InventoryForm({
         )}
 
         {/* FORM FIELDS */}
+        {/* KLASIFIKASI */}
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <label className="text-sm font-semibold text-text-secondary">
+            Klasifikasi
+            <span className="ml-1 text-red-500">*</span>
+          </label>
+
+          <Dropdown
+            value={isLoadingClassifications ? "" : effectiveClassification}
+            options={classificationDropdownOptions}
+            onChange={(value) => handleChange("classification", value)}
+            disabled={inventoryType === "tik" || isLoadingClassifications}
+            searchable={false}
+            placeholder={isLoadingClassifications ? "Memuat klasifikasi..." : "Pilih klasifikasi"}
+            className="w-full mb-4"
+          />
+
+          {errors.classification && (
+            <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
+              <IconAlertCircle size={14} strokeWidth={2} />
+              <span>{errors.classification}</span>
+            </small>
+          )}
+        </div>
         <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
-          {/* KLASIFIKASI */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-text-secondary">
-              Klasifikasi
-              <span className="ml-1 text-red-500">*</span>
-            </label>
-
-            <Dropdown
-              value={isLoadingClassifications ? "" : effectiveClassification}
-              options={classificationDropdownOptions}
-              onChange={(value) => handleChange("classification", value)}
-              disabled={inventoryType === "tik" || isLoadingClassifications}
-              searchable={false}
-              placeholder={isLoadingClassifications ? "Memuat klasifikasi..." : "Pilih klasifikasi"}
-              className="w-full"
-            />
-            {errors.classification && (
-              <small className="flex items-center gap-1 text-xs font-normal text-danger-500">
-                <IconAlertCircle size={14} strokeWidth={2} />
-                <span>{errors.classification}</span>
-              </small>
-            )}
-          </div>
-
           {/* LOKASI RUANGAN */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-text-secondary">
@@ -429,6 +429,16 @@ export default function InventoryForm({
             )}
           </div>
 
+          {/* Detail barang */}
+          <Input
+            label="Detail"
+            name="detailItem"
+            value={form.detailItem}
+            onChange={(event) => handleChange("detailItem", event.target.value)}
+            placeholder="Contoh:"
+            // error={errors.model}
+          />
+
           {/* MODEL */}
           <Input
             label="Model/Spesifikasi"
@@ -436,8 +446,8 @@ export default function InventoryForm({
             value={form.model}
             onChange={(event) => handleChange("model", event.target.value)}
             placeholder="Contoh: Core i7-12700, 16GB RAM, 512GB SSD"
-            required
-            error={errors.model}
+            // required
+            // error={errors.model}
           />
 
           {/* SERIAL NUMBER */}
@@ -447,8 +457,8 @@ export default function InventoryForm({
             value={form.serialNumber}
             onChange={(event) => handleChange("serialNumber", event.target.value)}
             placeholder="Contoh: 4CE2460NSL"
-            required
-            error={errors.serialNumber}
+            // required
+            // error={errors.serialNumber}
           />
 
           {/* TAHUN BELI */}
@@ -545,7 +555,7 @@ export default function InventoryForm({
             type="submit"
             label={isSubmitting ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan"}
             variant="primary"
-            className="min-w-30"
+            className="w-full"
             disabled={isSubmitting}
           />
         </div>

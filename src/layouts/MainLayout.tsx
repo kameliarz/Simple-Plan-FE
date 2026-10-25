@@ -210,7 +210,6 @@ export default function MainLayout({
                 notificationCount={unreadCount}
               />
             </div>
-
             {/* HEADER DESKTOP */}
             <div className="hidden lg:block shrink-0">
               <NavbarHeader
@@ -219,13 +218,11 @@ export default function MainLayout({
                 onNotificationClick={handleNotificationClick}
               />
             </div>
-
             {/* PAGE CONTENT */}
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-20 lg:pb-0">
               {children}
             </main>
-
-            {/* BOTTOM NAV MOBILE */}
+            BOTTOM NAV MOBILE
             <div className="lg:hidden shrink-0">
               <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
             </div>

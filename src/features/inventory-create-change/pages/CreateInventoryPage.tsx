@@ -115,7 +115,7 @@ export default function CreateInventoryPage({ inventoryType }: CreateInventoryPa
       >
         <IconArrowLeft size={18} strokeWidth={1.8} />
 
-        <span>Tambah Inventaris {isTik ? "TIK" : "Sarpras"}</span>
+        <span>Tambah Asset</span>
       </button>
 
       {/* FORM CREATE */}

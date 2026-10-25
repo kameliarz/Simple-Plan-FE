@@ -48,6 +48,7 @@ export interface AssetDetail {
     item: AssetItem;
   };
 
+  detail_item: string | null;
   serial_number: string | null;
   brand: string | null;
   model_specification: string | null;
@@ -150,6 +151,7 @@ export function mapAssetToForm(asset: AssetDetail): FormState {
     classification: String(asset.asset_code.classification.id),
     roomLocation: String(asset.asset_code.location.id),
     itemName: String(asset.asset_code.item.id),
+    detailItem: asset.detail_item ?? "",
     location: asset.location_detail ?? "",
     model: asset.model_specification ?? "",
     serialNumber: asset.serial_number ?? "",

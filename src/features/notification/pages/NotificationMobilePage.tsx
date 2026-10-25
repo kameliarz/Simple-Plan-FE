@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { IconArrowLeft } from "@tabler/icons-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import NotificationItem from "../components/NotificationItem";
 
@@ -59,6 +60,17 @@ function getNotificationGroup(createdAt: string, now: Date): NotificationGroup {
 
 export default function NotificationMobilePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleBack = () => {
+    const from = location.state?.from;
+
+    if (typeof from === "string" && from.startsWith("/") && !from.startsWith("//")) {
+      navigate(from, { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<NotificationTab>("all");
 
@@ -251,79 +263,111 @@ export default function NotificationMobilePage() {
         dark:bg-slate-950
       "
     >
-      {/* HEADER */}
-      <div className="px-4 pt-4">
-        <h1
-          className="
-            text-lg font-semibold
-            text-text-secondary
-            dark:text-slate-100
-          "
-        >
-          Notifikasi
-        </h1>
-      </div>
-
-      {/* TAB NAVIGATION */}
+      {/* HEADER & TAB NAVIGATION - STICKY */}
       <div
         className="
-          sticky top-0 z-10
-          mt-3 flex gap-5
-          border-b border-soft-border
-          bg-white px-4
-          dark:border-slate-800
+          sticky top-0 z-30
+          bg-white
           dark:bg-slate-950
         "
       >
-        {/* SEMUA NOTIFIKASI */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("all")}
-          className={`
-            relative py-3 text-xs
-            transition-colors
-            ${
-              activeTab === "all"
-                ? "font-semibold text-primary-500"
-                : "text-slate-500 hover:text-slate-700"
-            }
-          `}
+        {/* HEADER */}
+        <div
+          className="
+            flex items-center gap-3
+            px-4 pt-4
+          "
         >
-          Semua notifikasi
-          {activeTab === "all" && (
-            <span
-              className="
-                absolute inset-x-0 bottom-0
-                h-0.5 rounded-full bg-primary-500
-              "
-            />
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Kembali ke halaman sebelumnya"
+            className="
+              flex h-9 w-9 shrink-0
+              items-center justify-center
+              rounded-lg
+              text-slate-600
+              transition-colors
+              hover:bg-slate-100
+              active:bg-slate-200
+              dark:text-slate-300
+              dark:hover:bg-slate-800
+            "
+          >
+            <IconArrowLeft size={22} strokeWidth={2} />
+          </button>
 
-        {/* BELUM DIBACA */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("unread")}
-          className={`
-            relative py-3 text-xs
-            transition-colors
-            ${
-              activeTab === "unread"
-                ? "font-semibold text-primary-500"
-                : "text-slate-500 hover:text-slate-700"
-            }
-          `}
+          <h1
+            className="
+              text-lg font-semibold
+              text-text-secondary
+              dark:text-slate-100
+            "
+          >
+            Notifikasi
+          </h1>
+        </div>
+
+        {/* TAB NAVIGATION */}
+        <div
+          className="
+            mt-3 flex gap-5
+            border-b border-soft-border
+            bg-white px-4
+            dark:border-slate-800
+            dark:bg-slate-950
+          "
         >
-          Belum dibaca ({unreadCount})
-          {activeTab === "unread" && (
-            <span
-              className="
-                absolute inset-x-0 bottom-0
-                h-0.5 rounded-full bg-primary-500
-              "
-            />
-          )}
-        </button>
+          {/* SEMUA NOTIFIKASI */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={`
+              relative py-3 text-xs
+              transition-colors
+              ${
+                activeTab === "all"
+                  ? "font-semibold text-primary-500"
+                  : "text-slate-500 hover:text-slate-700"
+              }
+            `}
+          >
+            Semua notifikasi
+            {activeTab === "all" && (
+              <span
+                className="
+                  absolute inset-x-0 bottom-0
+                  h-0.5 rounded-full bg-primary-500
+                "
+              />
+            )}
+          </button>
+
+          {/* BELUM DIBACA */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("unread")}
+            className={`
+              relative py-3 text-xs
+              transition-colors
+              ${
+                activeTab === "unread"
+                  ? "font-semibold text-primary-500"
+                  : "text-slate-500 hover:text-slate-700"
+              }
+            `}
+          >
+            Belum dibaca ({unreadCount})
+            {activeTab === "unread" && (
+              <span
+                className="
+                  absolute inset-x-0 bottom-0
+                  h-0.5 rounded-full bg-primary-500
+                "
+              />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* DAFTAR NOTIFIKASI */}
