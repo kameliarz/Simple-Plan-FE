@@ -17,6 +17,7 @@ export interface GetTicketsParams {
   date_from?: string;
   date_to?: string;
   search?: string;
+  signal?: AbortSignal;
 }
 
 interface AssigneeApiOption {
@@ -94,6 +95,7 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
   const response = await fetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
+    signal: params.signal,
   });
 
   if (handleUnauthorized(response)) {

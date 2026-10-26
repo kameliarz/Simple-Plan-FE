@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-
 import Input from "@/components/ui/ui-template/Input";
 import Dropdown, { type DropdownOption } from "@/components/ui/ui-template/Dropdown";
 import Button from "@/components/ui/ui-template/Button";
 
 import {
-  searchAssetLocations,
+  searchUnits,
   searchAssets,
-  type SearchedAssetLocation,
+  type SearchedUnit,
   type SearchedAsset,
 } from "../services/searchApi";
 
@@ -31,7 +30,6 @@ export default function InventorySection({
   inventoryNumber,
   inventoryName,
   location,
-  unitError,
   onUnitChange,
   onInventoryNumberChange,
   onInventoryNameChange,
@@ -41,41 +39,29 @@ export default function InventorySection({
   // =========================
   // State data Unit
   // =========================
-
-  const [unitList, setUnitList] = useState<SearchedAssetLocation[]>([]);
+  const [unitList, setUnitList] = useState<SearchedUnit[]>([]);
   const [isLoadingUnits, setIsLoadingUnits] = useState(true);
 
   // =========================
   // State data Inventaris
   // =========================
-
-  const [assetResult, setAssetResult] = useState<{
-    code: SearchedAssetLocation["code"];
-    assets: SearchedAsset[];
-    error: string;
-  } | null>(null);
-
-  const [unitWarning, setUnitWarning] = useState("");
-
+  const [assetList, setAssetList] = useState<SearchedAsset[]>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [fetchError, setFetchError] = useState("");
   // =========================
   // Load Unit
   // =========================
-
   useEffect(() => {
     let isMounted = true;
 
-    searchAssetLocations("")
+    searchUnits("")
       .then((data) => {
-        if (!isMounted) return;
-
-        setUnitList(Array.isArray(data) ? data : []);
-      })
-      .catch((error) => {
-        console.error("Gagal memuat asset locations:", error);
-
-        if (isMounted) {
-          setUnitList([]);
+        if (isMounted && Array.isArray(data)) {
+          setUnitList(data);
         }
+      })
+      .catch((err) => {
+        console.error("Gagal memuat unit:", err);
       })
       .finally(() => {
         if (isMounted) {
@@ -91,97 +77,53 @@ export default function InventorySection({
   // =========================
   // Format opsi Unit
   // =========================
-
   const unitOptions: DropdownOption[] = useMemo(() => {
     return unitList.map((u) => ({
-      label: u.name,
-      value: u.name,
+      label: u.unit_name,
+      value: u.unit_name,
     }));
   }, [unitList]);
-
-  // =========================
-  // Cari lokasi berdasarkan Unit
-  // =========================
-
-  const matchedLocation = useMemo(() => {
-    if (!unit) return null;
-
-    return unitList.find((item) => item.name.toLowerCase() === unit.toLowerCase()) ?? null;
-  }, [unit, unitList]);
-
-  const locationCode = matchedLocation?.code ?? null;
-
-  // =========================
-  // Derived state Inventaris
-  // =========================
-
-  const assetList = useMemo(() => {
-    if (!locationCode) return [];
-
-    if (assetResult?.code !== locationCode) return [];
-
-    return assetResult.assets;
-  }, [locationCode, assetResult]);
-
-  const isLoadingAssets = Boolean(locationCode) && assetResult?.code !== locationCode;
-
-  const fetchError = locationCode && assetResult?.code === locationCode ? assetResult.error : "";
 
   // =========================
   // Fetch Inventaris ketika Unit berubah
   // =========================
 
   useEffect(() => {
-    if (!locationCode) return;
+    if (!unit || unitList.length === 0) return;
+
+    const matchedUnit = unitList.find(
+      (item) => item.unit_name.toLowerCase() === unit.toLowerCase(),
+    );
+
+    if (!matchedUnit) return;
 
     let isMounted = true;
 
-    // Gunakan CODE lokasi, bukan ID
-    searchAssets(locationCode)
+    searchAssets(matchedUnit.id)
       .then((data) => {
         if (!isMounted) return;
 
-        setAssetResult({
-          code: locationCode,
-          assets: Array.isArray(data) ? data : [],
-          error: "",
-        });
+        setAssetList(Array.isArray(data) ? data : []);
+        setFetchError("");
+        setIsLoadingAssets(false);
       })
       .catch((error) => {
         if (!isMounted) return;
 
-        console.error("Gagal memuat inventaris untuk unit:", locationCode, error);
-
-        setAssetResult({
-          code: locationCode,
-          assets: [],
-          error: "Gagal memuat inventaris untuk unit ini.",
-        });
+        setAssetList([]);
+        setFetchError("Gagal memuat inventaris untuk unit ini.");
+        setIsLoadingAssets(false);
+        console.error(error);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [locationCode]);
-
-  // =========================
-  // Validasi Unit
-  // =========================
-
-  const checkUnitSelected = (): boolean => {
-    if (!unit) {
-      setUnitWarning("Silakan pilih Unit terlebih dahulu!");
-      return false;
-    }
-
-    setUnitWarning("");
-    return true;
-  };
+  }, [unit, unitList]);
 
   // =========================
   // Opsi Nama Inventaris
   // =========================
-
   const nameOptions: DropdownOption[] = useMemo(() => {
     const names = assetList
       .map((item) => item.name)
@@ -198,7 +140,6 @@ export default function InventorySection({
   // =========================
   // Opsi No. Inventaris
   // =========================
-
   const numberOptions: DropdownOption[] = useMemo(() => {
     let filtered = assetList;
 
@@ -221,9 +162,8 @@ export default function InventorySection({
   // =========================
   // Pilih Nama Inventaris
   // =========================
-
   const handleNameSelect = (selectedName: string) => {
-    if (!checkUnitSelected()) return;
+    if (!unit) return;
 
     onInventoryNameChange(selectedName);
 
@@ -235,7 +175,6 @@ export default function InventorySection({
       onInventoryNumberChange(matchedAsset.asset_number ?? "");
       onLocationChange(matchedAsset.location ?? "");
       onAssetIdChange(matchedAsset.id ?? null);
-
       return;
     }
 
@@ -262,33 +201,42 @@ export default function InventorySection({
   // =========================
   // Pilih No. Inventaris
   // =========================
-
   const handleNumberSelect = (selectedNumber: string) => {
-    if (!checkUnitSelected()) return;
-
-    onInventoryNumberChange(selectedNumber);
+    if (!unit) return;
 
     const matchedAsset = assetList.find((item) => item.asset_number === selectedNumber);
 
     if (matchedAsset) {
+      onInventoryNumberChange(matchedAsset.asset_number ?? "");
       onInventoryNameChange(matchedAsset.name ?? "");
       onLocationChange(matchedAsset.location ?? "");
       onAssetIdChange(matchedAsset.id ?? null);
+
+      console.log("Inventaris terpilih:", matchedAsset);
+      console.log("Asset ID terpilih:", matchedAsset.id);
     } else {
-      onInventoryNameChange("");
+      onInventoryNumberChange("");
       onLocationChange("");
       onAssetIdChange(null);
+
+      console.warn("Inventaris tidak ditemukan:", selectedNumber);
     }
   };
 
   // =========================
   // Ganti Unit
   // =========================
-
   const handleUnitChange = (newUnitValue: string) => {
-    setUnitWarning("");
+    setFetchError("");
 
-    // Reset state di parent
+    // State lokal
+    setAssetList([]);
+    setIsLoadingAssets(
+      Boolean(newUnitValue) &&
+        unitList.some((item) => item.unit_name.toLowerCase() === newUnitValue.toLowerCase()),
+    );
+
+    // State parent
     onUnitChange(newUnitValue);
     onInventoryNameChange("");
     onInventoryNumberChange("");
@@ -299,13 +247,11 @@ export default function InventorySection({
   // =========================
   // Reset Inventaris
   // =========================
-
   const handleReset = () => {
     onInventoryNameChange("");
     onInventoryNumberChange("");
     onLocationChange("");
     onAssetIdChange(null);
-    setUnitWarning("");
   };
 
   return (
@@ -313,10 +259,7 @@ export default function InventorySection({
       {/* Unit */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-text-secondary">
-            Unit
-            <span className="ml-1 text-red-500">*</span>
-          </label>
+          <label className="text-sm font-semibold text-text-secondary">Unit</label>
         </div>
 
         <Dropdown
@@ -326,7 +269,6 @@ export default function InventorySection({
           onChange={handleUnitChange}
           placeholder={isLoadingUnits ? "Memuat unit..." : "Pilih unit"}
           className="w-full"
-          error={unitError || unitWarning}
           searchable
           searchPlaceholder="Cari unit..."
           sheetTitle="Pilih Unit"
@@ -335,14 +277,7 @@ export default function InventorySection({
       </div>
 
       {/* Nama Inventaris */}
-      <div
-        className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}
-        onClickCapture={() => {
-          if (!unit) {
-            checkUnitSelected();
-          }
-        }}
-      >
+      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">Nama Inventaris</label>
 
         <div className={!unit ? "pointer-events-none opacity-60" : ""}>
@@ -367,14 +302,7 @@ export default function InventorySection({
       </div>
 
       {/* No. Inventaris */}
-      <div
-        className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}
-        onClickCapture={() => {
-          if (!unit) {
-            checkUnitSelected();
-          }
-        }}
-      >
+      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">No. Inventaris</label>
 
         <div className={!unit ? "pointer-events-none opacity-60" : ""}>
@@ -411,7 +339,6 @@ export default function InventorySection({
         className="cursor-default"
       />
 
-      {/* Reset Pilihan */}
       {(inventoryName || inventoryNumber || location) && (
         <div className="flex justify-end pt-1">
           <Button

@@ -36,10 +36,10 @@ export interface ApiTicketHandling {
     name: string;
   } | null;
   result_photo?: {
-    object_key: string;
     original_name: string;
     mime_type: string;
     size: number;
+    url: string;
   } | null;
   created_at: string;
 }
@@ -54,6 +54,19 @@ export interface ApiTicket {
   rejection_reason: string | null;
   priority: ApiTicketPriority | null;
   sla_started_at: string | null;
+
+  asset: {
+    id: number;
+    asset_number: string | null;
+    name: string | null;
+    brand: string | null;
+    location: string | null;
+    status: string | null;
+    unit?: {
+      id: number;
+      name: string;
+    } | null;
+  } | null;
 
   tik_detail?: {
     quality_category?: {
@@ -83,7 +96,6 @@ export interface ApiTicket {
   } | null;
 
   initial_evidence?: {
-    object_key?: string;
     original_name: string;
     mime_type: string;
     size: number;

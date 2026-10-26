@@ -11,6 +11,7 @@ export interface DropdownProps {
   value: string;
   options: (string | DropdownOption)[];
   onChange: (value: string) => void;
+  disabled?: boolean;
   placeholder?: string;
   className?: string;
   error?: string;
@@ -20,12 +21,16 @@ export interface DropdownProps {
   sheetTitle?: string;
   displayValue?: string;
   onSearchChange?: (value: string) => void;
+  emptyMessage?: string;
+  emptyActionLabel?: string;
+  onEmptyActionClick?: (search: string) => void;
 }
 
 export default function Dropdown({
   value,
   options,
   onChange,
+  disabled = false,
   placeholder = "Pilih...",
   className,
   error,
@@ -35,6 +40,9 @@ export default function Dropdown({
   sheetTitle = "Pilih pilihan",
   displayValue,
   onSearchChange,
+  emptyMessage,
+  emptyActionLabel,
+  onEmptyActionClick,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -120,16 +128,17 @@ export default function Dropdown({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => (open ? handleClose() : handleOpen())}
         className={cn(
-          "flex h-11 w-full items-center justify-between rounded-md border px-4 text-sm transition",
+          "flex h-10 w-full items-center justify-between rounded-md border px-4 text-sm transition",
           error
             ? "border-danger-500 bg-table-card text-danger-500"
             : "border-transparent bg-button text-text-secondary",
         )}
       >
         <span className="truncate">{triggerLabel}</span>
-        <IconChevronDown size={22} strokeWidth={1.5} className="shrink-0" />
+        {!disabled && <IconChevronDown size={22} strokeWidth={1.5} className="shrink-0" />}
       </button>
 
       {/* Desktop Dropdown */}
@@ -166,7 +175,7 @@ export default function Dropdown({
                 className={cn(
                   "flex min-h-10 w-full items-center border-b border-slate-200 px-4 py-2 text-left text-sm text-text-secondary transition hover:bg-blue-100 dark:border-slate-600 dark:hover:bg-blue-800",
                   index === filteredOptions.length - 1 && "border-b-0",
-                  value === option.value && "font-medium text-slate-700",
+                  value === option.value && "font-medium text-text-secondary",
                 )}
                 onClick={() => handleSelect(option.value)}
               >
@@ -175,9 +184,26 @@ export default function Dropdown({
             ))}
 
             {filteredOptions.length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-slate-500">
-                Pilihan tidak ditemukan.
-              </p>
+              <div className="px-3 py-4 text-center text-sm text-slate-500">
+                {onEmptyActionClick && search.trim() ? (
+                  <p>
+                    {emptyMessage ?? "Pilihan tidak ditemukan."}{" "}
+                    <button
+                      type="button"
+                      className="font-semibold text-blue-700 underline hover:text-blue-900"
+                      onClick={() => {
+                        const searchValue = search.trim();
+                        handleClose();
+                        onEmptyActionClick(searchValue);
+                      }}
+                    >
+                      {emptyActionLabel ?? "Tambah data baru"}
+                    </button>
+                  </p>
+                ) : (
+                  <p>Pilihan tidak ditemukan.</p>
+                )}
+              </div>
             )}
           </div>
         </div>
