@@ -30,6 +30,7 @@ import {
 } from "../services/inventarisApi";
 import type {
   ApiAsset,
+  AssetClassification,
   AssetLocation,
   BulkAssetLabelFilters,
   InventarisStatus,
@@ -77,7 +78,7 @@ export default function InventarisSarprasListPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [classificationId, setClassificationId] = useState<number | undefined>(1);
+  const [classifications, setClassifications] = useState<AssetClassification[]>([]);
 
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -118,29 +119,35 @@ export default function InventarisSarprasListPage() {
     setError(null);
     try {
       const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
-      // 1. Ambil klasifikasi untuk sarpras
-      const classifications = await getAssetClassifications().catch(() => []);
-      const sarprasClass = classifications.find(
-        (c) =>
-          c.name.toLowerCase().includes("sarpras") ||
-          c.name.toLowerCase().includes("sarana") ||
-          c.code === 3,
-      );
-      const targetClassId = sarprasClass ? sarprasClass.id : classificationId;
-      if (sarprasClass) setClassificationId(sarprasClass.id);
+      const classificationsData = await getAssetClassifications().catch(() => []);
+      setClassifications(classificationsData);
 
-      // 2. Ambil lokasi
+      const sarprasClasses = classificationsData.filter(
+        (c) =>
+          c.name.toLowerCase() !== "alat it" &&
+          !c.name.toLowerCase().includes("tik") &&
+          c.code !== 6 &&
+          c.code !== 5,
+      );
+
       const locs = await getAssetLocations().catch(() => []);
       setLocations(locs);
 
-      // 3. Ambil data aset sarpras
-      const assetRes = await getAssets({
-        asset_classification_id: targetClassId,
-        per_page: 100,
-        moved_last_3_months: isMoved,
-      });
+      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = sarprasClasses.map((sc) =>
+        getAssets({
+          asset_classification_id: sc.id,
+          per_page: 100,
+          moved_last_3_months: isMoved,
+        }),
+      );
 
-      setAssets(assetRes.data || []);
+      const responses = await Promise.all(fetchPromises);
+      const combinedAssets = responses.flatMap((r) => r.data || []);
+
+      // Urutkan aset dari ID terbesar (paling baru dibuat muncul di paling atas)
+      combinedAssets.sort((a, b) => Number(b.id) - Number(a.id));
+
+      setAssets(combinedAssets);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data inventaris sarpras");
     } finally {
@@ -309,8 +316,11 @@ export default function InventarisSarprasListPage() {
         if (filterStatus && filterStatus !== "Semua status") {
           filters.status = filterStatus;
         }
-        if (classificationId) {
-          filters.classification_id = classificationId;
+        if (filterKlasifikasi && filterKlasifikasi !== "Semua jenis") {
+          const matchedClassification = classifications.find((c) => c.name === filterKlasifikasi);
+          if (matchedClassification?.id) {
+            filters.classification_id = matchedClassification.id;
+          }
         }
         if (filterPerpindahan) {
           filters.moved_last_3_months = true;

@@ -122,12 +122,14 @@ export default function InventarisTikListPage() {
       const classifications = await getAssetClassifications().catch(() => []);
       const tikClass = classifications.find(
         (c) =>
-          c.name.toLowerCase().includes("it") ||
+          c.name.toLowerCase() === "alat it" ||
           c.name.toLowerCase().includes("tik") ||
-          c.name.toLowerCase().includes("elektronik") ||
-          c.code === 5 ||
           c.code === 6,
       );
+      const elektronikClass = classifications.find(
+        (c) => c.name.toLowerCase().includes("elektronik") || c.code === 5,
+      );
+
       const targetClassId = tikClass ? tikClass.id : classificationId;
       if (tikClass) setClassificationId(tikClass.id);
 
@@ -135,14 +137,46 @@ export default function InventarisTikListPage() {
       const locs = await getAssetLocations().catch(() => []);
       setLocations(locs);
 
-      // 3. Ambil data aset TIK
-      const assetRes = await getAssets({
-        asset_classification_id: targetClassId,
-        per_page: 100,
-        moved_last_3_months: isMoved,
-      });
+      // 3. Ambil data aset TIK (gabungkan Alat IT dan data Alat Elektronik)
+      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = [];
 
-      setAssets(assetRes.data || []);
+      if (tikClass) {
+        fetchPromises.push(
+          getAssets({
+            asset_classification_id: tikClass.id,
+            per_page: 100,
+            moved_last_3_months: isMoved,
+          }),
+        );
+      }
+
+      if (elektronikClass && (!tikClass || elektronikClass.id !== tikClass.id)) {
+        fetchPromises.push(
+          getAssets({
+            asset_classification_id: elektronikClass.id,
+            per_page: 100,
+            moved_last_3_months: isMoved,
+          }),
+        );
+      }
+
+      if (fetchPromises.length === 0 && targetClassId) {
+        fetchPromises.push(
+          getAssets({
+            asset_classification_id: targetClassId,
+            per_page: 100,
+            moved_last_3_months: isMoved,
+          }),
+        );
+      }
+
+      const responses = await Promise.all(fetchPromises);
+      const combinedAssets = responses.flatMap((r) => r.data || []);
+
+      // Urutkan aset dari ID terbesar (paling baru dibuat muncul di paling atas)
+      combinedAssets.sort((a, b) => Number(b.id) - Number(a.id));
+
+      setAssets(combinedAssets);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data inventaris TIK");
     } finally {
