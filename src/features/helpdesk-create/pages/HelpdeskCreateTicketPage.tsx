@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
+import { useLocation, useNavigate } from "react-router-dom";
+
 import { IconArrowLeft, IconArrowRight, IconCircleCheck, IconX } from "@tabler/icons-react";
 
 import TextArea from "@/components/ui/ui-template/TextArea";
@@ -11,40 +13,117 @@ import ReporterSection from "../components/ReporterSection";
 import InventorySection from "../components/InventorySection";
 import EvidenceSection from "../components/EvidenceSection";
 
-import { searchUsersByName, type SearchedUser, createTicket } from "../services/searchApi";
+import {
+  searchUsersByName,
+  type SearchedUser,
+  createTicket,
+  type AssetByUid,
+} from "../services/searchApi";
+
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 
 import type { HelpdeskCategory, HelpdeskTicketForm } from "../types";
 
 export default function CreateHelpdeskTicketPage() {
   const { user } = useAuth();
+
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+
+  // ==========================================
+  // TERIMA DATA ASET HASIL SCAN
+  // ==========================================
+
+  const initialScannedAsset =
+    (
+      routerLocation.state as {
+        scannedAsset?: AssetByUid;
+      } | null
+    )?.scannedAsset ?? null;
+
+  const [scannedAsset, setScannedAsset] = useState<AssetByUid | null>(initialScannedAsset);
+
+  // Menghapus state navigasi agar tidak digunakan
+  // kembali setelah reset atau tiket berhasil dibuat.
+  const clearScannedAsset = useCallback(() => {
+    setScannedAsset(null);
+
+    navigate(
+      {
+        pathname: routerLocation.pathname,
+        search: routerLocation.search,
+      },
+      {
+        replace: true,
+        state: null,
+      },
+    );
+  }, [navigate, routerLocation.pathname, routerLocation.search]);
+
   const isSuperAdmin = user?.role === "super-admin";
 
+  // ==========================================
+  // STATE PENCARIAN USER
+  // ==========================================
+
   const [searchedUsers, setSearchedUsers] = useState<SearchedUser[]>([]);
+
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+
   const [searchUsersError, setSearchUsersError] = useState("");
+
   const [showUserResults, setShowUserResults] = useState(false);
 
-  // State untuk penanganan submit API
+  // ==========================================
+  // STATE SUBMIT
+  // ==========================================
+
   const [submitError, setSubmitError] = useState("");
   const [createdTicketNumber, setCreatedTicketNumber] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ==========================================
+  // STATE FORM
+  // ==========================================
 
   const [form, setForm] = useState<HelpdeskTicketForm>(() => ({
     reporterName: user?.nama ?? "",
     selectedReporterId: user?.id ? String(user.id) : "",
     category: "sarpras",
-    assetId: null,
-    inventoryNumber: "",
-    inventoryName: "",
-    brandSeries: "",
+
+    // Data dari hasil scan, jika tersedia
+    assetId: initialScannedAsset?.id ?? null,
+    inventoryNumber: initialScannedAsset?.code ?? "",
+    inventoryName: initialScannedAsset?.name ?? "",
+    brandSeries: initialScannedAsset?.brand ?? "",
+
     reporterUnit: user?.unit_user ?? null,
     inventoryUnit: null,
-    location: "",
+    location: initialScannedAsset?.location ?? "",
+
     issueDescription: "",
     evidence: null,
   }));
 
+  // ==========================================
+  // STATE VALIDASI
+  // ==========================================
+
+  const [errors, setErrors] = useState<Partial<Record<keyof HelpdeskTicketForm, string>>>({});
+
+  // ==========================================
+  // SUCCESS MODAL
+  // ==========================================
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // ==========================================
+  // RESET FORM
+  // ==========================================
+
   const resetForm = () => {
+    clearScannedAsset();
+
     setForm({
       reporterName: user?.nama ?? "",
       selectedReporterId: user?.id ? String(user.id) : "",
@@ -67,11 +146,9 @@ export default function CreateHelpdeskTicketPage() {
     setSubmitError("");
   };
 
-  // Menyimpan pesan error untuk setiap field
-  const [errors, setErrors] = useState<Partial<Record<keyof HelpdeskTicketForm, string>>>({});
-
-  // Mengatur tampilan modal berhasil
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // ==========================================
+  // UBAH PELAPOR
+  // ==========================================
 
   const handleReporterSearchChange = (value: string) => {
     setForm((prev) => ({
@@ -91,6 +168,10 @@ export default function CreateHelpdeskTicketPage() {
       reporterUnit: undefined,
     }));
   };
+
+  // ==========================================
+  // SEARCH USER SUPER ADMIN
+  // ==========================================
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -133,15 +214,21 @@ export default function CreateHelpdeskTicketPage() {
     };
   }, [form.reporterName, form.selectedReporterId, isSuperAdmin, showUserResults]);
 
+  // ==========================================
+  // UBAH KATEGORI
+  // ==========================================
+
   const handleCategoryChange = (value: HelpdeskCategory) => {
     setForm((prev) => ({
       ...prev,
       category: value,
     }));
   };
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mengubah nilai field pada form (Dideklarasikan sebelum useEffect)
+  // ==========================================
+  // UPDATE FIELD
+  // ==========================================
+
   const updateField = useCallback(
     <K extends keyof HelpdeskTicketForm>(field: K, value: HelpdeskTicketForm[K]) => {
       setForm((previous) => ({
@@ -149,7 +236,6 @@ export default function CreateHelpdeskTicketPage() {
         [field]: value,
       }));
 
-      // Menghapus error ketika field mulai diisi
       setErrors((previous) => ({
         ...previous,
         [field]: undefined,
@@ -158,7 +244,34 @@ export default function CreateHelpdeskTicketPage() {
     [],
   );
 
-  // Validasi form sebelum dikirim
+  // ==========================================
+  // RESET PILIHAN INVENTARIS
+  // ==========================================
+
+  const handleResetInventory = () => {
+    clearScannedAsset();
+
+    setForm((prev) => ({
+      ...prev,
+      assetId: null,
+      inventoryNumber: "",
+      inventoryName: "",
+      brandSeries: "",
+      inventoryUnit: null,
+      location: "",
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      inventoryNumber: undefined,
+      inventoryUnit: undefined,
+    }));
+  };
+
+  // ==========================================
+  // VALIDASI FORM
+  // ==========================================
+
   const validateForm = () => {
     const newErrors: Partial<Record<keyof HelpdeskTicketForm, string>> = {};
 
@@ -176,22 +289,43 @@ export default function CreateHelpdeskTicketPage() {
       newErrors.issueDescription = "Deskripsi kendala wajib diisi!";
     }
 
+    // Periksa ID aset bila inventaris dipilih.
+    const assetId = form.assetId === null || form.assetId === "" ? null : Number(form.assetId);
+
+    const isValidAssetId = assetId !== null && Number.isSafeInteger(assetId) && assetId > 0;
+
+    const hasInventorySelection =
+      Boolean(scannedAsset) ||
+      Boolean(form.inventoryNumber.trim()) ||
+      Boolean(form.inventoryName.trim());
+
+    if (hasInventorySelection && !isValidAssetId) {
+      newErrors.inventoryNumber =
+        "Inventaris belum terverifikasi. Silakan pilih inventaris yang valid.";
+    }
+
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
-  // Menangani submit form
+  // ==========================================
+  // SUBMIT FORM
+  // ==========================================
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (isSubmitting) return;
+
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     setSubmitError("");
 
     try {
+      const assetId = form.assetId !== null && form.assetId !== "" ? Number(form.assetId) : null;
+
       const response = await createTicket({
         ...(isSuperAdmin && form.selectedReporterId
           ? {
@@ -200,11 +334,8 @@ export default function CreateHelpdeskTicketPage() {
           : {}),
 
         service: form.category,
-
-        asset_id: form.assetId !== null && form.assetId !== "" ? Number(form.assetId) : null,
-
+        asset_id: assetId,
         description: form.issueDescription.trim(),
-
         initial_evidence: form.evidence,
       });
 
@@ -224,6 +355,10 @@ export default function CreateHelpdeskTicketPage() {
     }
   };
 
+  // ==========================================
+  // PILIH PELAPOR
+  // ==========================================
+
   const handleSelectReporter = (selectedUser: SearchedUser) => {
     setForm((prev) => ({
       ...prev,
@@ -236,6 +371,10 @@ export default function CreateHelpdeskTicketPage() {
     setSearchedUsers([]);
     setSearchUsersError("");
   };
+
+  // ==========================================
+  // RENDER - UI TETAP
+  // ==========================================
 
   return (
     <div className="min-h-full bg-background">
@@ -282,11 +421,14 @@ export default function CreateHelpdeskTicketPage() {
               inventoryName={form.inventoryName}
               location={form.location}
               unitError={errors.inventoryUnit}
+              inventoryNumberError={errors.inventoryNumber}
+              scannedAsset={scannedAsset}
               onUnitChange={(value) => updateField("inventoryUnit", value)}
               onInventoryNumberChange={(value) => updateField("inventoryNumber", value)}
               onInventoryNameChange={(value) => updateField("inventoryName", value)}
               onLocationChange={(value) => updateField("location", value)}
               onAssetIdChange={(assetId) => updateField("assetId", assetId)}
+              onResetInventory={handleResetInventory}
             />
           </TicketSection>
 

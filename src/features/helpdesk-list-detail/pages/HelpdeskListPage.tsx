@@ -146,18 +146,6 @@ export default function HelpdeskSAPage() {
 
         if (!isActive) return;
 
-        // Debug sementara
-        console.log("GET /tickets response:", response);
-
-        console.log(
-          "Ticket priorities:",
-          response.data.map((ticket) => ({
-            id: ticket.id,
-            ticket_number: ticket.ticket_number,
-            priority: ticket.priority,
-          })),
-        );
-
         setTickets(response.data);
         setMeta(response.meta);
       } catch (error) {
@@ -228,7 +216,14 @@ export default function HelpdeskSAPage() {
   };
 
   const handleTicketClick = (ticket: ApiTicket) => {
-    navigate(`/helpdesk/${service}/${ticket.id}`);
+    const ticketService = ticket.service;
+
+    if (ticketService !== "tik" && ticketService !== "sarpras") {
+      console.error("Kategori layanan tiket tidak valid:", ticket);
+      return;
+    }
+
+    navigate(`/helpdesk/${ticketService}/${ticket.id}`);
   };
 
   /* =========================

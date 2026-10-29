@@ -1,11 +1,10 @@
 import { getToken } from "@/features/auth-login/services/authStorage";
-
-const BASE_URL = "http://localhost:8000/api/v1";
+import { API_BASE_URL } from "@/config/api";
 
 export async function apiGet<T>(endpoint: string): Promise<T> {
   const token = getToken();
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -23,7 +22,7 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
 export async function apiPost<T>(endpoint: string, data: FormData): Promise<T> {
   const token = getToken();
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -46,7 +45,7 @@ export async function apiPost<T>(endpoint: string, data: FormData): Promise<T> {
 export async function apiPostJson<T>(endpoint: string, data: object): Promise<T> {
   const token = getToken();
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
     headers: {
       Accept: "application/json",
