@@ -33,6 +33,7 @@ export interface MaintenanceItem {
 
 export interface MaintenanceFormState {
   assetId: string;
+  nomorInventaris?: string;
   namaBarang: string;
   lokasiRuangan: string;
   lokasi: string;

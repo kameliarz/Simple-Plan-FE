@@ -209,6 +209,20 @@ export default function UbahJadwalMaintenancePage() {
           onSubmit={handleSubmit}
           className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm transition-colors space-y-5"
         >
+          {/* NOMOR INVENTARIS (Readonly) */}
+          <div>
+            <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
+              NOMOR INVENTARIS
+            </label>
+            <input
+              type="text"
+              readOnly
+              disabled
+              value={item.nomorInventaris || item.idBarang || "-"}
+              className="h-11 w-full rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+            />
+          </div>
+
           {/* 1. ASET * (Read-only input in edit mode) */}
           <div>
             <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
