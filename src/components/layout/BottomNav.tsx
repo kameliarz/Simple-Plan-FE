@@ -1,8 +1,8 @@
 import React from "react";
-import { Home, HelpCircle, User } from "lucide-react";
+import { Home, HelpCircle, User, Archive } from "lucide-react";
 import { cn } from "../../lib/utils";
 
-export type MobileNavTab = "dashboard" | "helpdesk" | "profile";
+export type MobileNavTab = "dashboard" | "helpdesk" | "inventaris" | "profile";
 
 interface BottomNavProps {
   activeTab?: MobileNavTab;
@@ -15,17 +15,26 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onTabChange,
   className,
 }) => {
+  const middleItem =
+    activeTab === "inventaris"
+      ? {
+          id: "inventaris" as MobileNavTab,
+          label: "Inventaris Aset",
+          icon: Archive,
+        }
+      : {
+          id: "helpdesk" as MobileNavTab,
+          label: "Helpdesk",
+          icon: HelpCircle,
+        };
+
   const navItems = [
     {
       id: "dashboard" as MobileNavTab,
       label: "Dashboard",
       icon: Home,
     },
-    {
-      id: "helpdesk" as MobileNavTab,
-      label: "Helpdesk",
-      icon: HelpCircle,
-    },
+    middleItem,
     {
       id: "profile" as MobileNavTab,
       label: "Profil",

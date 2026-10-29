@@ -6,10 +6,13 @@ import {
   Filter,
   Download,
   X,
-  FolderSearch,
   QrCode,
   Loader2,
   AlertCircle,
+  SlidersHorizontal,
+  Info,
+  Check,
+  Minus,
 } from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
 import { clearAuth, getUser } from "@/features/auth-login/services/authStorage";
@@ -19,7 +22,6 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Checkbox from "@/components/ui/Checkbox";
 import RadioButton from "@/components/ui/RadioButton";
-import EmptyState from "@/components/ui/EmptyState";
 import BottomSheet from "@/components/ui/BottomSheet";
 import Toast from "@/components/ui/Toast";
 import {
@@ -61,6 +63,21 @@ const getBadgeVariant = (status: InventarisStatus): BadgeVariant => {
   }
 };
 
+const getStatusBadgeClass = (status: InventarisStatus): string => {
+  switch (status) {
+    case "Digunakan":
+    case "Aktif":
+      return "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800";
+    case "Dipinjam":
+      return "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800";
+    case "Rusak":
+      return "bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800";
+    case "Tidak Digunakan":
+    default:
+      return "bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+  }
+};
+
 export default function InventarisTikListPage() {
   const navigate = useNavigate();
   const user = getUser();
@@ -83,7 +100,7 @@ export default function InventarisTikListPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [exportMode, setExportMode] = useState<"selected" | "all_filtered">("selected");
-  const [labelSize, setLabelSize] = useState<"standard" | "medium" | "small" | "large">("standard");
+  const [labelSize, setLabelSize] = useState<"standard" | "small" | "large">("standard");
   const [isDownloading, setIsDownloading] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
@@ -111,7 +128,6 @@ export default function InventarisTikListPage() {
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
-  // Fetch data
   // Fetch data
   const fetchData = async (overridePerpindahan?: boolean) => {
     setIsLoading(true);
@@ -190,7 +206,7 @@ export default function InventarisTikListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close filter when clicking outside
+  // Close filter when clicking outside (desktop)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
@@ -206,7 +222,7 @@ export default function InventarisTikListPage() {
     setTempStatus(filterStatus);
     setTempKlasifikasi(filterKlasifikasi);
     setTempPerpindahan(filterPerpindahan);
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 1024) {
       setIsMobileFilterOpen(true);
     } else {
       setIsFilterOpen((prev) => !prev);
@@ -308,7 +324,6 @@ export default function InventarisTikListPage() {
     try {
       const dimensions = {
         standard: { width_mm: 70, height_mm: 35 },
-        medium: { width_mm: 90, height_mm: 50 },
         small: { width_mm: 50, height_mm: 25 },
         large: { width_mm: 100, height_mm: 50 },
       }[labelSize];
@@ -386,16 +401,124 @@ export default function InventarisTikListPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900">
-      <div className="mb-6 flex flex-col gap-1">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] p-4 lg:p-6 bg-slate-50 dark:bg-slate-900">
+      {/* Search Bar & Mobile Filter Trigger */}
+      <div className="flex items-center gap-2 mb-4 lg:hidden">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari Data..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-600 text-sm text-slate-800 dark:text-slate-200 shadow-sm"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleOpenFilter}
+          className={`p-2.5 rounded-xl border transition-colors shrink-0 shadow-sm ${
+            isFilterActive
+              ? "bg-blue-50 border-blue-400 text-blue-700 dark:bg-blue-900/40 dark:border-blue-500 dark:text-blue-300"
+              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+          }`}
+          aria-label="Buka Filter"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden lg:flex mb-6 flex-col gap-1">
         <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
           Daftar Inventaris TIK
         </h1>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
+      {/* Mobile Title & Action Bar */}
+      <div className="lg:hidden mb-4">
+        {isSelectMode ? (
+          /* Mobile Selection Bar */
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200 font-medium">
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedIds.length === filteredData.length) {
+                    setSelectedIds([]);
+                  } else {
+                    setSelectedIds(filteredData.map((d) => d.id));
+                  }
+                }}
+                className="w-5 h-5 flex items-center justify-center border border-slate-400 rounded bg-slate-100 dark:bg-slate-800"
+              >
+                {selectedIds.length === filteredData.length && filteredData.length > 0 ? (
+                  <Check className="h-3.5 w-3.5 text-blue-700" />
+                ) : selectedIds.length > 0 ? (
+                  <Minus className="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
+                ) : null}
+              </button>
+              <span>{selectedIds.length} aset terpilih untuk unduh label</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSelectMode(false);
+                  setSelectedIds([]);
+                }}
+                className="text-blue-900 dark:text-blue-400 font-bold hover:underline ml-1"
+              >
+                Batalkan
+              </button>
+            </div>
+
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => {
+                setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
+                setIsDownloadModalOpen(true);
+              }}
+              className="gap-1.5 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold shrink-0"
+            >
+              <Download className="h-3.5 w-3.5" /> Unduh Label
+            </Button>
+          </div>
+        ) : (
+          /* Mobile Normal Header Row */
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+              Daftar Inventaris TIK
+            </h1>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => setIsSelectMode(true)}
+                className="gap-1.5 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold"
+              >
+                <Download className="h-3.5 w-3.5" /> Unduh Label Massal
+              </Button>
+
+              {canCreate && (
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => navigate("/inventory/tik/create")}
+                  className="gap-1 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Tambah Aset
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Container Card (Desktop & Mobile) */}
+      <div className="bg-transparent lg:bg-white lg:dark:bg-slate-800 lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
+        {/* Desktop Toolbar */}
+        <div className="hidden lg:flex p-4 border-b border-slate-200 dark:border-slate-700 justify-between items-center gap-4">
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
@@ -409,7 +532,6 @@ export default function InventarisTikListPage() {
 
           <div className="flex items-center gap-3">
             {isSelectMode ? (
-              /* Mode Unduh Label */
               <Button
                 type="button"
                 variant="default"
@@ -422,9 +544,8 @@ export default function InventarisTikListPage() {
                 <Download className="h-4 w-4" /> Unduh Label
               </Button>
             ) : (
-              /* Toolbar Normal */
               <>
-                {/* Filter Dropdown */}
+                {/* Desktop Filter Dropdown */}
                 <div className="relative" ref={filterRef}>
                   <Button
                     type="button"
@@ -439,7 +560,6 @@ export default function InventarisTikListPage() {
                     Filter <Filter className="h-4 w-4" />
                   </Button>
 
-                  {/* Filter Popover Modal (Desktop) */}
                   {isFilterOpen && (
                     <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-4 z-50">
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-4">
@@ -530,7 +650,6 @@ export default function InventarisTikListPage() {
                   )}
                 </div>
 
-                {/* Tombol Masuk Mode Unduh Label Massal */}
                 <Button
                   type="button"
                   variant="default"
@@ -540,7 +659,6 @@ export default function InventarisTikListPage() {
                   <Download className="h-4 w-4" /> Unduh Label Massal
                 </Button>
 
-                {/* Tambah Aset - Sembunyikan jika role tidak diizinkan */}
                 {canCreate && (
                   <Button
                     type="button"
@@ -556,10 +674,11 @@ export default function InventarisTikListPage() {
           </div>
         </div>
 
-        {/* Tabel Konten */}
-        <div className="p-6 flex flex-col">
+        {/* Content Section */}
+        <div className="p-0 lg:p-6 flex flex-col">
+          {/* Desktop Selection Mode Info Bar */}
           {isSelectMode && (
-            <div className="flex items-center justify-between p-3.5 mb-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg text-sm text-slate-700 dark:text-slate-200">
+            <div className="hidden lg:flex items-center justify-between p-3.5 mb-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg text-sm text-slate-700 dark:text-slate-200">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
                   {selectedIds.length}
@@ -646,70 +765,147 @@ export default function InventarisTikListPage() {
               )}
             </div>
           ) : filteredData.length > 0 ? (
-            <BaseTable
-              columns={columns}
-              data={filteredData}
-              itemsPerPage={10}
-              selectable={isSelectMode}
-              showHeaderCheckbox={false}
-              selectedIds={selectedIds}
-              getId={(row) => row.id}
-              onSelectRow={(id, selected) => {
-                if (selected) {
-                  setSelectedIds((prev) => [...prev, id]);
-                } else {
-                  setSelectedIds((prev) => prev.filter((item) => item !== id));
-                }
-              }}
-              onSelectAll={(selected) => {
-                if (selected) {
-                  setSelectedIds(filteredData.map((d) => d.id));
-                } else {
-                  setSelectedIds([]);
-                }
-              }}
-              onRowClick={(row) => {
-                if (isSelectMode) {
-                  if (selectedIds.includes(row.id)) {
-                    setSelectedIds((prev) => prev.filter((id) => id !== row.id));
-                  } else {
-                    setSelectedIds((prev) => [...prev, row.id]);
-                  }
-                } else {
-                  navigate(`/inventaris/tik/${row.id}`);
-                }
-              }}
-            />
+            <>
+              {/* MOBILE CARD LIST (lg:hidden) */}
+              <div className="lg:hidden flex flex-col gap-3">
+                {filteredData.map((item) => {
+                  const isSelected = selectedIds.includes(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (isSelectMode) {
+                          if (isSelected) {
+                            setSelectedIds((prev) => prev.filter((id) => id !== item.id));
+                          } else {
+                            setSelectedIds((prev) => [...prev, item.id]);
+                          }
+                        } else {
+                          navigate(`/inventaris/tik/${item.id}`);
+                        }
+                      }}
+                      className={`bg-white dark:bg-slate-800 rounded-xl p-4 border transition-all cursor-pointer shadow-sm relative ${
+                        isSelected
+                          ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {/* Top Header: Nomor Inventaris & Status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2.5">
+                          {isSelectMode && (
+                            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedIds((prev) => [...prev, item.id]);
+                                  } else {
+                                    setSelectedIds((prev) => prev.filter((id) => id !== item.id));
+                                  }
+                                }}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-[11px] text-slate-400 font-medium">
+                              Nomor Inventaris
+                            </div>
+                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                              {item.nomor}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`px-3 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(
+                            item.status,
+                          )}`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+
+                      {/* Card Content: Nama & Lokasi */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug">
+                          {item.nama}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Lokasi Ruangan:{" "}
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            {item.lokasi}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DESKTOP TABLE VIEW (hidden lg:block) */}
+              <div className="hidden lg:block">
+                <BaseTable
+                  columns={columns}
+                  data={filteredData}
+                  itemsPerPage={10}
+                  selectable={isSelectMode}
+                  showHeaderCheckbox={false}
+                  selectedIds={selectedIds}
+                  getId={(row) => row.id}
+                  onSelectRow={(id, selected) => {
+                    if (selected) {
+                      setSelectedIds((prev) => [...prev, id]);
+                    } else {
+                      setSelectedIds((prev) => prev.filter((item) => item !== id));
+                    }
+                  }}
+                  onSelectAll={(selected) => {
+                    if (selected) {
+                      setSelectedIds(filteredData.map((d) => d.id));
+                    } else {
+                      setSelectedIds([]);
+                    }
+                  }}
+                  onRowClick={(row) => {
+                    if (isSelectMode) {
+                      if (selectedIds.includes(row.id)) {
+                        setSelectedIds((prev) => prev.filter((id) => id !== row.id));
+                      } else {
+                        setSelectedIds((prev) => [...prev, row.id]);
+                      }
+                    } else {
+                      navigate(`/inventaris/tik/${row.id}`);
+                    }
+                  }}
+                />
+              </div>
+            </>
           ) : (
-            <div className="py-8">
-              <EmptyState
-                title="Data Aset Tidak Ditemukan"
-                description={
-                  searchTerm
-                    ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil.`
-                    : "Belum ada aset TIK yang terdaftar."
-                }
-                icon={<FolderSearch className="h-12 w-12 text-slate-400" />}
-              />
+            /* EMPTY STATE (Mockup matching: Data aset tidak ditemukan!) */
+            <div className="py-20 flex flex-col items-center justify-center text-center px-4">
+              <div className="w-12 h-12 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 mb-3">
+                <Info className="h-6 w-6 stroke-[1.5]" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Data aset tidak ditemukan!
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Pilih ukuran Label Modal */}
+      {/* Unduh Label Massal Modal (Pilih Ukuran Label) */}
       {isDownloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-              <div>
-                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                  Unduh Label Massal
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Pilih mode pemilihan aset dan ukuran label yang diinginkan
-                </p>
-              </div>
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                Pilih Ukuran Label
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsDownloadModalOpen(false)}
@@ -721,234 +917,101 @@ export default function InventarisTikListPage() {
 
             {/* Body */}
             <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-              {/* Section 1: Mode Pemilihan Aset */}
+              {/* Radio Ukuran Label */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Mode Pemilihan Aset <span className="text-rose-500">*</span>
+                  Ukuran <span className="text-rose-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Mode Selected */}
-                  <div
-                    onClick={() => {
-                      if (selectedIds.length > 0) {
-                        setExportMode("selected");
-                      }
-                    }}
-                    className={`p-3.5 rounded-lg border transition-all ${
-                      selectedIds.length === 0
-                        ? "opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50"
-                        : exportMode === "selected"
-                          ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 ring-1 ring-blue-600 cursor-pointer"
-                          : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 cursor-pointer"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    { id: "standard" as const, label: "Standar (70 x 35 mm)" },
+                    { id: "small" as const, label: "Kecil (50 x 25 mm)" },
+                    { id: "large" as const, label: "Besar (100 x 50 mm)" },
+                  ].map((opt) => (
+                    <div
+                      key={opt.id}
+                      onClick={() => setLabelSize(opt.id)}
+                      className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${
+                        labelSize === opt.id
+                          ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-200 font-medium"
+                          : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750"
+                      }`}
+                    >
                       <RadioButton
-                        id="tik-export-mode-selected"
-                        name="exportMode"
-                        checked={exportMode === "selected"}
-                        disabled={selectedIds.length === 0}
-                        onChange={() => setExportMode("selected")}
-                        label=""
+                        id={`tik-size-${opt.id}`}
+                        name="labelSize"
+                        checked={labelSize === opt.id}
+                        onChange={() => setLabelSize(opt.id)}
+                        label={opt.label}
                       />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            Aset Terpilih Manual
-                          </span>
-                          <span
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                              selectedIds.length > 0
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            {selectedIds.length} Aset
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                          {selectedIds.length > 0
-                            ? `Mengunduh label berdasarkan ${selectedIds.length} aset yang dicentang secara manual di tabel.`
-                            : "Belum ada aset yang dicentang di tabel. Centang baris aset terlebih dahulu."}
-                        </p>
-                      </div>
                     </div>
-                  </div>
-
-                  {/* Mode All Filtered */}
-                  <div
-                    onClick={() => setExportMode("all_filtered")}
-                    className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
-                      exportMode === "all_filtered"
-                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 ring-1 ring-blue-600"
-                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <RadioButton
-                        id="tik-export-mode-all-filtered"
-                        name="exportMode"
-                        checked={exportMode === "all_filtered"}
-                        onChange={() => setExportMode("all_filtered")}
-                        label=""
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            Seluruh Aset Terfilter
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            Semua Halaman
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                          Mengunduh label seluruh aset yang memenuhi filter saat ini, termasuk di
-                          luar pagination.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Filter Summary Pill jika Mode All Filtered Aktif */}
-                {exportMode === "all_filtered" && (
-                  <div className="mt-2.5 p-2.5 rounded-md bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">
-                      Kriteria Filter Aktif:
-                    </span>{" "}
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                        Kategori: TIK
-                      </span>
-                      {filterLokasi !== "Semua lokasi" && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          Lokasi: {filterLokasi}
-                        </span>
-                      )}
-                      {filterStatus !== "Semua status" && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          Status: {filterStatus}
-                        </span>
-                      )}
-                      {filterPerpindahan && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                          Perpindahan 3 Bulan Terakhir
-                        </span>
-                      )}
-                      {searchTerm.trim() && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          Pencarian: &quot;{searchTerm.trim()}&quot;
-                        </span>
-                      )}
-                      {filterLokasi === "Semua lokasi" &&
-                        filterStatus === "Semua status" &&
-                        !filterPerpindahan &&
-                        !searchTerm.trim() && (
-                          <span className="text-slate-400 italic">
-                            Tanpa filter tambahan (semua aset TIK akan diunduh)
-                          </span>
-                        )}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Section 2 & 3: Ukuran & Preview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100 dark:border-slate-700">
-                {/* Ukuran */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Ukuran Label <span className="text-rose-500">*</span>
+              {/* Pratinjau Label Card */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Pratinjau Label
                   </label>
-                  <div className="space-y-2">
-                    {[
-                      { id: "standard" as const, label: "Standar (70 x 35 mm)" },
-                      { id: "medium" as const, label: "Sedang (90 x 50 mm)" },
-                      { id: "small" as const, label: "Kecil (50 x 25 mm)" },
-                      { id: "large" as const, label: "Besar (100 x 50 mm)" },
-                    ].map((opt) => (
-                      <div
-                        key={opt.id}
-                        onClick={() => setLabelSize(opt.id)}
-                        className={`flex items-center p-2.5 rounded-lg border cursor-pointer transition-all ${
-                          labelSize === opt.id
-                            ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-200 font-medium"
-                            : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                        }`}
-                      >
-                        <RadioButton
-                          id={`tik-size-${opt.id}`}
-                          name="labelSize"
-                          checked={labelSize === opt.id}
-                          onChange={() => setLabelSize(opt.id)}
-                          label={opt.label}
-                        />
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Preview */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Pratinjau Label
-                    </label>
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                      {
-                        {
-                          standard: "70 × 35 mm",
-                          medium: "90 × 50 mm",
-                          small: "50 × 25 mm",
-                          large: "100 × 50 mm",
-                        }[labelSize]
-                      }
-                    </span>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                      <span className="font-bold text-slate-800 dark:text-slate-100">
-                        {previewAsset?.nomor || "5/2/1/31/2024"}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">TIK</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="space-y-1">
-                        <div className="text-[10px] text-slate-400">Nama Barang</div>
-                        <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
-                          {previewAsset?.nama || "PC All-in-One"}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold tracking-tight">
+                        {previewAsset?.nomor || "3/1/1/6/2021"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
+                        INVENTARIS ASET TIK
+                      </div>
+                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div>
+                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                            NAMA BARANG
+                          </div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                            {previewAsset?.nama || "Monitor Pasien Multi-Parameter"}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-400">Lokasi</div>
-                        <div className="font-semibold text-slate-700 dark:text-slate-200 line-clamp-1">
-                          {previewAsset?.lokasi || "Ruang IT"}
+                        <div>
+                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                            LOKASI RUANGAN
+                          </div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                            {previewAsset?.lokasi || "Ruang Rawat Inap Melati 3"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                            STATUS
+                          </div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                            {previewAsset?.status || "Aktif"}
+                          </div>
                         </div>
                       </div>
-                      <QrCode className="h-14 w-14 text-slate-700 dark:text-slate-300 shrink-0" />
+                    </div>
+
+                    <div className="shrink-0 pt-1">
+                      <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-2">
-                    File diekspor dalam format dokumen PDF (kertas A4) siap cetak.
-                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDownloadModalOpen(false)}
-                className="text-xs"
-              >
-                Batal
-              </Button>
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
               <Button
                 type="button"
                 variant="default"
                 disabled={isDownloading || (exportMode === "selected" && selectedIds.length === 0)}
                 onClick={handleDownloadBulk}
-                className="gap-2 px-5 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                className="w-full gap-2 py-2.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
               >
                 {isDownloading ? (
                   <>
@@ -956,10 +1019,7 @@ export default function InventarisTikListPage() {
                   </>
                 ) : (
                   <>
-                    <Download className="h-4 w-4" />
-                    {exportMode === "selected"
-                      ? `Unduh ${selectedIds.length} Label Terpilih`
-                      : "Unduh Seluruh Label Terfilter"}
+                    <Download className="h-4 w-4" /> Unduh Label
                   </>
                 )}
               </Button>
@@ -968,16 +1028,16 @@ export default function InventarisTikListPage() {
         </div>
       )}
 
-      {/* Mobile Filter BottomSheet */}
+      {/* Mobile Filter BottomSheet (Melihat daftar Dropdown Filter) */}
       <BottomSheet
         isOpen={isMobileFilterOpen}
         onClose={() => setIsMobileFilterOpen(false)}
-        title="Filter Data Aset"
+        title="Filter Aset"
         footer={
           <div className="flex items-center gap-3 w-full">
             <Button
               variant="outline"
-              className="flex-1 rounded-xl h-10 text-xs"
+              className="flex-1 rounded-xl h-11 text-sm font-medium border-slate-300"
               onClick={() => {
                 handleResetFilter();
                 setIsMobileFilterOpen(false);
@@ -987,7 +1047,7 @@ export default function InventarisTikListPage() {
             </Button>
             <Button
               variant="default"
-              className="flex-1 rounded-xl h-10 text-xs bg-blue-800 hover:bg-blue-900 text-white"
+              className="flex-1 rounded-xl h-11 text-sm font-semibold bg-[#0f2d59] hover:bg-blue-900 text-white"
               onClick={() => {
                 handleApplyFilter();
                 setIsMobileFilterOpen(false);
@@ -998,42 +1058,79 @@ export default function InventarisTikListPage() {
           </div>
         }
       >
-        <div className="space-y-4 py-2 text-sm">
+        <div className="space-y-5 py-2 text-sm">
+          {/* Lokasi Ruangan */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Lokasi Ruangan
             </label>
-            <Select
-              value={tempLokasi}
-              onChange={(e) => setTempLokasi(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Semua lokasi">Semua lokasi</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.name}>
-                  {loc.name}
-                </option>
-              ))}
-            </Select>
+            <div className="relative">
+              <select
+                value={tempLokasi}
+                onChange={(e) => setTempLokasi(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="Semua lokasi">Cari lokasi ruangan...</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.name}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
+          {/* Status Pills */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Status
             </label>
-            <Select
-              value={tempStatus}
-              onChange={(e) => setTempStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Semua status">Semua status</option>
-              <option value="Digunakan">Digunakan</option>
-              <option value="Tidak Digunakan">Tidak Digunakan</option>
-              <option value="Dipinjam">Dipinjam</option>
-              <option value="Rusak">Rusak</option>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {["Digunakan", "Dipinjam", "Tidak Digunakan", "Rusak"].map((st) => {
+                const isActive = tempStatus === st;
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => {
+                      setTempStatus(isActive ? "Semua status" : st);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all ${
+                      isActive
+                        ? "border-blue-600 text-blue-700 bg-blue-50/70 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
+                        : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
+                    }`}
+                  >
+                    {st}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
+          {/* Klasifikasi Pills */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              Klasifikasi
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTempKlasifikasi(tempKlasifikasi === "Alat IT" ? "Semua jenis" : "Alat IT");
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all ${
+                  tempKlasifikasi === "Alat IT"
+                    ? "border-blue-600 text-blue-700 bg-blue-50/70 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
+                    : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
+                }`}
+              >
+                Alat IT
+              </button>
+            </div>
+          </div>
+
+          {/* Perpindahan Unit Terkini Checkbox */}
           <div className="pt-1">
             <Checkbox
               id="mobile-tik-perpindahan"
@@ -1042,7 +1139,7 @@ export default function InventarisTikListPage() {
               label="Perpindahan Unit Terkini"
             />
             <div className="text-[11px] text-slate-400 pl-6 mt-0.5">
-              Hanya aset yang berpindah unit / memiliki catatan mutasi
+              Hanya aset yang berpindah unit dalam 3 bulan terakhir
             </div>
           </div>
         </div>
