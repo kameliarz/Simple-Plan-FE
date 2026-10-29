@@ -11,6 +11,9 @@ import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskList
 import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
 import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskCreateTicketPage";
 
+import ScanBarcodePage from "@/features/helpdesk-create/pages/ScanBarcodePage";
+import HelpdeskInventoryDetailPage from "@/features/helpdesk-create/pages/HelpdeskInventoryDetailPage";
+
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
 
@@ -80,6 +83,28 @@ function ResponsiveNotificationRoute() {
   return <NotificationMobilePage />;
 }
 
+function RoleAwareHelpdeskList() {
+  const location = useLocation();
+  const user = getUser();
+
+  const isSuperAdmin = user?.role === "super-admin";
+  const pathname = location.pathname;
+
+  if (isSuperAdmin) {
+    if (pathname === "/helpdesk") {
+      return <Navigate to="/helpdesk/tik" replace />;
+    }
+
+    return <HelpdeskListPage />;
+  }
+
+  if (pathname !== "/helpdesk") {
+    return <Navigate to="/helpdesk" replace />;
+  }
+
+  return <HelpdeskListPage />;
+}
+
 function App() {
   const location = useLocation();
 
@@ -95,15 +120,27 @@ function App() {
     <ProtectedRoute>
       <MainLayout>
         <Routes>
-          <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to={getUser()?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"}
+                replace
+              />
+            }
+          />
 
           {/* Helpdesk */}
-          <Route path="/helpdesk" element={<HelpdeskListPage />} />
-          <Route path="/helpdesk/tik" element={<HelpdeskListPage />} />
-          <Route path="/helpdesk/sarpras" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/tik" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/sarpras" element={<RoleAwareHelpdeskList />} />
           <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
           <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
           <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+
+          <Route path="/helpdesk/scan" element={<ScanBarcodePage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+          <Route path="/helpdesk/inventory-detail" element={<HelpdeskInventoryDetailPage />} />
 
           {/* Master Data */}
           <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
@@ -136,7 +173,7 @@ function App() {
 
           {/* Backup */}
           <Route path="/back-up-data" element={<BackupDataPage />} />
-          
+
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
           <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
@@ -144,7 +181,15 @@ function App() {
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={getUser()?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"}
+                replace
+              />
+            }
+          />
         </Routes>
       </MainLayout>
     </ProtectedRoute>

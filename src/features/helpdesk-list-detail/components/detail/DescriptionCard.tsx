@@ -1,4 +1,5 @@
 import { FileText, Image as ImageIcon, Download } from "lucide-react";
+import { BACKEND_URL } from "@/config/api";
 import DetailCard from "./DetailCard";
 
 type Attachment = {
@@ -13,18 +14,18 @@ type DescriptionCardProps = {
   attachments?: Attachment[] | null;
 };
 
-const BACKEND_URL = "http://localhost:8000"; // Sesuaikan dengan port API backend kamu
-
-const getFullUrl = (url?: string | null) => {
+const getFullUrl = (url?: string | null): string | null => {
   if (!url) return null;
 
-  // Jika sudah merupakan URL lengkap (http/https/blob)
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
+  // Jika URL sudah lengkap, gunakan langsung
+  if (/^(https?:\/\/|blob:)/i.test(url)) {
     return url;
   }
 
-  // Gabungkan path storage dengan domain backend API
+  // Pastikan path dimulai dengan /
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
+
+  // Gabungkan dengan domain backend dari config/api.ts
   return `${BACKEND_URL}${cleanPath}`;
 };
 
@@ -50,7 +51,7 @@ export default function DescriptionCard({ description, attachments }: Descriptio
                   <div
                     key={attachment.id}
                     className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
-                    onClick={(e) => e.stopPropagation()} // Hentikan bubbling pada kontainer item
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {/* AREA VIEW */}
                     {fullUrl ? (
@@ -58,7 +59,7 @@ export default function DescriptionCard({ description, attachments }: Descriptio
                         href={fullUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()} // <-- Hentikan bubbling agar tidak pindah ke /helpdesk/tik
+                        onClick={(e) => e.stopPropagation()}
                         className="flex min-w-0 flex-1 items-center gap-3 rounded-lg transition hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
                         {/* ICON */}
@@ -79,6 +80,7 @@ export default function DescriptionCard({ description, attachments }: Descriptio
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                           <ImageIcon size={26} strokeWidth={1.8} />
                         </div>
+
                         <div className="min-w-0">
                           <p className="truncate text-xs font-medium text-text-title">
                             {attachment.name}
@@ -93,7 +95,7 @@ export default function DescriptionCard({ description, attachments }: Descriptio
                       <a
                         href={fullUrl}
                         download={attachment.name}
-                        onClick={(e) => e.stopPropagation()} // <-- Hentikan bubbling saat unduh
+                        onClick={(e) => e.stopPropagation()}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-800 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950"
                         title="Download"
                       >

@@ -1,4 +1,5 @@
 import { getToken } from "@/features/auth-login/services/authStorage";
+import { API_BASE_URL } from "@/config/api";
 
 import type {
   Notification,
@@ -6,13 +7,11 @@ import type {
   NotificationResponse,
 } from "../types/notification.types";
 
-const BASE_URL = "http://localhost:8000/api/v1";
-
 export const notificationService = {
   getNotifications: async (): Promise<NotificationResponse> => {
     const token = getToken();
 
-    const response = await fetch(`${BASE_URL}/notifications`, {
+    const response = await fetch(`${API_BASE_URL}/notifications`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -30,7 +29,7 @@ export const notificationService = {
   markAsRead: async (id: string): Promise<void> => {
     const token = getToken();
 
-    const response = await fetch(`${BASE_URL}/notifications/${encodeURIComponent(id)}/read`, {
+    const response = await fetch(`${API_BASE_URL}/notifications/${encodeURIComponent(id)}/read`, {
       method: "PATCH",
       headers: {
         Accept: "application/json",

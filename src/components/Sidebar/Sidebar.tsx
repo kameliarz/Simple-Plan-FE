@@ -9,6 +9,7 @@ import InventarisAsetTab from "./InventarisAsetTab";
 import HelpdeskTab from "./HelpdeskTab";
 import MaintenanceTab from "./MaintenanceTab";
 import CadanganDataTab from "./CadanganDataTab";
+import DesignGraphicTab from "./DesignGraphicTab";
 import LaporanTab from "./LaporanTab";
 import LogoutTab from "./LogoutTab";
 
@@ -114,6 +115,7 @@ export default function Sidebar({ isDarkMode, toggleDarkMode, onClose }: Sidebar
         <HelpdeskTab />
         <MaintenanceTab />
         <CadanganDataTab />
+        <DesignGraphicTab />
         <LaporanTab />
         <LogoutTab onLogout={handleLogout} />
       </nav>
