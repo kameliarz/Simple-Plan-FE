@@ -20,7 +20,6 @@ import { getUser } from "@/features/auth-login/services/authStorage";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AttachmentCard } from "@/components/ui/AttachmentCard";
-import { EmptyState } from "@/components/ui/EmptyState";
 import Toast from "@/components/ui/Toast";
 import {
   getAssetDetail,
@@ -249,9 +248,68 @@ export default function InventarisTikDetailPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 lg:gap-6 p-4 lg:p-6 min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
+      {/* MOBILE HEADER (lg:hidden, matches Mockup Image 2) */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <Link
+            to="/inventaris/tik"
+            className="w-10 h-10 rounded-full bg-[#0a192f] text-white flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-95"
+            aria-label="Kembali"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Detail Aset
+            </div>
+            <h1 className="text-base font-bold text-[#0f2d59] dark:text-blue-100 leading-snug">
+              {namaBarang}
+            </h1>
+          </div>
+        </div>
+
+        {/* Badges row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <Monitor className="h-3.5 w-3.5 text-slate-500" /> {kategoriBarang} (Tetap)
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {asset.status}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            {asset.condition || "Baik"}
+          </span>
+        </div>
+
+        {/* Action buttons row */}
+        <div className="grid grid-cols-2 gap-3 mt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsPreviewLabelOpen(true)}
+            className="gap-2 py-2 text-xs font-semibold rounded-full border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+          >
+            <Printer className="h-4 w-4" /> Cetak Label
+          </Button>
+
+          {canEdit && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => navigate(`/inventory/tik/${asset.id}/edit`)}
+              className="gap-2 py-2 text-xs font-semibold rounded-full bg-[#0f2d59] hover:bg-blue-900 text-white"
+            >
+              <Edit className="h-4 w-4" /> Edit Data
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP TOP BAR (hidden lg:flex) */}
+      <div className="hidden lg:flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
             to="/inventaris/tik"
@@ -274,7 +332,6 @@ export default function InventarisTikDetailPage() {
             <Printer className="h-4 w-4" /> Cetak Label
           </Button>
 
-          {/* Menyembunyikan selain role tertentu */}
           {canEdit && (
             <Button
               type="button"
@@ -288,8 +345,8 @@ export default function InventarisTikDetailPage() {
         </div>
       </div>
 
-      {/* Header Card */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-wrap items-start justify-between gap-4">
+      {/* DESKTOP HEADER CARD (hidden lg:flex) */}
+      <div className="hidden lg:flex bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center">
             <Monitor className="h-7 w-7" />
@@ -311,7 +368,7 @@ export default function InventarisTikDetailPage() {
                 dot
                 dotColor={conditionBadgeInfo.dotColor}
               >
-                {asset.condition}
+                {asset.condition || "Baik"}
               </Badge>
             </div>
           </div>
@@ -327,116 +384,120 @@ export default function InventarisTikDetailPage() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          {/* Identitas Aset */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-700">
-              <Info className="h-5 w-5 text-slate-400" />
+      {/* Main Content Grid (Responsive layout) */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+        <div className="xl:col-span-2 space-y-4 lg:space-y-6">
+          {/* 1. Identitas Aset */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Info className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
               Identitas Aset
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-              <div>
-                <div className="text-xs text-slate-400 mb-1">ID Barang</div>
-                <div className="text-sm font-semibold text-blue-700 break-all">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">ID Barang</div>
+                <div className="text-xs lg:text-sm font-semibold text-blue-700 dark:text-blue-400 break-all">
                   {asset.asset_uid}
                 </div>
               </div>
-              <div>
-                <div className="text-xs text-slate-400 mb-1">No. Inventaris</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">No. Inventaris</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
                   {fullCode}
                 </div>
               </div>
-              <div>
-                <div className="text-xs text-slate-400 mb-1">Lokasi Ruangan</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">Lokasi Ruangan</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
                   {lokasiRuangan}
                 </div>
               </div>
-              <div>
-                <div className="text-xs text-slate-400 mb-1">Lokasi Detail</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">Lokasi</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
                   {lokasiDetail}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Spesifikasi */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-700">
-              <Monitor className="h-5 w-5 text-slate-400" />
+          {/* 2. Spesifikasi */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Monitor className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
               Spesifikasi
             </h3>
 
-            <div className="mb-6">
-              <div className="text-xs text-slate-400 mb-1">Model / Merk / Spesifikasi</div>
-              <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                {spesifikasi !== "-" ? spesifikasi : asset.brand || "-"}
+            <div className="space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">
+                  Model / Merk / Spesifikasi
+                </div>
+                <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                  {spesifikasi !== "-" ? spesifikasi : asset.brand || "-"}
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg p-4">
-                <div className="text-xs text-slate-400 mb-1">Serial Number</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 break-all">
-                  {serialNumber}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Serial Number</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200 break-all">
+                    {serialNumber}
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg p-4">
-                <div className="text-xs text-slate-400 mb-1">Tahun Beli</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                  {tahunBeli}
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Tahun Beli</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {tahunBeli}
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg p-4">
-                <div className="text-xs text-slate-400 mb-1">Garansi S/D</div>
-                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                  {garansi}
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Garansi s/d</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {garansi}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Keterangan */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">
+          {/* 3. Keterangan */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-3">
               Keterangan
             </h3>
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-xl text-xs lg:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
               {keterangan}
             </div>
           </div>
         </div>
 
-        {/* Right Column: Riwayat Mutasi Aset & Dokumen Kalibrasi / Foto */}
-        <div className="space-y-6">
+        {/* 4. Riwayat Mutasi Aset & Dokumen / Foto */}
+        <div className="space-y-4 lg:space-y-6">
           {/* Riwayat Mutasi Aset */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">
               Riwayat Mutasi Aset
             </h3>
-            <p className="text-xs text-slate-400 mb-6">
+            <p className="text-xs text-slate-400 mb-4">
               Catatan perubahan lokasi, kondisi, dan status
             </p>
 
             {asset.histories && asset.histories.length > 0 ? (
               /* Timeline View */
-              <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 mt-4 space-y-6 pb-2">
+              <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 mt-4 space-y-4 pb-2">
                 {asset.histories.map((item, idx) => (
-                  <div key={item.id || idx} className="relative pl-6">
+                  <div key={item.id || idx} className="relative pl-5">
                     <div
-                      className={`absolute -left-[9px] top-1 w-4 h-4 bg-white dark:bg-slate-800 border-2 rounded-full ${
+                      className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 bg-white dark:bg-slate-800 border-2 rounded-full ${
                         idx === 0 ? "border-blue-600" : "border-slate-300 dark:border-slate-600"
                       }`}
                     ></div>
-                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
+                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-xl p-3.5">
+                      <div className="flex justify-between items-start mb-1.5">
                         <span
                           className={`text-xs font-semibold ${
-                            idx === 0 ? "text-blue-700" : "text-slate-500"
+                            idx === 0 ? "text-blue-700 dark:text-blue-400" : "text-slate-500"
                           }`}
                         >
                           {formatDateTime(item.created_at)}
@@ -449,7 +510,7 @@ export default function InventarisTikDetailPage() {
                               : "Pembaruan"}
                         </Badge>
                       </div>
-                      <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                      <h4 className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                         {item.is_location_change
                           ? "Perubahan Lokasi Ruangan"
                           : item.event_type === "created"
@@ -457,8 +518,36 @@ export default function InventarisTikDetailPage() {
                             : "Pembaruan Data Aset"}
                       </h4>
 
+                      {item.is_location_change && (
+                        <div className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5 mb-2">
+                          <div>
+                            Dari:{" "}
+                            <span className="font-medium">
+                              {typeof item.old_values?.location === "string"
+                                ? item.old_values.location
+                                : typeof item.old_values?.location_name === "string"
+                                  ? item.old_values.location_name
+                                  : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            Ke:{" "}
+                            <span className="font-medium">
+                              {typeof item.new_values?.location === "string"
+                                ? item.new_values.location
+                                : typeof item.new_values?.location_name === "string"
+                                  ? item.new_values.location_name
+                                  : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            No. Inventaris: <span className="font-medium">{fullCode}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {item.changed_by && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1.5 border-t border-slate-200 dark:border-slate-700">
                           Oleh:{" "}
                           <span className="font-medium text-slate-700 dark:text-slate-300">
                             {item.changed_by.name}
@@ -470,17 +559,25 @@ export default function InventarisTikDetailPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState
-                title="Belum Ada Riwayat Mutasi"
-                description="Belum tercatat adanya mutasi lokasi, perubahan kondisi, ataupun perubahan status pada aset ini."
-                icon={<Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />}
-              />
+              /* Empty State matching Mockup Image 2 */
+              <div className="p-8 bg-slate-50/70 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  Belum Ada Riwayat Mutasi
+                </h4>
+                <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                  Belum tercatat adanya mutasi lokasi, perubahan kondisi, ataupun perubahan status
+                  pada aset ini.
+                </p>
+              </div>
             )}
           </div>
 
           {/* Dokumen Kalibrasi */}
           {asset.calibration_document && (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-3">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6 space-y-3">
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
                 <FileText className="h-4 w-4 text-blue-600" /> Dokumen Kalibrasi
               </div>
@@ -494,12 +591,12 @@ export default function InventarisTikDetailPage() {
 
           {/* Foto Aset */}
           {asset.photo && (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-3">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6 space-y-3">
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-blue-600" /> Foto Aset
               </div>
               {asset.photo.url && (
-                <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 max-h-48 flex items-center justify-center">
+                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 max-h-48 flex items-center justify-center">
                   <img
                     src={asset.photo.url}
                     alt={asset.photo.original_name}
@@ -517,10 +614,10 @@ export default function InventarisTikDetailPage() {
         </div>
       </div>
 
-      {/* Preview Label Aset Modal */}
+      {/* Preview Label Aset Modal (Matches Mockup Image 5) */}
       {isPreviewLabelOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
@@ -537,21 +634,21 @@ export default function InventarisTikDetailPage() {
 
             {/* Modal Body */}
             <div className="p-6">
-              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm text-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm text-slate-800 dark:text-slate-200">
                 <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="text-sm font-bold tracking-tight">{fullCode}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold tracking-tight">{fullCode}</div>
                     <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
                       INVENTARIS ASET TIK
                     </div>
-                    <div className="h-px bg-slate-200 my-2.5"></div>
+                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2.5"></div>
 
                     <div className="space-y-2 text-xs">
                       <div>
                         <div className="text-[9px] text-slate-400 uppercase font-semibold">
                           NAMA BARANG
                         </div>
-                        <div className="font-semibold text-slate-800 leading-tight">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                           {namaBarang}
                         </div>
                       </div>
@@ -559,7 +656,7 @@ export default function InventarisTikDetailPage() {
                         <div className="text-[9px] text-slate-400 uppercase font-semibold">
                           LOKASI RUANGAN
                         </div>
-                        <div className="font-semibold text-slate-800 leading-tight">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                           {lokasiRuangan}
                         </div>
                       </div>
@@ -567,7 +664,7 @@ export default function InventarisTikDetailPage() {
                         <div className="text-[9px] text-slate-400 uppercase font-semibold">
                           STATUS
                         </div>
-                        <div className="font-semibold text-slate-800 leading-tight">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                           {asset.status}
                         </div>
                       </div>
@@ -575,12 +672,12 @@ export default function InventarisTikDetailPage() {
                   </div>
 
                   {/* QR Code */}
-                  <div className="shrink-0 pt-2">
-                    <QrCode className="h-24 w-24 text-slate-900" />
+                  <div className="shrink-0 pt-1">
+                    <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
                   </div>
                 </div>
 
-                <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <Scan className="h-3.5 w-3.5" />
                     <span>Format Thermal Barcode</span>
@@ -590,14 +687,14 @@ export default function InventarisTikDetailPage() {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
+            {/* Modal Footer (Cetak & Unduh) */}
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
               <Button
                 type="button"
                 variant="outline"
                 disabled={isPrinting || isDownloading}
                 onClick={handlePrintLabel}
-                className="gap-2 px-4 py-2 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700 text-sm font-medium disabled:opacity-50"
+                className="gap-2 py-2.5 rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold disabled:opacity-50"
               >
                 {isPrinting ? (
                   <>
@@ -614,7 +711,7 @@ export default function InventarisTikDetailPage() {
                 variant="default"
                 disabled={isDownloading || isPrinting}
                 onClick={handleDownloadLabel}
-                className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium disabled:opacity-50"
+                className="gap-2 py-2.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
               >
                 {isDownloading ? (
                   <>

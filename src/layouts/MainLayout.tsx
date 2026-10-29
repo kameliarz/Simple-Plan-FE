@@ -38,13 +38,38 @@ export default function MainLayout({
 
   // STATE
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<MobileNavTab>("helpdesk");
-
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
-
   const [unreadCount, setUnreadCount] = useState(notificationCount);
-
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  // Derive active tab directly from route
+  const activeTab: MobileNavTab = (() => {
+    if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
+      return "inventaris";
+    }
+    if (location.pathname.startsWith("/helpdesk")) {
+      return "helpdesk";
+    }
+    if (location.pathname === "/" || location.pathname.startsWith("/dashboard")) {
+      return "dashboard";
+    }
+    if (location.pathname.startsWith("/master-data") || location.pathname.startsWith("/profile")) {
+      return "profile";
+    }
+    return "helpdesk";
+  })();
+
+  const handleTabChange = (tab: MobileNavTab) => {
+    if (tab === "dashboard") {
+      navigate("/");
+    } else if (tab === "helpdesk") {
+      navigate("/helpdesk/tik");
+    } else if (tab === "inventaris") {
+      navigate("/inventaris/tik");
+    } else if (tab === "profile") {
+      navigate("/master-data/users");
+    }
+  };
 
   // DARK MODE
   const toggleDarkMode = () => {
@@ -181,6 +206,22 @@ export default function MainLayout({
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
 
+    if (path.startsWith("/inventaris/tik")) {
+      const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
+      if (path === "/inventaris/tik") {
+        return [...base, { label: "Inventaris TIK" }];
+      }
+      return [...base, { label: "Detail Inventaris TIK" }];
+    }
+
+    if (path.startsWith("/inventaris/sarpras")) {
+      const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
+      if (path === "/inventaris/sarpras") {
+        return [...base, { label: "Inventaris Sarpras" }];
+      }
+      return [...base, { label: "Detail Inventaris Sarpras" }];
+    }
+
     if (path.startsWith("/master-data")) {
       return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
@@ -236,7 +277,7 @@ export default function MainLayout({
             </main>
 
             <div className="lg:hidden shrink-0">
-              <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+              <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
           </div>
         </div>
