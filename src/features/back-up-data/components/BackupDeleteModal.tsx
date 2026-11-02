@@ -3,7 +3,7 @@ import Button from "@/components/ui/ui-template/Button";
 
 import type { Backup } from "../types/backup.types";
 
-interface BackupRestoreModalProps {
+interface BackupDeleteModalProps {
   show: boolean;
   backup: Backup | null;
   onClose: () => void;
@@ -31,27 +31,27 @@ const formatBackupDate = (dateString: string): string => {
     .replace(".", ":");
 };
 
-export default function BackupRestoreModal({
+export default function BackupDeleteModal({
   show,
   backup,
   onClose,
   onConfirm,
   isLoading = false,
-}: BackupRestoreModalProps) {
+}: BackupDeleteModalProps) {
   return (
     <Modal show={show} onClose={onClose} closeable={!isLoading} showHeader={false} maxWidth="md">
       <div className="rounded-xl bg-white px-5 py-5 dark:bg-slate-900">
         {/* TITLE */}
-        <h2 className="font-semibold text-slate-900 dark:text-slate-100">Pulihkan Data ?</h2>
+        <h2 className="font-semibold text-slate-900 dark:text-slate-100">Hapus Data?</h2>
 
         {/* DESCRIPTION */}
         <div className="mt-2 space-y-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
           <p>
-            Seluruh data saat ini akan diganti dengan data pada waktu back up{" "}
-            {backup ? formatBackupDate(backup.backupDate) : "-"} ({backup?.fileName ?? "-"}).
+            File ZIP {backup ? formatBackupDate(backup.backupDate) : "-"} ({backup?.fileName ?? "-"}
+            ) akan dihapus. Apakah Anda yakin?
           </p>
 
-          <p>Tindakan ini tidak dapat dibatalkan.</p>
+          <p>Riwayat backup tetap disimpan. Penghapusan file tidak dapat dibatalkan.</p>
         </div>
 
         {/* ACTION BUTTONS */}
@@ -75,7 +75,7 @@ export default function BackupRestoreModal({
 
           <Button
             type="button"
-            label={isLoading ? "Memulihkan..." : "Ya"}
+            label={isLoading ? "Menghapus..." : "Ya"}
             variant="primary"
             onClick={() => void onConfirm()}
             disabled={isLoading || !backup}

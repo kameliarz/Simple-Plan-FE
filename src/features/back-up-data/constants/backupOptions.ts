@@ -14,6 +14,8 @@ export const backupStatusOptions: {
   label: string;
 }[] = [
   { value: "all", label: "Semua status" },
+  { value: "pending", label: "Menunggu" },
+  { value: "processing", label: "Diproses" },
   { value: "success", label: "Berhasil" },
   { value: "failed", label: "Gagal" },
 ];

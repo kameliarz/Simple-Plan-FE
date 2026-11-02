@@ -1,4 +1,4 @@
-import { IconDownload, IconRestore } from "@tabler/icons-react";
+import { IconDownload, IconTrash } from "@tabler/icons-react";
 
 import type { Backup } from "../types/backup.types";
 
@@ -7,7 +7,7 @@ import BackupStatusBadge from "./BackupStatusBadge";
 interface BackupCardMobileProps {
   backup: Backup;
   onDownload: (backup: Backup) => void;
-  onRestore: (backup: Backup) => void;
+  onDelete: (backup: Backup) => void;
 }
 
 const formatBackupDate = (value: string): string => {
@@ -32,8 +32,8 @@ const formatBackupDate = (value: string): string => {
   );
 };
 
-export default function BackupCardMobile({ backup, onDownload, onRestore }: BackupCardMobileProps) {
-  const isSuccess = backup.status === "success";
+export default function BackupCardMobile({ backup, onDownload, onDelete }: BackupCardMobileProps) {
+  const isSuccess = backup.status === "success" && backup.fileAvailable !== false;
 
   return (
     <article
@@ -142,7 +142,7 @@ export default function BackupCardMobile({ backup, onDownload, onRestore }: Back
 
         <button
           type="button"
-          onClick={() => onRestore(backup)}
+          onClick={() => onDelete(backup)}
           disabled={!isSuccess}
           className="
             inline-flex min-h-8 items-center
@@ -158,8 +158,8 @@ export default function BackupCardMobile({ backup, onDownload, onRestore }: Back
             dark:hover:bg-slate-700
           "
         >
-          <IconRestore size={13} strokeWidth={1.8} />
-          Pulihkan
+          <IconTrash size={13} strokeWidth={1.8} />
+          Hapus
         </button>
       </div>
     </article>

@@ -26,12 +26,18 @@ export default function BackupStatusBadge({ status, type }: BackupStatusBadgePro
   return (
     <span
       className={
-        status === "success"
-          ? "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-badge-done-fill text-badge-done-text border-badge-done-stroke"
-          : "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke"
+        status === "pending" || status === "processing"
+          ? "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200"
+          : status === "success"
+            ? "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-badge-done-fill text-badge-done-text border-badge-done-stroke"
+            : "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-badge-denied-fill text-badge-denied-text border-badge-denied-stroke"
       }
     >
-      {status === "success" ? "Berhasil" : "Gagal"}
+      {
+        { pending: "Menunggu", processing: "Diproses", success: "Berhasil", failed: "Gagal" }[
+          status
+        ]
+      }
     </span>
   );
 }

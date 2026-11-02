@@ -24,7 +24,7 @@ export default function BackupFilter({ filters, onChange }: BackupFilterProps) {
       <Search
         value={filters.search}
         onChange={(value) => updateFilter("search", value)}
-        placeholder="Cari data..."
+        placeholder="Cari di halaman ini..."
       />
 
       <Dropdown
