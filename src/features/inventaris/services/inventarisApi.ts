@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiFetch";
 import type {
   ApiAsset,
   AssetClassification,
@@ -13,7 +14,7 @@ export type {
   BulkAssetLabelFilters,
   BulkAssetLabelSelectionMode,
 } from "../types/inventaris";
-import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
+import { getToken } from "@/features/auth-login/services/authStorage";
 
 const API_BASE_URL = "/api/v1";
 
@@ -47,14 +48,13 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
   const queryString = query.toString();
   const url = queryString ? `${API_BASE_URL}/assets?${queryString}` : `${API_BASE_URL}/assets`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
       throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
     }
     throw new Error(`Gagal mengambil data aset (${response.status})`);
@@ -64,14 +64,13 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
 }
 
 export async function getAssetDetail(id: number | string): Promise<ApiAsset> {
-  const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/assets/${id}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
       throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
     }
     throw new Error(`Gagal mengambil detail aset (${response.status})`);
@@ -82,7 +81,7 @@ export async function getAssetDetail(id: number | string): Promise<ApiAsset> {
 }
 
 export async function getAssetClassifications(): Promise<AssetClassification[]> {
-  const response = await fetch(`${API_BASE_URL}/asset-classifications`, {
+  const response = await apiFetch(`${API_BASE_URL}/asset-classifications`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -96,7 +95,7 @@ export async function getAssetClassifications(): Promise<AssetClassification[]> 
 }
 
 export async function getAssetLocations(): Promise<AssetLocation[]> {
-  const response = await fetch(`${API_BASE_URL}/asset-locations`, {
+  const response = await apiFetch(`${API_BASE_URL}/asset-locations`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -110,7 +109,7 @@ export async function getAssetLocations(): Promise<AssetLocation[]> {
 }
 
 export async function getAssetItems(): Promise<AssetItem[]> {
-  const response = await fetch(`${API_BASE_URL}/asset-items`, {
+  const response = await apiFetch(`${API_BASE_URL}/asset-items`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -124,7 +123,7 @@ export async function getAssetItems(): Promise<AssetItem[]> {
 }
 
 export async function deleteAsset(id: number | string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/assets/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
@@ -144,7 +143,7 @@ export async function createAsset(payload: FormData | Record<string, unknown>): 
     (headers as Record<string, string>)["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${API_BASE_URL}/assets`, {
+  const response = await apiFetch(`${API_BASE_URL}/assets`, {
     method: "POST",
     headers,
     body: isFormData ? payload : JSON.stringify(payload),
@@ -172,7 +171,7 @@ export async function updateAsset(
     (headers as Record<string, string>)["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/assets/${id}`, {
     method: "POST",
     headers,
     body: isFormData ? payload : JSON.stringify({ ...payload, _method: "PUT" }),
@@ -233,7 +232,7 @@ export async function exportBulkAssetLabels(
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}/asset-label-exports`, {
+  const response = await apiFetch(`${API_BASE_URL}/asset-label-exports`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -245,7 +244,6 @@ export async function exportBulkAssetLabels(
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
       throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
     }
     const errorData = await response.json().catch(() => null);
@@ -273,7 +271,7 @@ export async function downloadSingleAssetLabel(
   heightMm = 35,
   assetUid?: string,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/assets/${assetId}/label?format=pdf&width_mm=${widthMm}&height_mm=${heightMm}`,
     {
       method: "GET",
@@ -286,7 +284,6 @@ export async function downloadSingleAssetLabel(
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
       throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
     }
     const errorData = await response.json().catch(() => null);
@@ -313,7 +310,7 @@ export async function printSingleAssetLabel(
   widthMm = 70,
   heightMm = 35,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/assets/${assetId}/label?format=html&width_mm=${widthMm}&height_mm=${heightMm}`,
     {
       method: "GET",
@@ -326,7 +323,6 @@ export async function printSingleAssetLabel(
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
       throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
     }
     throw new Error(`Gagal memuat template cetak label (${response.status})`);

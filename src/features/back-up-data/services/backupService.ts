@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiFetch";
 import { API_BASE_URL } from "@/config/api";
 import { getToken } from "@/features/auth-login/services/authStorage";
 import type { ApiMeta } from "@/types/api";
@@ -48,7 +49,7 @@ async function request(path: string, options: RequestInit = {}): Promise<Respons
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (options.body) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const response = await apiFetch(`${API_BASE_URL}${path}`, { ...options, headers });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     const validation = body?.errors ? Object.values(body.errors).flat().join(" ") : "";

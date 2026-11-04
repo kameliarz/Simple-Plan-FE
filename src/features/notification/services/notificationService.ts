@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiFetch";
 import { getToken } from "@/features/auth-login/services/authStorage";
 import { API_BASE_URL } from "@/config/api";
 
@@ -11,7 +12,7 @@ export const notificationService = {
   getNotifications: async (): Promise<NotificationResponse> => {
     const token = getToken();
 
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
+    const response = await apiFetch(`${API_BASE_URL}/notifications`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -29,13 +30,16 @@ export const notificationService = {
   markAsRead: async (id: string): Promise<void> => {
     const token = getToken();
 
-    const response = await fetch(`${API_BASE_URL}/notifications/${encodeURIComponent(id)}/read`, {
-      method: "PATCH",
-      headers: {
-        Accept: "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    const response = await apiFetch(
+      `${API_BASE_URL}/notifications/${encodeURIComponent(id)}/read`,
+      {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);

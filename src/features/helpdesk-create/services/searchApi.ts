@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiFetch";
 import { getToken } from "@/features/auth-login/services/authStorage";
 
 function authHeaders(): HeadersInit {
@@ -10,7 +11,7 @@ function authHeaders(): HeadersInit {
 }
 
 async function getJson(url: string, signal?: AbortSignal): Promise<unknown> {
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "GET",
     credentials: "include",
     headers: authHeaders(),
@@ -281,7 +282,7 @@ export async function getAssetByUid(uid: string): Promise<AssetByUid> {
     throw new Error("UID inventaris tidak valid.");
   }
 
-  const response = await fetch(`/api/v1/assets/uid/${encodeURIComponent(cleaned)}`, {
+  const response = await apiFetch(`/api/v1/assets/uid/${encodeURIComponent(cleaned)}`, {
     method: "GET",
     credentials: "include",
     headers: authHeaders(),
@@ -355,7 +356,7 @@ export async function createTicket(payload: CreateTicketPayload): Promise<Create
     formData.append("initial_evidence", payload.initial_evidence);
   }
 
-  const response = await fetch("/api/v1/tickets", {
+  const response = await apiFetch("/api/v1/tickets", {
     method: "POST",
     credentials: "include",
     headers: authHeaders(),
