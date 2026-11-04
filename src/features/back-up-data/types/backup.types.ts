@@ -1,5 +1,5 @@
 export type BackupType = "automatic" | "manual";
-export type BackupStatus = "success" | "failed";
+export type BackupStatus = "pending" | "processing" | "success" | "failed";
 export type BackupFrequency = "daily" | "weekly" | "monthly";
 
 export interface Backup {
@@ -8,6 +8,7 @@ export interface Backup {
   backupDate: string;
   type: BackupType;
   performedBy: string;
+  fileAvailable?: boolean;
   fileSize: number; // MB
   status: BackupStatus;
 }

@@ -1,137 +1,163 @@
-import type { Backup, BackupSchedule } from "../types/backup.types";
+import { apiFetch } from "@/lib/apiFetch";
+import { API_BASE_URL } from "@/config/api";
+import { getToken } from "@/features/auth-login/services/authStorage";
+import type { ApiMeta } from "@/types/api";
+import type {
+  Backup,
+  BackupFilters,
+  BackupSchedule,
+  BackupStatus,
+  BackupType,
+} from "../types/backup.types";
 
-const mockBackups: Backup[] = [
-  {
-    id: "1",
-    fileName: "backup-2026-10-14-0200.zip",
-    backupDate: "2026-10-14T02:00:00+07:00",
-    type: "automatic",
-    performedBy: "Sistem",
-    fileSize: 482,
-    status: "success",
-  },
-  {
-    id: "2",
-    fileName: "backup-2026-10-12-1530.zip",
-    backupDate: "2026-10-12T15:30:00+07:00",
-    type: "manual",
-    performedBy: "Agung Suryana",
-    fileSize: 67,
-    status: "failed",
-  },
-  {
-    id: "3",
-    fileName: "backup-2026-10-11-0200.zip",
-    backupDate: "2026-10-11T02:00:00+07:00",
-    type: "automatic",
-    performedBy: "Sistem",
-    fileSize: 678,
-    status: "success",
-  },
-  {
-    id: "4",
-    fileName: "backup-2026-10-09-1800.zip",
-    backupDate: "2026-10-09T18:00:00+07:00",
-    type: "manual",
-    performedBy: "Sistem",
-    fileSize: 400,
-    status: "success",
-  },
-  {
-    id: "5",
-    fileName: "backup-2026-10-07-1500.zip",
-    backupDate: "2026-10-07T15:00:00+07:00",
-    type: "automatic",
-    performedBy: "Dr. Naura",
-    fileSize: 82,
-    status: "success",
-  },
-  {
-    id: "6",
-    fileName: "backup-2026-10-07-0600.zip",
-    backupDate: "2026-10-07T06:00:00+07:00",
-    type: "automatic",
-    performedBy: "Sistem",
-    fileSize: 332,
-    status: "failed",
-  },
-  {
-    id: "7",
-    fileName: "backup-2026-10-07-0200.zip",
-    backupDate: "2026-10-07T02:00:00+07:00",
-    type: "automatic",
-    performedBy: "Sistem",
-    fileSize: 357,
-    status: "success",
-  },
-  {
-    id: "8",
-    fileName: "backup-2026-10-06-1700.zip",
-    backupDate: "2026-10-06T17:00:00+07:00",
-    type: "manual",
-    performedBy: "Sistem",
-    fileSize: 59,
-    status: "success",
-  },
-  {
-    id: "9",
-    fileName: "backup-2026-10-06-0300.zip",
-    backupDate: "2026-10-06T03:00:00+07:00",
-    type: "automatic",
-    performedBy: "Harris",
-    fileSize: 42,
-    status: "failed",
-  },
-  {
-    id: "10",
-    fileName: "backup-2026-10-05-0900.zip",
-    backupDate: "2026-10-05T09:00:00+07:00",
-    type: "automatic",
-    performedBy: "Sistem",
-    fileSize: 89,
-    status: "failed",
-  },
-];
+// Response schemas are absent from Swagger; isolate wire field mapping here.
+interface BackupRecord {
+  id: number | string;
+  file_name?: string | null;
+  filename?: string | null;
+  backup_date?: string | null;
+  created_at: string;
+  type: BackupType;
+  status: BackupStatus;
+  performed_by?: string | { nama?: string; name?: string } | null;
+  user?: { nama?: string; name?: string } | null;
+  file_size?: number | null;
+  file_size_mb?: number | null;
 
-const backups = [...mockBackups];
-
-let schedule: BackupSchedule = {
-  enabled: true,
-  frequency: "daily",
-  time: "02:00",
-  dayOfWeek: 1,
-  dayOfMonth: 1,
-};
-
-export const backupService = {
-  async getBackups(): Promise<Backup[]> {
-    return [...backups].sort(
-      (a, b) => new Date(b.backupDate).getTime() - new Date(a.backupDate).getTime(),
+  file_available?: boolean | null;
+  file_exists?: boolean | null;
+  can_download?: boolean | null;
+  deleted_at?: string | null;
+}
+interface SettingsRecord {
+  is_active: boolean;
+  frequency: BackupSchedule["frequency"];
+  backup_time: string | null;
+  day_of_week: number | null;
+  day_of_month: number | null;
+}
+export class BackupApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (options.body) headers.set("Content-Type", "application/json");
+  const response = await apiFetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const validation = body?.errors ? Object.values(body.errors).flat().join(" ") : "";
+    throw new BackupApiError(
+      validation || body?.message || `Permintaan backup gagal (${response.status})`,
+      response.status,
     );
-  },
+  }
+  return response;
+}
 
+function mapBackup(row: BackupRecord): Backup {
+  const actor = row.performed_by ?? row.user;
+
+  return {
+    id: String(row.id),
+    fileName: row.file_name ?? row.filename ?? `Backup #${row.id}`,
+    backupDate: row.backup_date ?? row.created_at,
+    type: row.type,
+    status: row.status,
+    performedBy:
+      typeof actor === "string"
+        ? actor
+        : (actor?.nama ?? actor?.name ?? (row.type === "automatic" ? "Sistem" : "-")),
+    fileSize:
+      row.file_size_mb ?? Math.round((Number(row.file_size ?? 0) / 1024 / 1024) * 100) / 100,
+
+    // Prioritaskan file_available dari API
+    fileAvailable:
+      row.file_available === false
+        ? false
+        : row.file_exists !== false && row.can_download !== false && !row.deleted_at,
+  };
+}
+
+function mapSchedule(row: SettingsRecord): BackupSchedule {
+  return {
+    enabled: row.is_active,
+    frequency: row.frequency,
+    time: row.backup_time?.slice(0, 5) ?? "02:00",
+    dayOfWeek: row.day_of_week ?? 1,
+    dayOfMonth: row.day_of_month ?? 1,
+  };
+}
+export const backupService = {
+  async getBackups(
+    page = 1,
+    perPage = 10,
+    filters?: BackupFilters,
+    signal?: AbortSignal,
+  ): Promise<{ backups: Backup[]; meta: ApiMeta }> {
+    const query = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    if (filters?.type && filters.type !== "all") query.set("type", filters.type);
+    if (filters?.status && filters.status !== "all") query.set("status", filters.status);
+    if (filters?.startDate) query.set("date_from", filters.startDate);
+    if (filters?.endDate) query.set("date_to", filters.endDate);
+    const body = await (await request(`/backups?${query}`, { signal })).json();
+    const collection = Array.isArray(body.data) ? body : body.data;
+    if (!collection || !Array.isArray(collection.data))
+      throw new Error("Format riwayat backup tidak sesuai.");
+    const pagination = collection.meta ?? collection;
+    return {
+      backups: collection.data.map(mapBackup),
+      meta: {
+        current_page: Number(pagination.current_page ?? page),
+        last_page: Number(pagination.last_page ?? 1),
+        per_page: Number(pagination.per_page ?? perPage),
+        total: Number(pagination.total ?? collection.data.length),
+        from: pagination.from ?? null,
+        to: pagination.to ?? null,
+        path: pagination.path ?? `${API_BASE_URL}/backups`,
+        links: Array.isArray(pagination.links) ? pagination.links : [],
+      },
+    };
+  },
   async getSchedule(): Promise<BackupSchedule> {
-    return { ...schedule };
+    const body = await (await request("/backup-settings")).json();
+    return mapSchedule(body.data ?? body);
   },
-
   async saveSchedule(data: BackupSchedule): Promise<void> {
-    // Simulasi lokal. Belum menjadwalkan backup di server.
-    schedule = { ...data };
+    await request("/backup-settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        is_active: data.enabled,
+        frequency: data.frequency,
+        backup_time: data.time,
+        ...(data.frequency === "weekly" ? { day_of_week: data.dayOfWeek } : {}),
+        ...(data.frequency === "monthly" ? { day_of_month: data.dayOfMonth } : {}),
+      }),
+    });
   },
-
-  async createBackup(): Promise<never> {
-    throw new Error("Endpoint backup manual belum terhubung ke backend.");
+  async createBackup(): Promise<void> {
+    await request("/backups", { method: "POST" });
   },
-
-  async downloadBackup(_id: string): Promise<never> {
-    void _id;
-
-    throw new Error("Endpoint download backup belum terhubung ke backend.");
+  async deleteBackup(id: string): Promise<void> {
+    await request(`/backups/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
-
-  async restoreBackup(_id: string): Promise<never> {
-    void _id;
-
-    throw new Error("Endpoint restore backup belum terhubung ke backend.");
+  async downloadBackup(id: string, fileName: string): Promise<void> {
+    const response = await request(`/backups/${encodeURIComponent(id)}/download`, {
+      headers: { Accept: "application/zip" },
+    });
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName.endsWith(".zip") ? fileName : `backup-${id}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 };

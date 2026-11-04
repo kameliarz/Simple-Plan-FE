@@ -43,21 +43,13 @@ type PopoverPosition = {
   width: number;
 };
 
-const emptyForm: ScheduleFormState = {
-  status: "",
-  frequency: "",
-  dayOfWeek: "",
-  dayOfMonth: "",
-  time: "",
-};
-
 const statusOptions = [
   { value: "active", label: "Aktif" },
   { value: "inactive", label: "Nonaktif" },
 ];
 
 const dayOptions = [
-  { value: "0", label: "Minggu" },
+  { value: "7", label: "Minggu" },
   { value: "1", label: "Senin" },
   { value: "2", label: "Selasa" },
   { value: "3", label: "Rabu" },
@@ -80,7 +72,13 @@ function BackupScheduleContent({ schedule, onClose, onSave, anchorRef }: Schedul
   // ==========================================
   // STATES
   // ==========================================
-  const [form, setForm] = useState<ScheduleFormState>(() => ({ ...emptyForm }));
+  const [form, setForm] = useState<ScheduleFormState>(() => ({
+    status: schedule.enabled ? "active" : "inactive",
+    frequency: schedule.frequency,
+    dayOfWeek: String(schedule.dayOfWeek),
+    dayOfMonth: String(schedule.dayOfMonth),
+    time: schedule.time,
+  }));
 
   const [errors, setErrors] = useState<ScheduleFormErrors>({});
 
@@ -261,10 +259,11 @@ function BackupScheduleContent({ schedule, onClose, onSave, anchorRef }: Schedul
       if (isMonthly && !form.dayOfMonth) {
         newErrors.dayOfMonth = "Tanggal wajib diisi!";
       }
+    }
 
-      if (!form.time) {
-        newErrors.time = "Jam wajib diisi!";
-      }
+    // Jam wajib diisi untuk semua status
+    if (!form.time) {
+      newErrors.time = "Jam wajib diisi!";
     }
 
     setErrors(newErrors);
@@ -285,7 +284,7 @@ function BackupScheduleContent({ schedule, onClose, onSave, anchorRef }: Schedul
       frequency: form.frequency as BackupFrequency,
       dayOfWeek: form.dayOfWeek !== "" ? Number(form.dayOfWeek) : schedule.dayOfWeek,
       dayOfMonth: form.dayOfMonth !== "" ? Number(form.dayOfMonth) : schedule.dayOfMonth,
-      time: form.time || schedule.time,
+      time: form.time,
     };
 
     try {
@@ -389,10 +388,10 @@ function BackupScheduleContent({ schedule, onClose, onSave, anchorRef }: Schedul
               />
             ) : (
               <Dropdown
-                value={form.dayOfWeek}
-                options={dayOptions}
+                value={isWeekly ? form.dayOfWeek : ""}
+                options={isWeekly ? dayOptions : []}
                 onChange={(value) => handleChange("dayOfWeek", value)}
-                placeholder="Pilih hari"
+                placeholder={isWeekly ? "Pilih hari" : "-"}
                 disabled={!isWeekly}
                 error={errors.dayOfWeek}
                 mobileSheet
@@ -404,13 +403,18 @@ function BackupScheduleContent({ schedule, onClose, onSave, anchorRef }: Schedul
           {/* JAM */}
           <div className="flex min-w-0 flex-col gap-1">
             <label className="text-xs text-slate-400">
-              Jam
-              {isActive && <span className="ml-1 text-red-500">*</span>}
+              Jam<span className="ml-1 text-red-500">*</span>
             </label>
 
             <Dropdown
               value={form.time}
-              options={hourOptions}
+              options={
+                hourOptions.some((option) => option.value === form.time) || !form.time
+                  ? hourOptions
+                  : [...hourOptions, { value: form.time, label: form.time }].sort((a, b) =>
+                      a.value.localeCompare(b.value),
+                    )
+              }
               onChange={(value) => handleChange("time", value)}
               placeholder="Pilih jam"
               error={errors.time}

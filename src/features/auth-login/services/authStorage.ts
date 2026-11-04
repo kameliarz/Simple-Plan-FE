@@ -3,9 +3,29 @@ import type { LoginUser } from "../types/auth-login.types";
 const TOKEN_KEY = "simple-plan-token";
 const USER_KEY = "simple-plan-user";
 
+let authRevision = 0;
+const authListeners = new Set<() => void>();
+
+export function getAuthRevision(): number {
+  return authRevision;
+}
+
+export function subscribeAuthChanges(listener: () => void): () => void {
+  authListeners.add(listener);
+  return () => {
+    authListeners.delete(listener);
+  };
+}
+
+function notifyAuthChanged() {
+  authRevision += 1;
+  authListeners.forEach((listener) => listener());
+}
+
 export function saveAuth(token: string, user: LoginUser) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  notifyAuthChanged();
 }
 
 export function getToken(): string | null {
@@ -28,6 +48,7 @@ export function getUser(): LoginUser | null {
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  notifyAuthChanged();
 }
 
 export function isAuthenticated(): boolean {

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiFetch";
 import type {
   ApiUser,
   CreateUserPayload,
@@ -35,7 +36,7 @@ export async function getUsers(params: GetUsersParams = {}): Promise<UserCollect
   const queryString = query.toString();
   const url = queryString ? `${API_BASE_URL}/users?${queryString}` : `${API_BASE_URL}/users`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -48,7 +49,7 @@ export async function getUsers(params: GetUsersParams = {}): Promise<UserCollect
 }
 
 export async function getUserDetail(userId: number | string): Promise<ApiUser> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/users/${userId}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -72,7 +73,7 @@ export class ApiValidationError extends Error {
 }
 
 export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
-  const response = await fetch(`${API_BASE_URL}/users`, {
+  const response = await apiFetch(`${API_BASE_URL}/users`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -102,7 +103,7 @@ export async function updateUser(
   userId: number | string,
   payload: UpdateUserPayload,
 ): Promise<ApiUser> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/users/${userId}`, {
     method: "PATCH", // Update user bisa pake PATCH
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -132,7 +133,7 @@ export async function toggleUserStatus(
   userId: number | string,
   payload: ToggleUserStatusPayload,
 ): Promise<ApiUser> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}/status`, {
+  const response = await apiFetch(`${API_BASE_URL}/users/${userId}/status`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -151,7 +152,7 @@ export async function toggleUserStatus(
 }
 
 export async function getUnits(): Promise<{ id: number; name: string }[]> {
-  const response = await fetch(`${API_BASE_URL}/units?per_page=100`, {
+  const response = await apiFetch(`${API_BASE_URL}/units?per_page=100`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -168,7 +169,7 @@ export async function getUnits(): Promise<{ id: number; name: string }[]> {
 }
 
 export async function getRoles(): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/roles?per_page=100`, {
+  const response = await apiFetch(`${API_BASE_URL}/roles?per_page=100`, {
     method: "GET",
     headers: getAuthHeaders(),
   });

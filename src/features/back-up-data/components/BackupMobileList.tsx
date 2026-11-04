@@ -7,14 +7,10 @@ import type { Backup } from "../types/backup.types";
 interface BackupMobileListProps {
   backups: Backup[];
   onDownload: (backup: Backup) => void;
-  onRestore: (backup: Backup) => void;
+  onDelete: (backup: Backup) => void;
 }
 
-export default function BackupMobileList({
-  backups,
-  onDownload,
-  onRestore,
-}: BackupMobileListProps) {
+export default function BackupMobileList({ backups, onDownload, onDelete }: BackupMobileListProps) {
   if (backups.length === 0) {
     return (
       <div className="flex min-h-[65dvh] items-center justify-center px-4">
@@ -34,7 +30,7 @@ export default function BackupMobileList({
           key={backup.id}
           backup={backup}
           onDownload={onDownload}
-          onRestore={onRestore}
+          onDelete={onDelete}
         />
       ))}
     </div>
