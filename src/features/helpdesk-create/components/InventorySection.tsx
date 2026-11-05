@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import Input from "@/components/ui/ui-template/Input";
+
 import Dropdown, { type DropdownOption } from "@/components/ui/ui-template/Dropdown";
 import Button from "@/components/ui/ui-template/Button";
 
 import {
-  searchUnits,
-  searchAssets,
-  type SearchedUnit,
-  type SearchedAsset,
+  getAssetLocations,
+  getAssets,
+  type AssetLocation,
+  type ListedAsset,
+  type AssetByUid,
 } from "../services/searchApi";
 
 interface InventorySectionProps {
@@ -15,331 +16,476 @@ interface InventorySectionProps {
   inventoryNumber: string;
   inventoryName: string;
   location: string;
-
   unitError?: string;
-
+  inventoryNumberError?: string;
+  scannedAsset?: AssetByUid | null;
   onUnitChange: (value: string) => void;
   onInventoryNumberChange: (value: string) => void;
   onInventoryNameChange: (value: string) => void;
   onLocationChange: (value: string) => void;
   onAssetIdChange: (assetId: number | null) => void;
+  onResetInventory?: () => void;
 }
+
+type AssetRequestResult = {
+  locationId: number;
+  assets: ListedAsset[];
+  error: string;
+};
 
 export default function InventorySection({
   unit,
   inventoryNumber,
   inventoryName,
   location,
+  unitError,
+  inventoryNumberError,
+  scannedAsset,
   onUnitChange,
   onInventoryNumberChange,
   onInventoryNameChange,
   onLocationChange,
   onAssetIdChange,
+  onResetInventory,
 }: InventorySectionProps) {
-  // =========================
-  // State data Unit
-  // =========================
-  const [unitList, setUnitList] = useState<SearchedUnit[]>([]);
-  const [isLoadingUnits, setIsLoadingUnits] = useState(true);
+  const isFromScan = Boolean(scannedAsset);
 
-  // =========================
-  // State data Inventaris
-  // =========================
-  const [assetList, setAssetList] = useState<SearchedAsset[]>([]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
-  const [fetchError, setFetchError] = useState("");
-  // =========================
-  // Load Unit
-  // =========================
+  const [locations, setLocations] = useState<AssetLocation[]>([]);
+
+  const [assetResult, setAssetResult] = useState<AssetRequestResult | null>(null);
+
+  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+
+  const [locationError, setLocationError] = useState("");
+  const [selectionError, setSelectionError] = useState("");
+
+  // ==========================================
+  // LOKASI DARI API BARU (semua halaman)
+  // ==========================================
+
   useEffect(() => {
-    let isMounted = true;
+    if (isFromScan) return;
 
-    searchUnits("")
+    const controller = new AbortController();
+
+    void getAssetLocations(controller.signal)
       .then((data) => {
-        if (isMounted && Array.isArray(data)) {
-          setUnitList(data);
-        }
+        if (controller.signal.aborted) return;
+
+        setLocations(data);
+        setLocationError("");
       })
-      .catch((err) => {
-        console.error("Gagal memuat unit:", err);
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+
+        console.error("Gagal memuat lokasi inventaris:", error);
+
+        setLocationError("Gagal memuat daftar lokasi inventaris.");
       })
       .finally(() => {
-        if (isMounted) {
-          setIsLoadingUnits(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingLocations(false);
         }
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    return () => controller.abort();
+  }, [isFromScan]);
 
-  // =========================
-  // Format opsi Unit
-  // =========================
-  const unitOptions: DropdownOption[] = useMemo(() => {
-    return unitList.map((u) => ({
-      label: u.unit_name,
-      value: u.unit_name,
-    }));
-  }, [unitList]);
+  const locationOptions: DropdownOption[] = useMemo(
+    () =>
+      locations.map((item) => ({
+        label: item.name,
+        value: String(item.id),
+      })),
+    [locations],
+  );
 
-  // =========================
-  // Fetch Inventaris ketika Unit berubah
-  // =========================
+  // Tetap menggunakan prop `unit` agar parent tidak perlu diubah.
+  // Dalam mode MANUAL, isinya adalah ID lokasi (string).
+
+  const selectedLocation = useMemo(
+    () => locations.find((item) => String(item.id) === unit) ?? null,
+    [locations, unit],
+  );
+
+  // ==========================================
+  // ASET FISIK BERDASARKAN LOKASI
+  // Tidak memakai API /units atau /assets/search.
+  // ==========================================
 
   useEffect(() => {
-    if (!unit || unitList.length === 0) return;
+    if (isFromScan || !selectedLocation) return;
 
-    const matchedUnit = unitList.find(
-      (item) => item.unit_name.toLowerCase() === unit.toLowerCase(),
-    );
+    const controller = new AbortController();
+    const locationId = selectedLocation.id;
 
-    if (!matchedUnit) return;
-
-    let isMounted = true;
-
-    searchAssets(matchedUnit.id)
+    void getAssets({ assetLocationId: locationId }, controller.signal)
       .then((data) => {
-        if (!isMounted) return;
+        if (controller.signal.aborted) return;
 
-        setAssetList(Array.isArray(data) ? data : []);
-        setFetchError("");
-        setIsLoadingAssets(false);
+        setAssetResult({
+          locationId,
+          assets: data,
+          error: "",
+        });
       })
-      .catch((error) => {
-        if (!isMounted) return;
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
 
-        setAssetList([]);
-        setFetchError("Gagal memuat inventaris untuk unit ini.");
-        setIsLoadingAssets(false);
-        console.error(error);
+        console.error("Gagal memuat aset pada lokasi:", error);
+
+        setAssetResult({
+          locationId,
+          assets: [],
+          error: "Gagal memuat inventaris pada lokasi ini.",
+        });
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [unit, unitList]);
+    return () => controller.abort();
+  }, [isFromScan, selectedLocation]);
 
-  // =========================
-  // Opsi Nama Inventaris
-  // =========================
+  // ==========================================
+  // DERIVED STATE
+  // Menghindari setState sinkron dalam useEffect.
+  // ==========================================
+
+  const hasSelectedLocation = !isFromScan && selectedLocation !== null;
+
+  const hasCurrentAssetResult =
+    hasSelectedLocation && assetResult?.locationId === selectedLocation.id;
+
+  const isLoadingAssets = hasSelectedLocation && !hasCurrentAssetResult;
+
+  const assetError = selectionError || (hasCurrentAssetResult ? (assetResult?.error ?? "") : "");
+
+  // Hanya menampilkan aset yang sesuai lokasi aktif.
+  // Data lokasi sebelumnya tidak masuk ke dropdown.
+
+  const availableAssets = useMemo(() => {
+    if (isFromScan || !selectedLocation || assetResult?.locationId !== selectedLocation.id) {
+      return [];
+    }
+
+    return assetResult.assets.filter(
+      (asset) =>
+        asset.asset_code?.location?.id === selectedLocation.id &&
+        Boolean(asset.asset_code?.full_code?.trim()) &&
+        Boolean(asset.asset_code?.item?.name?.trim()),
+    );
+  }, [assetResult, selectedLocation, isFromScan]);
+
+  // ==========================================
+  // DROPDOWN NAMA INVENTARIS
+  // ==========================================
+
+  // Nama inventaris mengikuti lokasi.
+  // Jika nomor dipilih, nama terkunci pada nomor tersebut.
+
   const nameOptions: DropdownOption[] = useMemo(() => {
-    const names = assetList
-      .map((item) => item.name)
-      .filter((name): name is string => Boolean(name));
+    const matching = inventoryNumber
+      ? availableAssets.filter((asset) => asset.asset_code?.full_code === inventoryNumber)
+      : availableAssets;
 
-    const uniqueNames = Array.from(new Set(names));
+    const names = Array.from(
+      new Set(
+        matching
+          .map((asset) => asset.asset_code?.item?.name)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    );
 
-    return uniqueNames.map((name) => ({
+    return names.map((name) => ({
       label: name,
       value: name,
     }));
-  }, [assetList]);
+  }, [availableAssets, inventoryNumber]);
 
-  // =========================
-  // Opsi No. Inventaris
-  // =========================
+  // ==========================================
+  // DROPDOWN NOMOR INVENTARIS
+  // ==========================================
+
+  // Nomor inventaris mengikuti lokasi dan nama terpilih.
+
   const numberOptions: DropdownOption[] = useMemo(() => {
-    let filtered = assetList;
+    const matching = inventoryName
+      ? availableAssets.filter((asset) => asset.asset_code?.item?.name === inventoryName)
+      : availableAssets;
 
-    if (inventoryName) {
-      filtered = assetList.filter((item) => item.name === inventoryName);
-    }
+    const codes = Array.from(
+      new Set(
+        matching
+          .map((asset) => asset.asset_code?.full_code)
+          .filter((code): code is string => Boolean(code)),
+      ),
+    );
 
-    const numbers = filtered
-      .map((item) => item.asset_number)
-      .filter((number): number is string => Boolean(number));
-
-    const uniqueNumbers = Array.from(new Set(numbers));
-
-    return uniqueNumbers.map((number) => ({
-      label: number,
-      value: number,
+    return codes.map((code) => ({
+      label: code,
+      value: code,
     }));
-  }, [assetList, inventoryName]);
+  }, [availableAssets, inventoryName]);
 
-  // =========================
-  // Pilih Nama Inventaris
-  // =========================
-  const handleNameSelect = (selectedName: string) => {
-    if (!unit) return;
+  // ==========================================
+  // HANDLER LOKASI
+  // ==========================================
 
-    onInventoryNameChange(selectedName);
+  const handleLocationChange = (locationId: string) => {
+    if (isFromScan) return;
 
-    const matchingAssets = assetList.filter((item) => item.name === selectedName);
+    const selected = locations.find((item) => String(item.id) === locationId);
 
-    if (matchingAssets.length === 1) {
-      const matchedAsset = matchingAssets[0];
+    setSelectionError("");
 
-      onInventoryNumberChange(matchedAsset.asset_number ?? "");
-      onLocationChange(matchedAsset.location ?? "");
-      onAssetIdChange(matchedAsset.id ?? null);
+    onUnitChange(locationId);
+    onLocationChange(selected?.name ?? "");
+    onInventoryNameChange("");
+    onInventoryNumberChange("");
+    onAssetIdChange(null);
+  };
+
+  // ==========================================
+  // HANDLER NAMA INVENTARIS
+  // ==========================================
+
+  const handleNameSelect = (name: string) => {
+    if (isFromScan || !selectedLocation || isLoadingAssets) {
       return;
     }
 
-    if (matchingAssets.length > 1) {
-      const matchedByNumber = matchingAssets.find((item) => item.asset_number === inventoryNumber);
+    setSelectionError("");
+    onInventoryNameChange(name);
 
-      if (matchedByNumber) {
-        onLocationChange(matchedByNumber.location ?? "");
-        onAssetIdChange(matchedByNumber.id ?? null);
-      } else {
-        onInventoryNumberChange("");
-        onLocationChange("");
-        onAssetIdChange(null);
-      }
+    const matching = availableAssets.filter((asset) => asset.asset_code?.item?.name === name);
+
+    if (matching.length === 1) {
+      // Tepat satu aset:
+      // Nomor inventaris dan ID langsung terisi.
+
+      onInventoryNumberChange(matching[0].asset_code?.full_code ?? "");
+
+      onAssetIdChange(matching[0].id);
+      return;
     }
 
-    if (matchingAssets.length === 0) {
-      onInventoryNumberChange("");
-      onLocationChange("");
-      onAssetIdChange(null);
-    }
-  };
+    // Pertahankan nomor sebelumnya hanya jika
+    // masih menunjuk satu aset yang cocok.
 
-  // =========================
-  // Pilih No. Inventaris
-  // =========================
-  const handleNumberSelect = (selectedNumber: string) => {
-    if (!unit) return;
+    const retained = matching.filter((asset) => asset.asset_code?.full_code === inventoryNumber);
 
-    const matchedAsset = assetList.find((item) => item.asset_number === selectedNumber);
-
-    if (matchedAsset) {
-      onInventoryNumberChange(matchedAsset.asset_number ?? "");
-      onInventoryNameChange(matchedAsset.name ?? "");
-      onLocationChange(matchedAsset.location ?? "");
-      onAssetIdChange(matchedAsset.id ?? null);
-
-      console.log("Inventaris terpilih:", matchedAsset);
-      console.log("Asset ID terpilih:", matchedAsset.id);
+    if (retained.length === 1) {
+      onAssetIdChange(retained[0].id);
     } else {
       onInventoryNumberChange("");
-      onLocationChange("");
       onAssetIdChange(null);
-
-      console.warn("Inventaris tidak ditemukan:", selectedNumber);
     }
   };
 
-  // =========================
-  // Ganti Unit
-  // =========================
-  const handleUnitChange = (newUnitValue: string) => {
-    setFetchError("");
+  // ==========================================
+  // HANDLER NOMOR INVENTARIS
+  // ==========================================
 
-    // State lokal
-    setAssetList([]);
-    setIsLoadingAssets(
-      Boolean(newUnitValue) &&
-        unitList.some((item) => item.unit_name.toLowerCase() === newUnitValue.toLowerCase()),
+  const handleNumberSelect = (number: string) => {
+    if (isFromScan || !selectedLocation || isLoadingAssets) {
+      return;
+    }
+
+    setSelectionError("");
+
+    const matching = availableAssets.filter((asset) => asset.asset_code?.full_code === number);
+
+    if (matching.length === 1) {
+      const asset = matching[0];
+
+      onInventoryNumberChange(number);
+      onInventoryNameChange(asset.asset_code?.item?.name ?? "");
+
+      // ID record /assets yang benar untuk POST /tickets.
+      // Bukan asset_code.id atau item.id.
+
+      onAssetIdChange(asset.id);
+      return;
+    }
+
+    onInventoryNumberChange(number);
+    onInventoryNameChange("");
+    onAssetIdChange(null);
+
+    setSelectionError(
+      matching.length > 1
+        ? "Nomor inventaris digunakan oleh lebih dari satu aset."
+        : "Nomor inventaris tidak ditemukan pada lokasi ini.",
     );
-
-    // State parent
-    onUnitChange(newUnitValue);
-    onInventoryNameChange("");
-    onInventoryNumberChange("");
-    onLocationChange("");
-    onAssetIdChange(null);
   };
 
-  // =========================
-  // Reset Inventaris
-  // =========================
+  // ==========================================
+  // RESET INVENTARIS
+  // ==========================================
+
   const handleReset = () => {
+    setSelectionError("");
+
+    if (onResetInventory) {
+      onResetInventory();
+      return;
+    }
+
+    onUnitChange("");
     onInventoryNameChange("");
     onInventoryNumberChange("");
     onLocationChange("");
     onAssetIdChange(null);
   };
+
+  // ==========================================
+  // MODE SCAN - menggunakan data UID
+  // ==========================================
+
+  const scannedLocation = scannedAsset?.location || "—";
+  const scannedName = scannedAsset?.name || "—";
+  const scannedNumber = scannedAsset?.code ?? "Belum memiliki kode";
+
+  const scannedLocationOptions: DropdownOption[] = [
+    {
+      label: scannedLocation,
+      value: scannedLocation,
+    },
+  ];
+
+  const scannedNameOptions: DropdownOption[] = [
+    {
+      label: scannedName,
+      value: scannedName,
+    },
+  ];
+
+  const scannedNumberOptions: DropdownOption[] = [
+    {
+      label: scannedNumber,
+      value: scannedNumber,
+    },
+  ];
+
+  // ==========================================
+  // RENDER
+  // ==========================================
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      {/* Unit */}
+      {/* LOKASI */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-text-secondary">Unit</label>
+          <label className="text-sm font-semibold text-text-secondary">Lokasi</label>
         </div>
 
-        <Dropdown
-          value={unit ?? ""}
-          displayValue={unit ?? ""}
-          options={unitOptions}
-          onChange={handleUnitChange}
-          placeholder={isLoadingUnits ? "Memuat unit..." : "Pilih unit"}
-          className="w-full"
-          searchable
-          searchPlaceholder="Cari unit..."
-          sheetTitle="Pilih Unit"
-          mobileSheet
-        />
+        {isFromScan ? (
+          <div className="pointer-events-none">
+            <Dropdown
+              value={scannedLocation}
+              displayValue={scannedLocation}
+              options={scannedLocationOptions}
+              onChange={() => {}}
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <Dropdown
+            value={unit ?? ""}
+            displayValue={selectedLocation?.name ?? ""}
+            options={locationOptions}
+            onChange={handleLocationChange}
+            placeholder={isLoadingLocations ? "Memuat lokasi..." : "Pilih Lokasi"}
+            className="w-full"
+            searchable
+            searchPlaceholder="Cari lokasi..."
+            sheetTitle="Pilih Lokasi"
+            mobileSheet
+          />
+        )}
+
+        {(unitError || locationError) && (
+          <p className="text-xs text-danger-500">{unitError || locationError}</p>
+        )}
       </div>
 
-      {/* Nama Inventaris */}
-      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
+      {/* NAMA INVENTARIS */}
+      <div className={`flex flex-col gap-2 ${!unit && !isFromScan ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">Nama Inventaris</label>
 
-        <div className={!unit ? "pointer-events-none opacity-60" : ""}>
-          <Dropdown
-            value={inventoryName}
-            options={nameOptions}
-            onChange={handleNameSelect}
-            placeholder={
-              isLoadingAssets
-                ? "Memuat inventaris..."
-                : unit
-                  ? "Pilih Nama Inventaris"
-                  : "Pilih Unit terlebih dahulu"
-            }
-            className="w-full"
-            searchable
-            searchPlaceholder="Cari nama inventaris..."
-            sheetTitle="Pilih Nama Inventaris"
-            mobileSheet
-          />
+        <div className={!unit && !isFromScan ? "pointer-events-none opacity-60" : ""}>
+          {isFromScan ? (
+            <div className="pointer-events-none">
+              <Dropdown
+                value={scannedName}
+                options={scannedNameOptions}
+                onChange={() => {}}
+                className="w-full"
+              />
+            </div>
+          ) : (
+            <Dropdown
+              value={inventoryName}
+              options={nameOptions}
+              onChange={handleNameSelect}
+              placeholder={
+                isLoadingAssets
+                  ? "Memuat inventaris..."
+                  : unit
+                    ? "Pilih Nama Inventaris"
+                    : "Pilih Lokasi terlebih dahulu"
+              }
+              className="w-full"
+              searchable
+              searchPlaceholder="Cari nama inventaris..."
+              sheetTitle="Pilih Nama Inventaris"
+              mobileSheet
+            />
+          )}
         </div>
       </div>
 
-      {/* No. Inventaris */}
-      <div className={`flex flex-col gap-2 ${!unit ? "cursor-not-allowed" : ""}`}>
+      {/* NOMOR INVENTARIS */}
+      <div className={`flex flex-col gap-2 ${!unit && !isFromScan ? "cursor-not-allowed" : ""}`}>
         <label className="text-sm font-semibold text-text-secondary">No. Inventaris</label>
 
-        <div className={!unit ? "pointer-events-none opacity-60" : ""}>
-          <Dropdown
-            value={inventoryNumber}
-            options={numberOptions}
-            onChange={handleNumberSelect}
-            placeholder={
-              isLoadingAssets
-                ? "Memuat inventaris..."
-                : unit
-                  ? "Pilih No. Inventaris"
-                  : "Pilih Unit terlebih dahulu"
-            }
-            className="w-full"
-            searchable
-            searchPlaceholder="Cari no. inventaris..."
-            sheetTitle="Pilih No. Inventaris"
-            mobileSheet
-          />
+        <div className={!unit && !isFromScan ? "pointer-events-none opacity-60" : ""}>
+          {isFromScan ? (
+            <div className="pointer-events-none">
+              <Dropdown
+                value={scannedNumber}
+                options={scannedNumberOptions}
+                onChange={() => {}}
+                className="w-full"
+              />
+            </div>
+          ) : (
+            <Dropdown
+              value={inventoryNumber}
+              options={numberOptions}
+              onChange={handleNumberSelect}
+              placeholder={
+                isLoadingAssets
+                  ? "Memuat inventaris..."
+                  : unit
+                    ? "Pilih No. Inventaris"
+                    : "Pilih Lokasi terlebih dahulu"
+              }
+              className="w-full"
+              searchable
+              searchPlaceholder="Cari no. inventaris..."
+              sheetTitle="Pilih No. Inventaris"
+              mobileSheet
+            />
+          )}
         </div>
+
+        {inventoryNumberError && <p className="text-xs text-danger-500">{inventoryNumberError}</p>}
       </div>
 
-      {/* Error API */}
-      {fetchError && <p className="text-xs text-danger-500">{fetchError}</p>}
+      {/* ERROR ASET */}
+      {!isFromScan && assetError && <p className="text-xs text-danger-500">{assetError}</p>}
 
-      {/* Lokasi */}
-      <Input
-        label="Lokasi"
-        value={location}
-        onChange={(event) => onLocationChange(event.target.value)}
-        placeholder="Masukkan lokasi inventaris"
-        readOnly
-        className="cursor-default"
-      />
-
-      {(inventoryName || inventoryNumber || location) && (
+      {/* RESET PILIHAN */}
+      {(isFromScan || inventoryName || inventoryNumber || location) && (
         <div className="flex justify-end pt-1">
           <Button
             type="button"

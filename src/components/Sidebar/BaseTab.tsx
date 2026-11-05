@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 
 interface BaseTabProps {
   to?: string;
@@ -8,6 +9,7 @@ interface BaseTabProps {
   badge?: number;
   onClick?: () => void;
   active?: boolean;
+  className?: string;
 }
 
 export default function BaseTab({
@@ -17,14 +19,16 @@ export default function BaseTab({
   badge,
   onClick,
   active = false,
+  className,
 }: BaseTabProps) {
-  // Styling yang digunakan bersama
   const getClassName = (isActive: boolean) =>
-    `flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2 ${
+    twMerge(
+      "flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors border-l-2",
       isActive
         ? "border-blue-700 bg-blue-50/50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
-        : "border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50"
-    }`;
+        : "border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50",
+      className,
+    );
 
   const content = (
     <>
@@ -52,7 +56,7 @@ export default function BaseTab({
 
   // MODE ACTION
   return (
-    <button type="button" onClick={onClick} className={`${getClassName(active)} text-left`}>
+    <button type="button" onClick={onClick} className={twMerge(getClassName(active), "text-left")}>
       {content}
     </button>
   );

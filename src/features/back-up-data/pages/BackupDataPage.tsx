@@ -13,7 +13,7 @@ import BackupMobileList from "../components/BackupMobileList";
 import BackupTable from "../components/BackupTable";
 import BackupScheduleModal from "../components/BackupScheduleModal";
 import BackupConfirmModal from "../components/BackupConfirmModal";
-import BackupRestoreModal from "../components/BackupRestoreModal";
+import BackupDeleteModal from "../components/BackupDeleteModal";
 
 import { backupService } from "../services/backupService";
 
@@ -42,13 +42,6 @@ const initialSchedule: BackupSchedule = {
   dayOfWeek: 1,
   dayOfMonth: 1,
 };
-
-const jakartaDateFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Jakarta",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 
 // ==========================================
 // ERROR HELPERS
@@ -80,6 +73,18 @@ export default function BackupDataPage() {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [filters, setFilters] = useState<BackupFilters>(initialFilters);
   const [page, setPage] = useState(1);
+  const [refresh, setRefresh] = useState(0);
+  const [scheduleReady, setScheduleReady] = useState(false);
+  const [paginationMeta, setPaginationMeta] = useState<ApiMeta>({
+    current_page: 1,
+    last_page: 1,
+    per_page: ITEMS_PER_PAGE,
+    total: 0,
+    from: null,
+    to: null,
+    path: "/backups",
+    links: [],
+  });
 
   // SCHEDULE
   const [schedule, setSchedule] = useState<BackupSchedule>(initialSchedule);
@@ -89,9 +94,9 @@ export default function BackupDataPage() {
   // LOADING
   const [isLoading, setIsLoading] = useState(true);
   const [isBackingUp, setIsBackingUp] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const operationRef = useRef<"backup" | "restore" | null>(null);
+  const operationRef = useRef<"backup" | "delete" | null>(null);
 
   // MODALS
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -100,99 +105,94 @@ export default function BackupDataPage() {
 
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Backup | null>(null);
 
   // ==========================================
   // FETCH BACKUPS
   // ==========================================
 
   useEffect(() => {
+    const controller = new AbortController();
     let active = true;
-
-    const loadData = async () => {
+    let loading = false;
+    const loadData = async (silent = false) => {
+      if (loading) return;
+      loading = true;
+      if (!silent) setIsLoading(true);
       try {
-        setIsLoading(true);
-
-        const [backupData, scheduleData] = await Promise.all([
-          backupService.getBackups(),
-          backupService.getSchedule(),
-        ]);
-
+        const result = await backupService.getBackups(
+          page,
+          ITEMS_PER_PAGE,
+          {
+            search: "",
+            type: filters.type,
+            status: filters.status,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+          },
+          controller.signal,
+        );
         if (!active) return;
-
-        setBackups(backupData);
-        setSchedule(scheduleData);
+        if (page > result.meta.last_page) {
+          setPage(Math.max(1, result.meta.last_page));
+          return;
+        }
+        setBackups(result.backups);
+        setPaginationMeta(result.meta);
       } catch (error) {
-        if (!active) return;
-
-        console.error("Gagal memuat backup:", error);
-
-        showToast("Gagal memuat data back up!", "error");
+        if (active && !silent) {
+          setBackups([]);
+          showToast(error instanceof Error ? error.message : "Gagal memuat data back up!", "error");
+        }
       } finally {
-        if (active) setIsLoading(false);
+        loading = false;
+        if (active && !silent) setIsLoading(false);
       }
     };
-
     void loadData();
+    const interval = window.setInterval(() => {
+      void loadData(true);
+    }, 10000);
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearInterval(interval);
+    };
+  }, [page, filters.type, filters.status, filters.startDate, filters.endDate, refresh, showToast]);
 
+  useEffect(() => {
+    let active = true;
+    void backupService
+      .getSchedule()
+      .then((data) => {
+        if (active) {
+          setSchedule(data);
+          setScheduleReady(true);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active)
+          showToast(
+            error instanceof Error ? error.message : "Gagal memuat jadwal back up!",
+            "error",
+          );
+      });
     return () => {
       active = false;
     };
   }, [showToast]);
 
-  // ==========================================
-  // FILTER
-  // ==========================================
-
-  const filteredBackups = useMemo(() => {
+  // The API has no search parameter; search only the currently loaded page.
+  const paginatedBackups = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
-
-    return backups.filter((backup) => {
-      const matchSearch =
+    return backups.filter(
+      (backup) =>
         backup.fileName.toLowerCase().includes(search) ||
-        backup.performedBy.toLowerCase().includes(search);
-
-      const matchType = filters.type === "all" || backup.type === filters.type;
-
-      const matchStatus = filters.status === "all" || backup.status === filters.status;
-
-      const date = new Date(backup.backupDate);
-
-      const backupDate = Number.isNaN(date.getTime()) ? "" : jakartaDateFormatter.format(date);
-
-      const matchStart =
-        !filters.startDate || (backupDate !== "" && backupDate >= filters.startDate);
-
-      const matchEnd = !filters.endDate || (backupDate !== "" && backupDate <= filters.endDate);
-
-      return matchSearch && matchType && matchStatus && matchStart && matchEnd;
-    });
-  }, [backups, filters]);
-
-  // ==========================================
-  // PAGINATION
-  // ==========================================
-
-  const total = filteredBackups.length;
-
-  const lastPage = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-
-  const currentPage = Math.min(page, lastPage);
-
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const paginatedBackups = filteredBackups.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const paginationMeta: ApiMeta = {
-    current_page: currentPage,
-    last_page: lastPage,
-    per_page: ITEMS_PER_PAGE,
-    total,
-    from: total === 0 ? null : startIndex + 1,
-    to: total === 0 ? null : Math.min(startIndex + ITEMS_PER_PAGE, total),
-    path: "/back-up-data",
-    links: [],
-  };
+        backup.performedBy.toLowerCase().includes(search),
+    );
+  }, [backups, filters.search]);
+  const total = paginationMeta.total;
+  const lastPage = paginationMeta.last_page;
 
   // ==========================================
   // FILTER HANDLERS
@@ -200,7 +200,13 @@ export default function BackupDataPage() {
 
   const handleFilterChange = (nextFilters: BackupFilters) => {
     setFilters(nextFilters);
-    setPage(1);
+    if (
+      nextFilters.type !== filters.type ||
+      nextFilters.status !== filters.status ||
+      nextFilters.startDate !== filters.startDate ||
+      nextFilters.endDate !== filters.endDate
+    )
+      setPage(1);
   };
 
   const handleSearchChange = (value: string) => {
@@ -208,8 +214,6 @@ export default function BackupDataPage() {
       ...previous,
       search: value,
     }));
-
-    setPage(1);
   };
 
   const handlePageChange = (nextPage: number) => {
@@ -225,7 +229,7 @@ export default function BackupDataPage() {
     if (operationRef.current !== null) {
       setShowBackupModal(false);
 
-      showToast("Masih ada proses back up atau pemulihan yang berjalan", "warning");
+      showToast("Masih ada proses back up atau penghapusan yang berjalan", "warning");
       return;
     }
 
@@ -237,22 +241,20 @@ export default function BackupDataPage() {
 
       await backupService.createBackup();
 
-      showToast("Back up berhasil!", "success");
+      showToast("Back up masuk antrean. Status akan diperbarui otomatis.", "success");
 
-      try {
-        const updated = await backupService.getBackups();
-        setBackups(updated);
-        setPage(1);
-      } catch (error) {
-        console.error("Gagal memperbarui riwayat:", error);
-      }
+      setPage(1);
+      setRefresh((value) => value + 1);
     } catch (error) {
       console.error("Gagal backup:", error);
 
       if (getErrorStatus(error) === 409) {
-        showToast("Masih ada proses back up atau pemulihan yang berjalan", "warning");
+        showToast("Masih ada proses back up atau penghapusan yang berjalan", "warning");
       } else {
-        showToast("Back up gagal, silahkan coba kembali!", "error");
+        showToast(
+          error instanceof Error ? error.message : "Back up gagal, silahkan coba kembali!",
+          "error",
+        );
       }
     } finally {
       operationRef.current = null;
@@ -266,56 +268,66 @@ export default function BackupDataPage() {
 
   const handleDownload = async (backup: Backup) => {
     try {
-      await backupService.downloadBackup(backup.id);
+      await backupService.downloadBackup(backup.id, backup.fileName);
     } catch (error) {
       console.error("Gagal download:", error);
 
       if (getErrorStatus(error) === 404) {
         showToast("File back up tidak ditemukan", "error");
       } else {
-        showToast("Gagal mengunduh file back up!", "error");
+        showToast(
+          error instanceof Error ? error.message : "Gagal mengunduh file back up!",
+          "error",
+        );
       }
     }
   };
 
   // ==========================================
-  // RESTORE
+  // DELETE
   // ==========================================
 
-  const handleRestore = async () => {
-    if (!restoreTarget) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
 
     if (operationRef.current !== null) {
-      setRestoreTarget(null);
+      setDeleteTarget(null);
 
-      showToast("Masih ada proses back up atau pemulihan yang berjalan", "warning");
+      showToast("Masih ada proses back up atau penghapusan yang berjalan", "warning");
       return;
     }
 
-    operationRef.current = "restore";
+    operationRef.current = "delete";
 
     try {
-      setIsRestoring(true);
+      setIsDeleting(true);
 
-      await backupService.restoreBackup(restoreTarget.id);
+      await backupService.deleteBackup(deleteTarget.id);
 
-      showToast("Pemulihan berhasil!", "success");
-      setRestoreTarget(null);
+      setBackups((previous) =>
+        previous.map((backup) =>
+          backup.id === deleteTarget.id ? { ...backup, fileAvailable: false } : backup,
+        ),
+      );
+      setRefresh((value) => value + 1);
+      showToast("File back up berhasil dihapus!", "success");
+      setDeleteTarget(null);
     } catch (error) {
-      console.error("Gagal restore:", error);
+      console.error("Gagal menghapus:", error);
 
-      if (getErrorStatus(error) === 409) {
-        showToast("Masih ada proses back up atau pemulihan yang berjalan", "warning");
-      } else if (getErrorStatus(error) === 404) {
+      if (getErrorStatus(error) === 404) {
         showToast("File back up tidak ditemukan", "error");
       } else {
-        showToast("Pemulihan gagal, silahkan coba kembali!", "error");
+        showToast(
+          error instanceof Error ? error.message : "Data gagal dihapus, silahkan coba kembali!",
+          "error",
+        );
       }
 
-      setRestoreTarget(null);
+      setDeleteTarget(null);
     } finally {
       operationRef.current = null;
-      setIsRestoring(false);
+      setIsDeleting(false);
     }
   };
 
@@ -328,7 +340,7 @@ export default function BackupDataPage() {
       await backupService.saveSchedule(nextSchedule);
       setSchedule(nextSchedule);
 
-      showToast("Backup otomatis berhasil!", "success");
+      showToast("Jadwal backup otomatis berhasil disimpan!", "success");
     } catch (error) {
       console.error("Gagal menyimpan jadwal:", error);
 
@@ -349,7 +361,11 @@ export default function BackupDataPage() {
       ====================================== */}
       <div className="flex items-center gap-2 md:hidden">
         <div className="min-w-0 flex-1">
-          <Search value={filters.search} onChange={handleSearchChange} placeholder="Cari data..." />
+          <Search
+            value={filters.search}
+            onChange={handleSearchChange}
+            placeholder="Cari di halaman ini..."
+          />
         </div>
 
         <button
@@ -378,7 +394,7 @@ export default function BackupDataPage() {
         className={`
             items-center justify-between gap-2
             md:flex
-            ${!isLoading && total === 0 ? "hidden" : "flex"}
+            flex
         `}
       >
         <h1 className="font-semibold text-text-title md:text-xl">
@@ -392,6 +408,7 @@ export default function BackupDataPage() {
           <div ref={scheduleButtonRef}>
             <Button
               label="Atur Jadwal"
+              disabled={!scheduleReady}
               icon={<IconCalendar size={15} />}
               variant="secondary"
               size="sm"
@@ -405,6 +422,13 @@ export default function BackupDataPage() {
           {/* BACKUP */}
           <Button
             label="Back Up"
+            disabled={
+              isBackingUp ||
+              isDeleting ||
+              backups.some(
+                (backup) => backup.status === "pending" || backup.status === "processing",
+              )
+            }
             icon={<IconDatabase size={15} />}
             size="sm"
             onClick={() => setShowBackupModal(true)}
@@ -427,7 +451,7 @@ export default function BackupDataPage() {
             <BackupMobileList
               backups={paginatedBackups}
               onDownload={handleDownload}
-              onRestore={setRestoreTarget}
+              onDelete={setDeleteTarget}
             />
 
             {total > 0 && (
@@ -458,7 +482,7 @@ export default function BackupDataPage() {
               <BackupTable
                 backups={paginatedBackups}
                 onDownload={handleDownload}
-                onRestore={setRestoreTarget}
+                onDelete={setDeleteTarget}
               />
 
               <BackupTablePagination meta={paginationMeta} onPageChange={handlePageChange} />
@@ -499,14 +523,16 @@ export default function BackupDataPage() {
       />
 
       {/* ======================================
-          RESTORE CONFIRMATION
+          DELETE CONFIRMATION
       ====================================== */}
-      <BackupRestoreModal
-        show={restoreTarget !== null}
-        backup={restoreTarget}
-        onClose={() => setRestoreTarget(null)}
-        onConfirm={handleRestore}
-        isLoading={isRestoring}
+      <BackupDeleteModal
+        show={deleteTarget !== null}
+        backup={deleteTarget}
+        onClose={() => {
+          if (!isDeleting) setDeleteTarget(null);
+        }}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
       />
     </div>
   );

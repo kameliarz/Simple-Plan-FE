@@ -1,10 +1,11 @@
+import { apiFetch } from "@/lib/apiFetch";
 import type {
   ApiTicket,
   ApiTicketStatus,
   TicketCollectionResponse,
 } from "@/features/helpdesk-list-detail/types/ticket";
 
-import { clearAuth, getToken } from "@/features/auth-login/services/authStorage";
+import { getToken } from "@/features/auth-login/services/authStorage";
 
 const API_BASE_URL = "/api/v1";
 
@@ -35,16 +36,6 @@ function getAuthHeaders(): HeadersInit {
     Accept: "application/json",
     Authorization: `Bearer ${token}`,
   };
-}
-
-function handleUnauthorized(response: Response) {
-  if (response.status === 401) {
-    clearAuth();
-    window.location.href = "/login";
-    return true;
-  }
-
-  return false;
 }
 
 // ==========================================
@@ -92,15 +83,11 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
 
   console.log("GET /tickets URL:", url);
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
     signal: params.signal,
   });
-
-  if (handleUnauthorized(response)) {
-    throw new Error("Sesi login sudah tidak valid.");
-  }
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -135,7 +122,7 @@ export async function getTickets(params: GetTicketsParams = {}): Promise<TicketC
 // GET /api/v1/tickets/{ticketId}
 // ==========================================
 export async function getTicket(ticketId: string): Promise<ApiTicket> {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -178,7 +165,7 @@ export const getTicketAssigneeOptions = async (ticketId: string, search = "") =>
     ? `${API_BASE_URL}/tickets/${ticketId}/assignee-options?${queryString}`
     : `${API_BASE_URL}/tickets/${ticketId}/assignee-options`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -237,7 +224,7 @@ type ClassifyTicketPayload = {
 };
 
 export const classifyTicket = async (ticketId: string, payload: ClassifyTicketPayload) => {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/classify`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/classify`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -266,7 +253,7 @@ export type AssignTicketPayload = {
 };
 
 export const assignTicket = async (ticketId: string, payload: AssignTicketPayload) => {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/assign`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/assign`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -294,7 +281,7 @@ export type RejectTicketPayload = {
 };
 
 export const rejectTicket = async (ticketId: string, payload: RejectTicketPayload) => {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/reject`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/reject`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -337,7 +324,7 @@ export async function createTicketHandling(ticketId: string, payload: CreateTick
     formData.append("result_photo", payload.result_photo);
   }
 
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/handlings`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/handlings`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -366,7 +353,7 @@ export type VerifyTicketPayload = {
 };
 
 export async function verifyTicketResolution(ticketId: string, payload: VerifyTicketPayload) {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/verify`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/verify`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -418,7 +405,7 @@ export const createTicket = async (data: CreateTicketPayload) => {
     formData.append("initial_evidence", data.initial_evidence);
   }
 
-  const response = await fetch("${API_BASE_URL}/tickets", {
+  const response = await apiFetch("${API_BASE_URL}/tickets", {
     method: "POST",
     headers: {
       Authorization: "Bearer ",
@@ -448,7 +435,7 @@ export type EscalateTicketPayload = {
 };
 
 export const escalateTicket = async (ticketId: string, payload?: EscalateTicketPayload) => {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/escalate`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/escalate`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -479,7 +466,7 @@ export const escalateTicket = async (ticketId: string, payload?: EscalateTicketP
 // ==========================================
 
 export const deEscalateTicket = async (ticketId: string) => {
-  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/de-escalate`, {
+  const response = await apiFetch(`${API_BASE_URL}/tickets/${ticketId}/de-escalate`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
@@ -520,7 +507,7 @@ export type TicketClassificationOptions = {
 export const getTicketClassificationOptions = async (
   service: "tik" | "sarpras",
 ): Promise<TicketClassificationOptions> => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/tickets/classification-options?service=${encodeURIComponent(service)}`,
     {
       method: "GET",

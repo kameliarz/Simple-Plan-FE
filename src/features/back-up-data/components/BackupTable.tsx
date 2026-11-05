@@ -9,7 +9,7 @@ import type { Backup } from "../types/backup.types";
 interface BackupTableProps {
   backups: Backup[];
   onDownload: (backup: Backup) => void;
-  onRestore: (backup: Backup) => void;
+  onDelete: (backup: Backup) => void;
 }
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -22,7 +22,7 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   hour12: false,
 });
 
-export default function BackupTable({ backups, onDownload, onRestore }: BackupTableProps) {
+export default function BackupTable({ backups, onDownload, onDelete }: BackupTableProps) {
   return (
     <Table className="min-w-262.5 table-auto">
       <Table.Thead>
@@ -47,47 +47,57 @@ export default function BackupTable({ backups, onDownload, onRestore }: BackupTa
             <IconDatabaseOff size={42} className="text-slate-400" />
           </Table.Empty>
         ) : (
-          backups.map((backup) => (
-            <tr
-              key={backup.id}
-              className="
-                transition-colors
-                hover:bg-slate-50
-                dark:hover:bg-slate-800/50
-              "
-            >
-              {/* NAMA FILE */}
-              <Table.Td className="min-w-55 whitespace-nowrap">
-                <span className="font-medium">{backup.fileName}</span>
-              </Table.Td>
+          backups.map((backup) => {
+            const isDeleted = backup.fileAvailable === false;
 
-              {/* WAKTU BACK UP */}
-              <Table.Td className="whitespace-nowrap">
-                {dateFormatter.format(new Date(backup.backupDate))}
-              </Table.Td>
+            const textClass = isDeleted ? "!text-slate-400 dark:!text-slate-500" : "";
 
-              {/* JENIS BACK UP */}
-              <Table.Td className="whitespace-nowrap">
-                <BackupStatusBadge type={backup.type} />
-              </Table.Td>
+            return (
+              <tr
+                key={backup.id}
+                className="
+                  transition-colors
+                  hover:bg-slate-50
+                  dark:hover:bg-slate-800/50
+                "
+              >
+                {/* NAMA FILE */}
+                <Table.Td className="min-w-55 whitespace-nowrap">
+                  <span className={`font-medium ${textClass}`}>{backup.fileName}</span>
+                </Table.Td>
 
-              {/* DILAKUKAN OLEH */}
-              <Table.Td className="whitespace-nowrap">{backup.performedBy}</Table.Td>
+                {/* WAKTU BACK UP */}
+                <Table.Td className={`whitespace-nowrap ${textClass}`}>
+                  {dateFormatter.format(new Date(backup.backupDate))}
+                </Table.Td>
 
-              {/* UKURAN FILE */}
-              <Table.Td className="whitespace-nowrap">{backup.fileSize} MB</Table.Td>
+                {/* JENIS BACK UP */}
+                <Table.Td className="whitespace-nowrap">
+                  <BackupStatusBadge type={backup.type} />
+                </Table.Td>
 
-              {/* STATUS */}
-              <Table.Td className="whitespace-nowrap">
-                <BackupStatusBadge status={backup.status} />
-              </Table.Td>
+                {/* DILAKUKAN OLEH */}
+                <Table.Td className={`whitespace-nowrap ${textClass}`}>
+                  {backup.performedBy}
+                </Table.Td>
 
-              {/* AKSI */}
-              <Table.Td className="whitespace-nowrap text-center">
-                <BackupActionMenu backup={backup} onDownload={onDownload} onRestore={onRestore} />
-              </Table.Td>
-            </tr>
-          ))
+                {/* UKURAN FILE */}
+                <Table.Td className={`whitespace-nowrap ${textClass}`}>
+                  {backup.fileSize} MB
+                </Table.Td>
+
+                {/* STATUS */}
+                <Table.Td className="whitespace-nowrap">
+                  <BackupStatusBadge status={backup.status} />
+                </Table.Td>
+
+                {/* AKSI */}
+                <Table.Td className="whitespace-nowrap text-center">
+                  <BackupActionMenu backup={backup} onDownload={onDownload} onDelete={onDelete} />
+                </Table.Td>
+              </tr>
+            );
+          })
         )}
       </Table.Tbody>
     </Table>

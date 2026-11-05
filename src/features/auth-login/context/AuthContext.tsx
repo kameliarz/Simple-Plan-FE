@@ -1,8 +1,14 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import type { LoginUser } from "../types/auth-login.types";
 
-import { clearAuth, getToken, getUser, saveAuth } from "../services/authStorage";
+import {
+  clearAuth,
+  getToken,
+  getUser,
+  saveAuth,
+  subscribeAuthChanges,
+} from "../services/authStorage";
 
 interface AuthContextValue {
   user: LoginUser | null;
@@ -31,6 +37,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: null,
     };
   });
+
+  useEffect(
+    () =>
+      subscribeAuthChanges(() => {
+        const token = getToken();
+        const user = getUser();
+        setAuth(token && user ? { token, user } : { token: null, user: null });
+      }),
+    [],
+  );
 
   const login = (newToken: string, newUser: LoginUser) => {
     saveAuth(newToken, newUser);

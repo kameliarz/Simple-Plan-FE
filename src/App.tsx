@@ -1,15 +1,20 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 
 import MainLayout from "@/layouts/MainLayout";
 import LoginPage from "@/features/auth-login/pages/LoginPage";
-import { getUser } from "@/features/auth-login/services/authStorage";
+import { useAuth } from "@/features/auth-login/context/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import UnauthorizedPage from "@/pages/UnauthorizedPage";
+import { BACKUP_ROLES } from "@/types/auth";
 
 import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskListPage";
 import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
 import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskCreateTicketPage";
+
+import ScanBarcodePage from "@/features/helpdesk-create/pages/ScanBarcodePage";
+import HelpdeskInventoryDetailPage from "@/features/helpdesk-create/pages/HelpdeskInventoryDetailPage";
 
 import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
 import UserListPage from "@/features/master-data/users/pages/UserListPage";
@@ -29,12 +34,6 @@ import DetailJadwalMaintenancePage from "@/features/maintenance/pages/DetailJadw
 import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMaintenancePage";
 
 import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
-
-function ProtectedRoute({ children }: { children: ReactNode }) {
-  const user = getUser();
-  if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
 
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
@@ -80,8 +79,31 @@ function ResponsiveNotificationRoute() {
   return <NotificationMobilePage />;
 }
 
+function RoleAwareHelpdeskList() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const isSuperAdmin = user?.role === "super-admin";
+  const pathname = location.pathname;
+
+  if (isSuperAdmin) {
+    if (pathname === "/helpdesk") {
+      return <Navigate to="/helpdesk/tik" replace />;
+    }
+
+    return <HelpdeskListPage />;
+  }
+
+  if (pathname !== "/helpdesk") {
+    return <Navigate to="/helpdesk" replace />;
+  }
+
+  return <HelpdeskListPage />;
+}
+
 function App() {
   const location = useLocation();
+  const { user } = useAuth();
 
   if (location.pathname === "/login") {
     return (
@@ -95,15 +117,24 @@ function App() {
     <ProtectedRoute>
       <MainLayout>
         <Routes>
-          <Route path="/" element={<Navigate to="/helpdesk/tik" replace />} />
+          <Route
+            path="/"
+            element={
+              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
+            }
+          />
 
           {/* Helpdesk */}
-          <Route path="/helpdesk" element={<HelpdeskListPage />} />
-          <Route path="/helpdesk/tik" element={<HelpdeskListPage />} />
-          <Route path="/helpdesk/sarpras" element={<HelpdeskListPage />} />
+          <Route path="/helpdesk" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/tik" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/sarpras" element={<RoleAwareHelpdeskList />} />
           <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
           <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
           <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+
+          <Route path="/helpdesk/scan" element={<ScanBarcodePage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+          <Route path="/helpdesk/inventory-detail" element={<HelpdeskInventoryDetailPage />} />
 
           {/* Master Data */}
           <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
@@ -135,8 +166,16 @@ function App() {
           <Route path="/notification" element={<ResponsiveNotificationRoute />} />
 
           {/* Backup */}
-          <Route path="/back-up-data" element={<BackupDataPage />} />
-          
+          <Route
+            path="/back-up-data"
+            element={
+              <ProtectedRoute allowedRoles={BACKUP_ROLES}>
+                <BackupDataPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
           <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
@@ -144,7 +183,12 @@ function App() {
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/helpdesk/tik" replace />} />
+          <Route
+            path="*"
+            element={
+              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
+            }
+          />
         </Routes>
       </MainLayout>
     </ProtectedRoute>

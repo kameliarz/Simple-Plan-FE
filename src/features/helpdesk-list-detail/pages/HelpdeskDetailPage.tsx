@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { ApiTicket } from "../types/ticket";
 import type { TicketItem, TicketPriority } from "../types/helpdesk";
 import type { DropdownOption } from "../../../components/ui/ui-template/Dropdown";
-
+import { BACKEND_URL } from "@/config/api";
 import {
   verifyTicketResolution,
   getTicket,
@@ -16,7 +16,6 @@ import {
   deEscalateTicket,
   getTicketClassificationOptions,
 } from "../services/ticketApi";
-
 import RejectTicketModal from "../components/RejectTicketModal";
 import AssignOfficerModal from "../components/AssignOfficerModal";
 import type { Officer } from "../components/AssignOfficerModal";
@@ -28,7 +27,6 @@ import RejectResolutionModal from "../components/RejectResolutionModal";
 import EscalationModal, { type EscalationFormData } from "../components/EscalationModal";
 import Alert from "../../../components/ui/ui-template/Alert";
 import Button from "../../../components/ui/ui-template/Button";
-
 import ReporterInfoCard from "../components/detail/ReporterInfoCard";
 import InventoryCard from "../components/detail/InventoryCard";
 import DescriptionCard from "../components/detail/DescriptionCard";
@@ -36,17 +34,13 @@ import ClassificationCard from "../components/detail/ClassificationCard";
 import PriorityCard from "../components/detail/PriorityCard";
 import OfficerCard from "../components/detail/OfficerCard";
 import HistoryCard from "../components/detail/HistoryCard";
-
 // ==========================================
 // TYPE PRIORITAS
 // ==========================================
-
 type Priority = "critical" | "high" | "medium" | "low";
-
 // ==========================================
 // STATUS
 // ==========================================
-
 const mapStatus = (status: ApiTicket["status"]): TicketItem["status"] => {
   const statusMap: Record<ApiTicket["status"], TicketItem["status"]> = {
     baru: "Baru",
@@ -58,21 +52,16 @@ const mapStatus = (status: ApiTicket["status"]): TicketItem["status"] => {
     terselesaikan: "Terselesaikan",
     ditutup: "Ditutup",
   };
-
   return statusMap[status];
 };
-
 // ==========================================
 // FORMAT TANGGAL
 // ==========================================
-
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
-
   if (Number.isNaN(date.getTime())) {
     return "-";
   }
-
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
@@ -84,14 +73,11 @@ const formatDateTime = (dateString: string): string => {
     .format(date)
     .replace(".", ",");
 };
-
 const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
-
   if (Number.isNaN(date.getTime())) {
     return "-";
   }
-
   const formatted = new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
@@ -99,30 +85,23 @@ const formatHistoryDate = (dateString: string): string => {
     minute: "2-digit",
     hour12: false,
   }).format(date);
-
   return formatted.replace(",", " •");
 };
-
 // ==========================================
 // FORMAT FILE
 // ==========================================
-
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
   }
-
   if (bytes < 1024 * 1024) {
     return `${(bytes / 1024).toFixed(1)} KB`;
   }
-
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
-
 // ==========================================
 // MAPPING API → UI
 // ==========================================
-
 const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
   const getHistoryAction = (fromStatus: string, toStatus: string): string => {
     const transitions: Record<string, string> = {
@@ -134,12 +113,10 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
       "diproses-eskalasi": "Tiket Dieskalasi",
       "baru-ditolak": "Tiket Ditolak",
     };
-
     return (
       transitions[`${fromStatus}-${toStatus}`] ?? `Status berubah: ${fromStatus} → ${toStatus}`
     );
   };
-
   const history = [
     {
       id: `created-${ticket.id}`,
@@ -147,11 +124,9 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
       rawTimestamp: ticket.created_at,
       isCompleted: true,
     },
-
     ...(ticket.status_histories ?? []).map((item) => {
       const isTicketCompleted =
         item.from_status === "diproses" && item.to_status === "terselesaikan";
-
       return {
         id: `status-${item.id}`,
         action: getHistoryAction(item.from_status, item.to_status),
@@ -160,14 +135,12 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
         ...(!isTicketCompleted && item.notes ? { handlingNote: item.notes } : {}),
       };
     }),
-
     ...(ticket.handlings ?? []).map((item) => ({
       id: `handling-${item.id}`,
       action: "Pengerjaan Teknisi",
       rawTimestamp: item.created_at,
       isCompleted: true,
       handlingNote: item.notes ?? undefined,
-
       ...(item.result_photo
         ? {
             handlingPhoto: {
@@ -175,7 +148,7 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
               size: formatFileSize(item.result_photo.size),
               url: item.result_photo.url.startsWith("http")
                 ? item.result_photo.url
-                : `http://localhost:8000/storage/${item.result_photo.url}`,
+                : `${BACKEND_URL}/storage/${item.result_photo.url.replace(/^\/?(storage\/)?/, "")}`,
             },
           }
         : {}),
@@ -186,7 +159,6 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
       ...item,
       timestamp: formatHistoryDate(rawTimestamp),
     }));
-
   return {
     id: String(ticket.id),
     code: ticket.ticket_number,
@@ -229,11 +201,9 @@ const mapApiTicketToTicketItem = (ticket: ApiTicket): TicketItem => {
     history,
   };
 };
-
 // ==========================================
 // OPTIONS PRIORITAS
 // ==========================================
-
 const priorityOptions: {
   value: Priority;
   label: string;
@@ -260,11 +230,9 @@ const priorityOptions: {
     sla: "< 3 Hari",
   },
 ];
-
 // ==========================================
 // CONFIG PRIORITAS
 // ==========================================
-
 const priorityConfig: Record<
   Priority,
   {
@@ -278,19 +246,16 @@ const priorityConfig: Record<
     limit: "Batas 2 jam",
     dot: "bg-red-500",
   },
-
   high: {
     description: "Batas waktu penanganan maksimal 4 jam",
     limit: "Batas 4 jam",
     dot: "bg-orange-500",
   },
-
   medium: {
     description: "Batas waktu penanganan maksimal 1 hari",
     limit: "Batas 1 hari",
     dot: "bg-yellow-500",
   },
-
   low: {
     description: "Batas waktu penanganan maksimal 3 hari",
     limit: "Batas 3 hari",
@@ -301,75 +266,60 @@ const priorityConfig: Record<
 // ==========================================
 // COMPONENT
 // ==========================================
-
 export default function HelpdeskDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const service = location.pathname.includes("/helpdesk/sarpras") ? "sarpras" : "tik";
-
+  const service = location.pathname.startsWith("/helpdesk/sarpras") ? "sarpras" : "tik";
   const { ticketId } = useParams<{
     ticketId: string;
   }>();
-
   const user = getUser();
   const role = user?.role;
-
   const [currentTicket, setCurrentTicket] = useState<TicketItem | null>(null);
-
   const [apiTicket, setApiTicket] = useState<ApiTicket | null>(null);
-
   const isSuperAdmin = role === "super-admin";
   const isKoorSarpras = role === "koordinator-sarpras";
-
   const isSarpras = currentTicket?.category === "Sarpras";
-
   // Role permissions
   const canManage = isSuperAdmin || (isKoorSarpras && isSarpras);
-
   const canHandle =
     canManage ||
     (!!user &&
       !!apiTicket?.assigned_officer &&
       String(apiTicket.assigned_officer.id) === String(user.id));
+
+  const helpdeskListPath = role === "super-admin" ? `/helpdesk/${service}` : "/helpdesk";
+
   // ==========================================
   // TICKET
+
   // ==========================================
-
   const canVerify = currentTicket?.reporter?.id === user?.id;
-
   const [isLoading, setIsLoading] = useState(true);
-
   const [error, setError] = useState<string | null>(null);
 
   // ==========================================
   // REJECT
+
   // ==========================================
-
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-
   const [isRejectResolutionModalOpen, setIsRejectResolutionModalOpen] = useState(false);
-
   const [isRejecting, setIsRejecting] = useState(false);
 
   // ==========================================
   // Escalation
-  // ==========================================
 
+  // ==========================================
   const [isEscalationModalOpen, setIsEscalationModalOpen] = useState(false);
 
   // ==========================================
   // ALERT
+
   // ==========================================
-
   type AlertVariant = "success" | "error";
-
   const [showAlert, setShowAlert] = useState(false);
-
   const [alertMessage, setAlertMessage] = useState("");
-
   const [alertVariant, setAlertVariant] = useState<AlertVariant>("success");
-
   const showAlertMessage = useCallback((message: string, variant: AlertVariant = "success") => {
     setAlertMessage(message);
     setAlertVariant(variant);
@@ -378,122 +328,105 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // CLASSIFICATION
+
   // ==========================================
-
   const [isClassifying, setIsClassifying] = useState(false);
-
   const [isClassificationSaved, setIsClassificationSaved] = useState(false);
-
   const [kategoriMutu, setKategoriMutu] = useState("");
-
   const [tagsIT, setTagsIT] = useState("");
-
   const [customITTag, setCustomITTag] = useState("");
-
   const [customITTagError, setCustomITTagError] = useState("");
-
   const [kategoriSarpras, setKategoriSarpras] = useState("");
-
   const [kategoriSarprasError, setKategoriSarprasError] = useState("");
-
   const [kategoriMutuError, setKategoriMutuError] = useState("");
-
   const [tagsITError, setTagsITError] = useState("");
-
   const classificationRef = useRef<HTMLDivElement | null>(null);
-
   const [kategoriSarprasOptions, setKategoriSarprasOptions] = useState<DropdownOption[]>([]);
-
   const [kategoriMutuOptions, setKategoriMutuOptions] = useState<DropdownOption[]>([]);
-
   const [tagsITOptions, setTagsITOptions] = useState<DropdownOption[]>([]);
 
   // ==========================================
   // ASSIGNMENT
+
   // ==========================================
-
   const [isAssignmentMode, setIsAssignmentMode] = useState(false);
-
   const [isAssignmentSaved, setIsAssignmentSaved] = useState(false);
-
   // Prioritas sementara
   const [priority, setPriority] = useState<Priority | null>(null);
-
   // Prioritas final
   const [savedPriority, setSavedPriority] = useState<Priority | null>(null);
-
   // Petugas sementara
   const [assignedOfficer, setAssignedOfficer] = useState<Officer | null>(null);
-
   // Petugas final
   const [savedOfficer, setSavedOfficer] = useState<Officer | null>(null);
 
   // ==========================================
   // ASSIGN OFFICER MODAL
-  // ==========================================
 
+  // ==========================================
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
   // ==========================================
   // HANDLE TICKET MODAL
+
   // ==========================================
   const [isHandleModalOpen, setIsHandleModalOpen] = useState(false);
-
   const [isContinuingHandling, setIsContinuingHandling] = useState(false);
-
   const [isSavingHandling, setIsSavingHandling] = useState(false);
-
   const [isVerifying, setIsVerifying] = useState(false);
 
   // ==========================================
   // ESCALATION
+
   // ==========================================
   const [isEscalating, setIsEscalating] = useState(false);
 
   // ==========================================
   // DE-ESCALATION
+
   // ==========================================
   const [isDeEscalating, setIsDeEscalating] = useState(false);
 
   // ==========================================
   // GET DETAIL TICKET
-  // ==========================================
 
+  // ==========================================
   useEffect(() => {
     if (!ticketId) {
       return;
     }
-
     let isMounted = true;
-
     const fetchTicketDetail = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
         const data = await getTicket(ticketId);
-
         if (!isMounted) return;
-        setApiTicket(data);
 
-        setKategoriMutu(
-          data.tik_detail?.quality_category?.id ? String(data.tik_detail.quality_category.id) : "",
-        );
+        if (data.service !== "tik" && data.service !== "sarpras") {
+          throw new Error("Kategori layanan tiket tidak valid.");
+        }
 
-        setTagsIT(data.tik_detail?.it_tag?.id ? String(data.tik_detail.it_tag.id) : "");
-
-        setCustomITTag(data.tik_detail?.custom_it_tag_text ?? "");
-
-        if (!isMounted) {
+        if (data.service !== service) {
+          navigate(`/helpdesk/${data.service}/${data.id}`, {
+            replace: true,
+          });
           return;
         }
 
+        setApiTicket(data);
+        setKategoriMutu(
+          data.tik_detail?.quality_category?.id ? String(data.tik_detail.quality_category.id) : "",
+        );
+        setTagsIT(data.tik_detail?.it_tag?.id ? String(data.tik_detail.it_tag.id) : "");
+        setCustomITTag(data.tik_detail?.custom_it_tag_text ?? "");
+        if (!isMounted) {
+          return;
+        }
         const mappedTicket = mapApiTicketToTicketItem(data);
-
         setCurrentTicket(mappedTicket);
-
         const status = String(data.status ?? "").toLowerCase();
-
         const classifiedStatuses = [
           "diklasifikasi",
           "ditugaskan",
@@ -502,22 +435,16 @@ export default function HelpdeskDetailPage() {
           "terselesaikan",
           "ditutup",
         ];
-
         const assignedStatuses = ["ditugaskan", "diproses", "eskalasi", "terselesaikan", "ditutup"];
-
         const isClassified = classifiedStatuses.includes(status);
         const isAssigned = assignedStatuses.includes(status);
-
         setIsClassificationSaved(isClassified);
         setIsAssignmentSaved(isAssigned);
         setIsAssignmentMode(canManage && isClassified && !isAssigned);
-
         // Pulihkan prioritas dari data API
         const apiPriority = data.priority ?? null;
-
         setPriority(apiPriority);
         setSavedPriority(apiPriority);
-
         // Sync petugas dari API
         if (data.assigned_officer) {
           const officer: Officer = {
@@ -531,7 +458,6 @@ export default function HelpdeskDetailPage() {
               .slice(0, 2)
               .toUpperCase(),
           };
-
           setAssignedOfficer(officer);
           setSavedOfficer(officer);
         } else {
@@ -542,11 +468,8 @@ export default function HelpdeskDetailPage() {
         if (!isMounted) {
           return;
         }
-
         console.error("Gagal mengambil detail tiket:", error);
-
         setCurrentTicket(null);
-
         setError(error instanceof Error ? error.message : "Gagal mengambil detail tiket.");
       } finally {
         if (isMounted) {
@@ -554,82 +477,68 @@ export default function HelpdeskDetailPage() {
         }
       }
     };
-
     fetchTicketDetail();
-
     return () => {
       isMounted = false;
     };
-  }, [ticketId, canManage]);
+  }, [ticketId, service, navigate, canManage]);
 
   // ==========================================
   // GET CLASSIFICATION OPTIONS
-  // ==========================================
 
+  // ==========================================
   useEffect(() => {
     if (!canManage) return;
-
     const fetchClassificationOptions = async () => {
       try {
         const response = await getTicketClassificationOptions(isSarpras ? "sarpras" : "tik");
-
         setKategoriSarprasOptions(
           (response.sarpras_categories ?? []).map((item) => ({
             label: item.name,
             value: String(item.id),
           })),
         );
-
         setKategoriMutuOptions(
           (response.quality_categories ?? []).map((item) => ({
             label: item.name,
             value: String(item.id),
           })),
         );
-
         const itTags = (response.it_tags ?? []).map((item) => ({
           label: item.name,
           value: String(item.id),
         }));
-
         const lainLain = itTags.filter((item) => item.label.toLowerCase() === "lain-lain");
-
         const otherTags = itTags.filter((item) => item.label.toLowerCase() !== "lain-lain");
-
         setTagsITOptions([...otherTags, ...lainLain]);
       } catch (error) {
         console.error("Gagal mengambil opsi klasifikasi:", error);
-
         setKategoriSarprasOptions([]);
         setKategoriMutuOptions([]);
         setTagsITOptions([]);
-
         showAlertMessage(
           error instanceof Error ? error.message : "Gagal mengambil opsi klasifikasi tiket.",
           "error",
         );
       }
     };
-
     fetchClassificationOptions();
   }, [isSarpras, canManage, showAlertMessage]);
 
   // ==========================================
   // NO TICKET ID
-  // ==========================================
 
+  // ==========================================
   if (!ticketId) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
         <div className="text-center">
           <h1 className="text-sm font-semibold text-text-title">ID Tiket Tidak Ditemukan</h1>
-
           <p className="mt-1 text-xs text-text-secondary">ID tiket tidak tersedia pada URL.</p>
-
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate(`/helpdesk/${service}`)}
+            onClick={() => navigate(helpdeskListPath)}
             label="Kembali ke Helpdesk"
           />
         </div>
@@ -639,8 +548,8 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // LOADING
-  // ==========================================
 
+  // ==========================================
   if (isLoading) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
@@ -658,7 +567,6 @@ export default function HelpdeskDetailPage() {
               border-t-transparent
             "
           />
-
           <h1 className="text-sm font-semibold text-text-title">Memuat detail tiket...</h1>
         </div>
       </div>
@@ -667,22 +575,20 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // ERROR
-  // ==========================================
 
+  // ==========================================
   if (!currentTicket) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
         <div className="text-center">
           <h1 className="text-sm font-semibold text-text-title">Tiket Tidak Ditemukan</h1>
-
           <p className="mt-1 text-xs text-text-secondary">
             {error ?? "Data tiket yang kamu cari tidak tersedia."}
           </p>
-
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate(`/helpdesk/${service}`)}
+            onClick={() => navigate(helpdeskListPath)}
             label="Kembali ke Helpdesk"
           />
         </div>
@@ -692,31 +598,25 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // REJECT
-  // ==========================================
 
+  // ==========================================
   const handleConfirmReject = async (reason: string) => {
     const trimmedReason = reason.trim();
-
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     if (!trimmedReason) {
       showAlertMessage("Masukkan alasan penolakan terlebih dahulu.", "error");
       return;
     }
-
     if (isRejecting) return;
-
     setIsRejecting(true);
-
     try {
       // Kirim permintaan penolakan ke backend
       await rejectTicket(ticketId, {
         reason: trimmedReason,
       });
-
       // Hanya perbarui tampilan jika API berhasil
       const updatedHistory = [
         {
@@ -727,18 +627,15 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...currentTicket,
         status: "Ditolak",
         history: updatedHistory,
       });
-
       setIsRejectModalOpen(false);
       showAlertMessage("Tiket berhasil ditolak.", "success");
     } catch (error) {
       console.error("Gagal menolak tiket:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Terjadi kesalahan saat menolak tiket.",
         "error",
@@ -750,14 +647,12 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // OPEN CLASSIFICATION
-  // ==========================================
 
+  // ==========================================
   const handleOpenClassification = () => {
     setIsClassifying(true);
-
     setKategoriMutuError("");
     setTagsITError("");
-
     setTimeout(() => {
       classificationRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -768,29 +663,24 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // CANCEL CLASSIFICATION
-  // ==========================================
 
+  // ==========================================
   const handleCancelClassification = () => {
     setIsClassifying(false);
-
     setKategoriMutu("");
     setTagsIT("");
-
     setKategoriMutuError("");
     setTagsITError("");
   };
 
   // ==========================================
   // SAVE CLASSIFICATION
+
   // ==========================================
-
   const qualityCategoryId = Number(kategoriMutu);
-
   const itTagId = Number(tagsIT);
-
   const handleSaveClassification = async () => {
     let hasError = false;
-
     if (isSarpras) {
       if (!kategoriSarpras) {
         setKategoriSarprasError("Kategori Sarpras wajib dipilih.");
@@ -805,22 +695,18 @@ export default function HelpdeskDetailPage() {
       } else {
         setKategoriMutuError("");
       }
-
       if (!tagsIT) {
         setTagsITError("Tags IT wajib dipilih.");
         hasError = true;
       } else {
         setTagsITError("");
       }
-
       if (tagsIT === "1" && !customITTag.trim()) {
         setCustomITTagError("Tags IT lainnya wajib diisi.");
         hasError = true;
       }
     }
-
     if (hasError) return;
-
     try {
       if (isSarpras) {
         await classifyTicket(ticketId, {
@@ -833,7 +719,6 @@ export default function HelpdeskDetailPage() {
           custom_it_tag_text: tagsIT === "1" ? customITTag.trim() : "",
         });
       }
-
       const updatedHistory = [
         {
           id: `classified-${Date.now()}`,
@@ -843,46 +728,37 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...currentTicket,
         status: "Diklasifikasi",
         history: updatedHistory,
       });
-
       setIsClassifying(false);
       setIsClassificationSaved(true);
       setIsAssignmentMode(true);
       setIsAssignmentSaved(false);
-
       showAlertMessage("Tiket berhasil diklasifikasikan", "success");
     } catch (error) {
       console.error("Error klasifikasi tiket:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal mengklasifikasikan tiket",
         "error",
       );
     }
   };
-
   const handleConfirmEscalation = async (data: EscalationFormData) => {
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     if (isEscalating) return;
-
     setIsEscalating(true);
-
     try {
       // Kirim data ke API (bisa sesuaikan key-nya dengan kebutuhan backend, misal: target)
       await escalateTicket(ticketId, {
         target: data.destination,
         notes: data.notes,
       });
-
       const updatedHistory = [
         {
           id: `escalated-${Date.now()}`,
@@ -892,18 +768,15 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...currentTicket,
         status: "Eskalasi",
         history: updatedHistory,
       });
-
       setIsEscalationModalOpen(false);
       showAlertMessage("Eskalasi tiket berhasil dikirim.", "success");
     } catch (error) {
       console.error("Gagal mengeskalasi tiket:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Terjadi kesalahan saat mengeskalasi tiket.",
         "error",
@@ -915,54 +788,48 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // OPEN ASSIGN OFFICER MODAL
-  // ==========================================
 
+  // ==========================================
   const handleOpenAssignModal = () => {
     setIsAssignModalOpen(true);
   };
 
   // ==========================================
   // SELECT OFFICER
-  // ==========================================
 
+  // ==========================================
   const handleAssignOfficer = (officer: Officer) => {
     // Ini masih pilihan sementara.
     // Belum dianggap final sampai tombol Simpan
     // pada tahap assignment ditekan.
     setAssignedOfficer(officer);
-
     setIsAssignModalOpen(false);
   };
 
   // ==========================================
   // SAVE ASSIGNMENT
-  // ==========================================
 
+  // ==========================================
   const handleSaveAssignment = async () => {
     if (!priority) {
       showAlertMessage("Tingkat prioritas wajib dipilih.", "error");
       return;
     }
-
     if (!assignedOfficer) {
       showAlertMessage("Petugas wajib dipilih.", "error");
       return;
     }
-
     try {
       await assignTicket(ticketId, {
         assigned_officer_id: assignedOfficer.id,
         priority: priority,
       });
-
       const updatedTicket = await getTicket(ticketId);
       const mappedUpdatedTicket = mapApiTicketToTicketItem(updatedTicket);
-
       setSavedPriority(priority);
       setSavedOfficer(assignedOfficer);
       setIsAssignmentMode(false);
       setIsAssignmentSaved(true);
-
       const updatedHistory = [
         {
           id: `assigned-${Date.now()}`,
@@ -972,16 +839,13 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...mappedUpdatedTicket,
         history: updatedHistory,
       });
-
       showAlertMessage("Prioritas dan petugas berhasil disimpan.", "success");
     } catch (error) {
       console.error("Gagal menyimpan assignment:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal menyimpan petugas.",
         "error",
@@ -991,8 +855,8 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // CANCEL ASSIGNMENT
-  // ==========================================
 
+  // ==========================================
   const handleCancelAssignment = () => {
     /*
      * Kalau belum pernah ada data final:
@@ -1001,42 +865,36 @@ export default function HelpdeskDetailPage() {
     if (!isAssignmentSaved) {
       setPriority(null);
       setAssignedOfficer(null);
-
       setIsAssignmentMode(false);
-
       return;
     }
-
     /*
      * Kalau suatu saat mode edit final dipakai,
      * kembalikan ke data yang sudah disimpan.
      */
     setPriority(savedPriority);
     setAssignedOfficer(savedOfficer);
-
     setIsAssignmentMode(false);
   };
 
   // ==========================================
   // STATUS
-  // ==========================================
 
+  // ==========================================
   const isRejected = currentTicket.status === "Ditolak";
 
   // ==========================================
   // HANDLE TICKET
-  // ==========================================
 
+  // ==========================================
   const handleSaveHandling = async (data: HandleTicketFormData) => {
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     const notes = data.notes.trim();
     const startedAt = data.startedAt;
     const completedAt = data.completedAt;
-
     // Status dari modal: "diproses" | "selesai"
     // Status API: "diproses" | "terselesaikan"
     const apiStatus = isContinuingHandling
@@ -1044,30 +902,24 @@ export default function HelpdeskDetailPage() {
       : data.status === "terselesaikan"
         ? "terselesaikan"
         : "diproses";
-
     if (!notes) {
       showAlertMessage("Catatan penanganan wajib diisi.", "error");
       return;
     }
-
     if (!startedAt) {
       showAlertMessage("Waktu mulai penanganan wajib diisi.", "error");
       return;
     }
-
     if (!completedAt) {
       showAlertMessage("Waktu selesai penanganan wajib diisi.", "error");
       return;
     }
-
     if (new Date(completedAt) < new Date(startedAt)) {
       showAlertMessage("Waktu selesai tidak boleh lebih awal dari waktu mulai.", "error");
       return;
     }
-
     try {
       setIsSavingHandling(true);
-
       await createTicketHandling(ticketId, {
         notes,
         status: apiStatus,
@@ -1075,14 +927,10 @@ export default function HelpdeskDetailPage() {
         completed_at: completedAt,
         result_photo: data.photo ?? null,
       });
-
       const updatedStatus = apiStatus === "terselesaikan" ? "Terselesaikan" : "Diproses";
-
       const photoUrl = data.photo ? URL.createObjectURL(data.photo) : undefined;
-
       setCurrentTicket((prev) => {
         if (!prev) return prev;
-
         const newHistoryItem = {
           id: `handling-${Date.now()}`,
           action: "Penanganan tiket",
@@ -1097,14 +945,12 @@ export default function HelpdeskDetailPage() {
               }
             : undefined,
         };
-
         return {
           ...prev,
           status: updatedStatus,
           history: [...(prev.history ?? []), newHistoryItem],
         };
       });
-
       setIsHandleModalOpen(false);
       showAlertMessage("Penanganan tiket berhasil disimpan.", "success");
     } catch (error) {
@@ -1116,22 +962,17 @@ export default function HelpdeskDetailPage() {
       setIsSavingHandling(false);
     }
   };
-
   // Handler fungsi De-Escalate
   const handleDeEscalate = async () => {
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     if (isDeEscalating) return;
-
     setIsDeEscalating(true);
-
     try {
       // Kirim permintaan de-escalate ke API
       await deEscalateTicket(ticketId);
-
       // Tambahkan item riwayat baru & kembalikan status ke "Diproses"
       const updatedHistory = [
         {
@@ -1142,17 +983,14 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...currentTicket,
         status: "Diproses",
         history: updatedHistory,
       });
-
       showAlertMessage("Penanganan tiket berhasil dilanjutkan.", "success");
     } catch (error) {
       console.error("Gagal melanjutkan penanganan tiket:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal melanjutkan penanganan tiket.",
         "error",
@@ -1161,27 +999,21 @@ export default function HelpdeskDetailPage() {
       setIsDeEscalating(false);
     }
   };
-
   const handleApproveResolution = async () => {
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     if (isVerifying) return;
-
     setIsVerifying(true);
-
     try {
       // Kirim is_approved: true ke API
       await verifyTicketResolution(ticketId, {
         is_approved: true,
       });
-
       // Perbarui tampilan lokal ke status Ditutup
       setCurrentTicket((prev) => {
         if (!prev) return prev;
-
         const updatedHistory = [
           {
             id: `closed-${Date.now()}`,
@@ -1191,18 +1023,15 @@ export default function HelpdeskDetailPage() {
           },
           ...(prev.history ?? []),
         ];
-
         return {
           ...prev,
           status: "Ditutup",
           history: updatedHistory,
         };
       });
-
       showAlertMessage("Penyelesaian tiket disetujui. Tiket telah ditutup.", "success");
     } catch (error) {
       console.error("Gagal menyetujui penyelesaian:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal menyetujui penyelesaian tiket.",
         "error",
@@ -1211,31 +1040,24 @@ export default function HelpdeskDetailPage() {
       setIsVerifying(false);
     }
   };
-
   const handleRejectResolution = async (reason: string) => {
     const trimmedReason = reason.trim();
-
     if (!ticketId) {
       showAlertMessage("ID tiket tidak ditemukan.", "error");
       return;
     }
-
     if (!trimmedReason) {
       showAlertMessage("Keterangan kendala wajib diisi.", "error");
       return;
     }
-
     if (isVerifying) return;
-
     setIsVerifying(true);
-
     try {
       // Kirim is_approved: false dan keterangan_kendala ke API
       await verifyTicketResolution(ticketId, {
         is_approved: false,
         keterangan_kendala: trimmedReason,
       });
-
       // Perbarui tampilan lokal kembali ke status Diproses
       const updatedHistory = [
         {
@@ -1247,18 +1069,15 @@ export default function HelpdeskDetailPage() {
         },
         ...(currentTicket.history || []),
       ];
-
       setCurrentTicket({
         ...currentTicket,
         status: "Diproses",
         history: updatedHistory,
       });
-
       setIsRejectResolutionModalOpen(false);
       showAlertMessage("Penyelesaian ditolak. Tiket kembali ke status diproses.", "success");
     } catch (error) {
       console.error("Gagal menolak penyelesaian:", error);
-
       showAlertMessage(
         error instanceof Error ? error.message : "Gagal menolak penyelesaian tiket.",
         "error",
@@ -1270,8 +1089,8 @@ export default function HelpdeskDetailPage() {
 
   // ==========================================
   // UI
-  // ==========================================
 
+  // ==========================================
   return (
     <div
       className="
@@ -1292,7 +1111,6 @@ export default function HelpdeskDetailPage() {
             />
           </div>
         )}
-
         {/* ====================================
           HEADER MOBILE
           Khusus layar kecil
@@ -1301,7 +1119,7 @@ export default function HelpdeskDetailPage() {
           <div className="flex items-start gap-3">
             <button
               type="button"
-              onClick={() => navigate(`/helpdesk/${service}`)}
+              onClick={() => navigate(helpdeskListPath)}
               className="
               mt-0.5
               flex
@@ -1323,19 +1141,15 @@ export default function HelpdeskDetailPage() {
             >
               <ArrowLeft size={19} />
             </button>
-
             <div className="min-w-0 pt-0.5">
               <h1 className="text-base font-semibold leading-5 text-text-title">Detail Tiket</h1>
-
               <p className="mt-0.5 truncate text-sm text-text-secondary">#{currentTicket.code}</p>
-
               <div className="mt-2 flex gap-2">
                 <TicketStatusBadge status={currentTicket.status} />
                 <TicketPriorityBadge priority={currentTicket.priority} />
               </div>
             </div>
           </div>
-
           {/* Tombol header pada mobile */}
           {(currentTicket.status === "Diproses" || currentTicket.status === "Ditugaskan") && (
             <div className="mt-4 flex gap-2">
@@ -1348,7 +1162,6 @@ export default function HelpdeskDetailPage() {
                   onClick={() => setIsEscalationModalOpen(true)}
                 />
               )}
-
               {canHandle && (
                 <Button
                   label="Tangani"
@@ -1363,7 +1176,6 @@ export default function HelpdeskDetailPage() {
               )}
             </div>
           )}
-
           {currentTicket.status === "Eskalasi" && canHandle && (
             <div className="mt-4">
               <Button
@@ -1376,7 +1188,6 @@ export default function HelpdeskDetailPage() {
             </div>
           )}
         </div>
-
         {/* ====================================
           HEADER DESKTOP
           Dipertahankan seperti UI awal
@@ -1400,7 +1211,7 @@ export default function HelpdeskDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => navigate(`/helpdesk/${service}`)}
+                onClick={() => navigate(helpdeskListPath)}
                 className="
                 cursor-pointer
                 rounded-md
@@ -1414,16 +1225,12 @@ export default function HelpdeskDetailPage() {
               >
                 <ArrowLeft size={19} />
               </button>
-
               <h1 className="text-base font-semibold text-text-title">
                 Ticket #{currentTicket.code}
               </h1>
-
               <TicketStatusBadge status={currentTicket.status} />
-
               <TicketPriorityBadge priority={currentTicket.priority} />
             </div>
-
             {(currentTicket.status === "Diproses" || currentTicket.status === "Ditugaskan") && (
               <div className="flex items-center gap-2">
                 {canHandle && (
@@ -1437,7 +1244,6 @@ export default function HelpdeskDetailPage() {
                     }}
                   />
                 )}
-
                 {canHandle && (
                   <Button
                     label="Tangani"
@@ -1452,7 +1258,6 @@ export default function HelpdeskDetailPage() {
                 )}
               </div>
             )}
-
             {currentTicket.status === "Eskalasi" && canHandle && (
               <Button
                 type="button"
@@ -1464,7 +1269,6 @@ export default function HelpdeskDetailPage() {
             )}
           </div>
         </div>
-
         {/* ====================================
           CONTENT
       ==================================== */}
@@ -1485,7 +1289,6 @@ export default function HelpdeskDetailPage() {
               unit={currentTicket.reporter.unit}
               createdAt={formatDateTime(currentTicket.createdAt)}
             />
-
             <InventoryCard
               inventoryNumber={apiTicket?.asset?.asset_number}
               inventoryName={apiTicket?.asset?.name}
@@ -1493,12 +1296,10 @@ export default function HelpdeskDetailPage() {
               unit={apiTicket?.asset?.unit?.name}
               location={apiTicket?.asset?.location}
             />
-
             <DescriptionCard
               description={currentTicket.description}
               attachments={currentTicket.attachments}
             />
-
             <ClassificationCard
               isClassifying={isClassifying}
               isClassificationSaved={isClassificationSaved}
@@ -1525,7 +1326,6 @@ export default function HelpdeskDetailPage() {
               setTagsITError={setTagsITError}
               classificationDetail={apiTicket}
             />
-
             <PriorityCard
               isAssignmentMode={isAssignmentMode}
               isAssignmentSaved={isAssignmentSaved}
@@ -1535,7 +1335,6 @@ export default function HelpdeskDetailPage() {
               savedPriority={savedPriority}
               priorityConfig={priorityConfig}
             />
-
             <OfficerCard
               isAssignmentMode={isAssignmentMode}
               isAssignmentSaved={isAssignmentSaved}
@@ -1543,7 +1342,6 @@ export default function HelpdeskDetailPage() {
               savedOfficer={savedOfficer}
               onOpenAssignModal={handleOpenAssignModal}
             />
-
             {/* ==================================
               AKSI DESKTOP
               Tetap di bawah kolom kiri
@@ -1559,7 +1357,6 @@ export default function HelpdeskDetailPage() {
                       label="Tolak Tiket"
                       className="flex-1 sm:min-w-32"
                     />
-
                     <Button
                       type="button"
                       variant="primary"
@@ -1569,7 +1366,6 @@ export default function HelpdeskDetailPage() {
                     />
                   </div>
                 )}
-
                 {isClassifying && (
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
@@ -1579,7 +1375,6 @@ export default function HelpdeskDetailPage() {
                       label="Batal"
                       className="flex-1 sm:min-w-28"
                     />
-
                     <Button
                       type="button"
                       variant="primary"
@@ -1589,7 +1384,6 @@ export default function HelpdeskDetailPage() {
                     />
                   </div>
                 )}
-
                 {isAssignmentMode && (
                   <div className="flex w-full gap-3 sm:w-auto">
                     <Button
@@ -1599,7 +1393,6 @@ export default function HelpdeskDetailPage() {
                       label="Batal"
                       className="flex-1 sm:min-w-28"
                     />
-
                     <Button
                       type="button"
                       variant="primary"
@@ -1611,7 +1404,6 @@ export default function HelpdeskDetailPage() {
                 )}
               </div>
             )}
-
             {/* Aksi verifikasi desktop, posisi lama */}
             {currentTicket.status === "Terselesaikan" && canVerify && (
               <div className="mt-5 hidden justify-end lg:flex">
@@ -1625,7 +1417,6 @@ export default function HelpdeskDetailPage() {
                       setIsRejectResolutionModalOpen(true);
                     }}
                   />
-
                   <Button
                     type="button"
                     label={isVerifying ? "Memproses..." : "Setujui Penyelesaian"}
@@ -1638,7 +1429,6 @@ export default function HelpdeskDetailPage() {
               </div>
             )}
           </div>
-
           {/* ==================================
             RIGHT CONTENT
         ================================== */}
@@ -1646,7 +1436,6 @@ export default function HelpdeskDetailPage() {
             <HistoryCard history={currentTicket.history} />
           </div>
         </div>
-
         {/* ====================================
           AKSI MOBILE
           Diletakkan setelah grid/riwayat
@@ -1664,7 +1453,6 @@ export default function HelpdeskDetailPage() {
                     label="Tolak Tiket"
                     className="flex-1"
                   />
-
                   <Button
                     type="button"
                     variant="primary"
@@ -1674,7 +1462,6 @@ export default function HelpdeskDetailPage() {
                   />
                 </div>
               )}
-
               {isClassifying && (
                 <div className="flex w-full gap-3">
                   <Button
@@ -1684,7 +1471,6 @@ export default function HelpdeskDetailPage() {
                     label="Batal"
                     className="flex-1"
                   />
-
                   <Button
                     type="button"
                     variant="primary"
@@ -1694,7 +1480,6 @@ export default function HelpdeskDetailPage() {
                   />
                 </div>
               )}
-
               {isAssignmentMode && (
                 <div className="flex w-full gap-3">
                   <Button
@@ -1704,7 +1489,6 @@ export default function HelpdeskDetailPage() {
                     label="Batal"
                     className="flex-1"
                   />
-
                   <Button
                     type="button"
                     variant="primary"
@@ -1716,7 +1500,6 @@ export default function HelpdeskDetailPage() {
               )}
             </>
           )}
-
           {currentTicket.status === "Terselesaikan" && canVerify && (
             <div className="flex w-full gap-3">
               <Button
@@ -1729,7 +1512,6 @@ export default function HelpdeskDetailPage() {
                   setIsRejectResolutionModalOpen(true);
                 }}
               />
-
               <Button
                 type="button"
                 label={isVerifying ? "Memproses..." : "Setujui Penyelesaian"}
@@ -1742,14 +1524,12 @@ export default function HelpdeskDetailPage() {
             </div>
           )}
         </div>
-
         <RejectTicketModal
           isOpen={isRejectModalOpen}
           ticketCode={currentTicket.code}
           onClose={() => setIsRejectModalOpen(false)}
           onConfirmReject={handleConfirmReject}
         />
-
         {/* ======================================
           ASSIGN OFFICER MODAL
       ====================================== */}
@@ -1760,7 +1540,6 @@ export default function HelpdeskDetailPage() {
           onClose={() => setIsAssignModalOpen(false)}
           onAssign={handleAssignOfficer}
         />
-
         <HandleTicketModal
           isOpen={isHandleModalOpen}
           ticketId={String(ticketId)}
@@ -1769,13 +1548,11 @@ export default function HelpdeskDetailPage() {
           onSave={handleSaveHandling}
           isSaving={isSavingHandling}
         />
-
         <RejectResolutionModal
           isOpen={isRejectResolutionModalOpen}
           onClose={() => setIsRejectResolutionModalOpen(false)}
           onSave={handleRejectResolution}
         />
-
         <EscalationModal
           isOpen={isEscalationModalOpen}
           onClose={() => setIsEscalationModalOpen(false)}
