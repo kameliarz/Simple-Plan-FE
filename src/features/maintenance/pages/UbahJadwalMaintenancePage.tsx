@@ -32,6 +32,7 @@ export default function UbahJadwalMaintenancePage() {
   const [periode, setPeriode] = useState("");
   const [tanggalJadwal, setTanggalJadwal] = useState("");
   const [petugas, setPetugas] = useState("");
+  const [petugasId, setPetugasId] = useState<number | undefined>(undefined);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,19 +50,20 @@ export default function UbahJadwalMaintenancePage() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const [data, officerList] = await Promise.all([
-          maintenanceService.getMaintenanceById(id),
-          maintenanceService.getOfficerOptions(),
-        ]);
+        const data = await maintenanceService.getMaintenanceById(id);
 
         if (data) {
           setItem(data);
           setJenisPemeliharaan(data.jenisPemeliharaan || "");
-          setPeriode(data.periode || "");
+          setPeriode(data.periodeRaw || data.periode || "");
           setTanggalJadwal(data.tanggalJadwalRaw || "");
           setPetugas(data.petugas || "");
+          setPetugasId(data.petugasId ? Number(data.petugasId) : undefined);
+
+          const isTik = (data.klasifikasi || "").toLowerCase().includes("it");
+          const officerList = await maintenanceService.getOfficerOptions(isTik ? "tik" : "sarpras");
+          setOfficers(officerList);
         }
-        setOfficers(officerList);
       } catch (err) {
         console.error("Gagal memuat jadwal untuk diedit:", err);
       } finally {
@@ -95,6 +97,7 @@ export default function UbahJadwalMaintenancePage() {
 
   const handleSelectOfficer = (officer: OfficerOption) => {
     setPetugas(officer.name);
+    setPetugasId(officer.id);
     setErrors((p) => ({ ...p, petugas: undefined }));
     setOpenDropdown(null);
     setOfficerSearch("");
@@ -112,7 +115,7 @@ export default function UbahJadwalMaintenancePage() {
     if (!tanggalJadwal) {
       newErrors.tanggalJadwal = "Tanggal jadwal wajib diisi!";
     }
-    if (!petugas) {
+    if (!petugas && !petugasId) {
       newErrors.petugas = "Petugas wajib dipilih!";
     }
 
@@ -125,6 +128,10 @@ export default function UbahJadwalMaintenancePage() {
     try {
       setIsSubmitting(true);
       await maintenanceService.updateSchedule(id, {
+        maintenance_type: jenisPemeliharaan.trim() || "Pembersihan & Pengecekan Rutin",
+        period: periode,
+        next_scheduled_date: tanggalJadwal,
+        assigned_officer_id: petugasId,
         jenisPemeliharaan: jenisPemeliharaan.trim(),
         periode,
         tanggalJadwalRaw: tanggalJadwal,
@@ -313,7 +320,9 @@ export default function UbahJadwalMaintenancePage() {
                   periode ? "text-gray-800 dark:text-slate-100 font-medium" : "text-gray-400"
                 }`}
               >
-                {periode || "Pilih periode"}
+                {periodOptions.find((p) => p.value === periode)?.label ||
+                  periode ||
+                  "Pilih periode"}
               </span>
               <IconChevronDown
                 size={18}

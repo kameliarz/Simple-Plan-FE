@@ -143,8 +143,7 @@ export default function InventarisSarprasListPage() {
         (c) =>
           c.name.toLowerCase() !== "alat it" &&
           !c.name.toLowerCase().includes("tik") &&
-          c.code !== 6 &&
-          c.code !== 5,
+          c.code !== 6,
       );
 
       const locs = await getAssetLocations().catch(() => []);

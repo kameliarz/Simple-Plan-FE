@@ -65,7 +65,7 @@ export default function DetailJadwalMaintenancePage() {
     try {
       const nextActive = targetActive !== undefined ? targetActive : !item.isActive;
       // Simpan perubahan status
-      await maintenanceService.toggleMaintenanceStatus(id);
+      await maintenanceService.toggleMaintenanceStatus(id, item.isActive);
       setItem((prev) => (prev ? { ...prev, isActive: nextActive } : null));
 
       if (!nextActive) {

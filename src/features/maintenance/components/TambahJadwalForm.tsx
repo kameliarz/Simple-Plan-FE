@@ -105,15 +105,22 @@ export default function TambahJadwalForm() {
     setForm((prev) => ({
       ...prev,
       assetId: String(asset.id),
+      assetCodeId: asset.assetCodeId,
       nomorInventaris: asset.fullCode,
       namaBarang: asset.itemName,
       lokasiRuangan: asset.roomLocation,
       lokasi: asset.locationDetail,
+      petugasId: "",
     }));
 
-    setErrors((prev) => ({ ...prev, assetId: undefined }));
+    setErrors((prev) => ({ ...prev, assetId: undefined, petugasId: undefined }));
     setOpenDropdown(null);
     setAssetSearch("");
+
+    const isTik = asset.isTik ?? (asset.classificationName?.toLowerCase().includes("it") || false);
+    void maintenanceService.getOfficerOptions(isTik ? "tik" : "sarpras").then((officerList) => {
+      setOfficers(officerList);
+    });
   };
 
   // Handle Periode Selection
@@ -161,14 +168,15 @@ export default function TambahJadwalForm() {
 
       const targetAsset = assets.find((a) => String(a.id) === form.assetId);
       const targetOfficer = officers.find((o) => String(o.id) === form.petugasId);
+      const assetCodeId = targetAsset?.assetCodeId ?? form.assetCodeId ?? Number(form.assetId);
 
       await maintenanceService.createSchedule(
         {
-          asset_id: Number(form.assetId),
-          maintenance_type: form.jenisPemeliharaan.trim() || undefined,
+          asset_code_id: assetCodeId,
+          maintenance_type: form.jenisPemeliharaan.trim() || "Pembersihan & Pengecekan Rutin",
           period: form.periode,
-          scheduled_date: form.tanggalJadwal,
-          officer_id: Number(form.petugasId),
+          next_scheduled_date: form.tanggalJadwal,
+          assigned_officer_id: Number(form.petugasId),
         },
         {
           namaBarang: form.namaBarang,
@@ -428,7 +436,9 @@ export default function TambahJadwalForm() {
                 form.periode ? "text-gray-800 dark:text-slate-100 font-medium" : "text-gray-400"
               }`}
             >
-              {form.periode || "Pilih periode"}
+              {periodOptions.find((p) => p.value === form.periode)?.label ||
+                form.periode ||
+                "Pilih periode"}
             </span>
             <IconChevronDown
               size={18}
@@ -473,6 +483,7 @@ export default function TambahJadwalForm() {
           <div className="relative">
             <input
               type="date"
+              min={new Date().toISOString().split("T")[0]}
               value={form.tanggalJadwal}
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, tanggalJadwal: e.target.value }));

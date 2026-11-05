@@ -1,28 +1,60 @@
-import { getAssets } from "@/features/inventaris/services/inventarisApi";
-import { getUsers } from "@/features/master-data/users/services/userApi";
+import { getAssetClassifications, getAssets } from "@/features/inventaris/services/inventarisApi";
+import { clearAuth, getToken, getUser } from "@/features/auth-login/services/authStorage";
+import type { ApiAsset } from "@/features/inventaris/types/inventaris";
 import type {
+  ApiMaintenanceItem,
   AssetMaintenanceOption,
   CreateMaintenanceSchedulePayload,
+  HasilMaintenance,
   MaintenanceFilterState,
   MaintenanceItem,
   MaintenancePeriodOption,
+  MaintenanceStatus,
   OfficerOption,
+  UpdateMaintenanceSchedulePayload,
 } from "../types/maintenance.types";
 
 const STORAGE_KEY = "simple_plan_maintenance_list_v1";
+const API_BASE_URL = "/api/v1";
+
+function getAuthHeaders(): HeadersInit {
+  const token = getToken();
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 export const periodOptions: MaintenancePeriodOption[] = [
-  { label: "Mingguan", value: "Mingguan" },
-  { label: "Bulanan", value: "Bulanan" },
-  { label: "3 Bulan", value: "3 Bulan" },
-  { label: "6 Bulan", value: "6 Bulan" },
-  { label: "1 Tahun", value: "1 Tahun" },
-  { label: "Insidental", value: "Insidental" },
+  { label: "Mingguan", value: "weekly" },
+  { label: "Bulanan", value: "monthly" },
+  { label: "3 Bulan", value: "quarterly" },
+  { label: "6 Bulan", value: "semiannually" },
+  { label: "1 Tahun", value: "yearly" },
 ];
+
+export function formatPeriod(raw?: string): string {
+  if (!raw) return "-";
+  const found = periodOptions.find((p) => p.value.toLowerCase() === raw.toLowerCase());
+  if (found) return found.label;
+  // Fallback if already Indonesian label
+  return raw;
+}
+
+export function formatPeriodToApi(val?: string): string {
+  if (!val) return "monthly";
+  const found = periodOptions.find(
+    (p) =>
+      p.label.toLowerCase() === val.toLowerCase() || p.value.toLowerCase() === val.toLowerCase(),
+  );
+  return found ? found.value : val;
+}
 
 export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   {
     id: 1,
+    assetCodeId: 1,
     fullCode: "AST-TIK-2023-0042",
     itemName: "Server SIMRS Dell PowerEdge R740",
     roomLocation: "Ruang Konsultasi Dokter 03",
@@ -31,6 +63,7 @@ export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   },
   {
     id: 2,
+    assetCodeId: 2,
     fullCode: "AST-TIK-2023-0015",
     itemName: "PC All-in-One Core i5 Poli Dalam",
     roomLocation: "Poli Dalam",
@@ -39,6 +72,7 @@ export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   },
   {
     id: 3,
+    assetCodeId: 3,
     fullCode: "AST-TIK-2023-0021",
     itemName: "Printer Thermal Kasir Farmasi 2",
     roomLocation: "Farmasi 2",
@@ -47,6 +81,7 @@ export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   },
   {
     id: 4,
+    assetCodeId: 4,
     fullCode: "AST-TIK-2023-0033",
     itemName: "Switch Cisco Catalyst 24 Port Lt.3",
     roomLocation: "Ruang Server Lt.3",
@@ -55,6 +90,7 @@ export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   },
   {
     id: 5,
+    assetCodeId: 5,
     fullCode: "AST-SAR-2023-0008",
     itemName: "Monitor Pasien Mindray Bed 4 UGD",
     roomLocation: "Bed 4 UGD",
@@ -63,42 +99,70 @@ export const fallbackAssetOptions: AssetMaintenanceOption[] = [
   },
 ];
 
-export const fallbackOfficerOptions: OfficerOption[] = [
+export const realTikOfficers: OfficerOption[] = [
   {
-    id: 1,
-    name: "Ahmad Fauzi",
+    id: 89,
+    name: "Haris Arifin, S.Kom",
     role: "Petugas TIK",
-    displayLabel: "Ahmad Fauzi (Petugas TIK)",
+    displayLabel: "Haris Arifin, S.Kom (IT)",
   },
   {
-    id: 2,
-    name: "M. Hendra",
+    id: 87,
+    name: "Rani Ekasari Pratiwi, Amd.",
     role: "Petugas TIK",
-    displayLabel: "M. Hendra (Petugas TIK)",
+    displayLabel: "Rani Ekasari Pratiwi, Amd. (IT)",
   },
   {
-    id: 3,
-    name: "Rian P.",
+    id: 358,
+    name: "Abdul Mufid Efendi",
     role: "Petugas TIK",
-    displayLabel: "Rian P. (Petugas TIK)",
-  },
-  {
-    id: 4,
-    name: "Budi Santosa",
-    role: "Petugas Sarpras",
-    displayLabel: "Budi Santosa (Petugas Sarpras)",
-  },
-  {
-    id: 5,
-    name: "Hendra Wijaya, S.Kom",
-    role: "Koordinator Sarpras",
-    displayLabel: "Hendra Wijaya, S.Kom (Koordinator Sarpras)",
+    displayLabel: "Abdul Mufid Efendi (IT)",
   },
 ];
+
+export const realSarprasOfficers: OfficerOption[] = [
+  { id: 72, name: "Nanang Wulid", role: "Petugas Sarpras", displayLabel: "Nanang Wulid (Umum RT)" },
+  {
+    id: 73,
+    name: "Abdul Wahab",
+    role: "Petugas Sarpras",
+    displayLabel: "Abdul Wahab (Keamanan & Transportasi)",
+  },
+  { id: 74, name: "Afandi", role: "Petugas Sarpras", displayLabel: "Afandi (Umum RT)" },
+  {
+    id: 78,
+    name: "Didit Purwanto",
+    role: "Petugas Sarpras",
+    displayLabel: "Didit Purwanto (Umum RT)",
+  },
+  {
+    id: 79,
+    name: "Ali Ridho Arifi",
+    role: "Petugas Sarpras",
+    displayLabel: "Ali Ridho Arifi (Umum RT-IPSRS)",
+  },
+  { id: 80, name: "M. Imron", role: "Petugas Sarpras", displayLabel: "M. Imron (Umum RT-IPSRS)" },
+  {
+    id: 81,
+    name: "Angga Prahanian Syah",
+    role: "Petugas Sarpras",
+    displayLabel: "Angga Prahanian Syah (Umum RT-IPSRS)",
+  },
+  { id: 149, name: "Dimas Yanuar", role: "Petugas Sarpras", displayLabel: "Dimas Yanuar (Parkir)" },
+  {
+    id: 369,
+    name: "Dimas Adi Firmansyah",
+    role: "Petugas Sarpras",
+    displayLabel: "Dimas Adi Firmansyah (Umum RT-IPSRS)",
+  },
+];
+
+export const fallbackOfficerOptions: OfficerOption[] = [...realTikOfficers, ...realSarprasOfficers];
 
 export const initialMaintenanceItems: MaintenanceItem[] = [
   {
     id: "1",
+    assetCodeId: 1,
     nomorInventaris: "INV-TIK-2023",
     idBarang: "AST-TIK-2023-0042",
     namaBarang: "Server SIMRS Dell PowerEdge R740",
@@ -107,7 +171,8 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
     lokasiRuangan: "Ruang Konsultasi Dokter 03",
     jenisPemeliharaan: "Pembersihan Debu Fisik, Pengecekan Suhu & Kipas Server",
     periode: "Bulanan",
-    tanggalJadwal: "18 Oktober 2026 09:20",
+    periodeRaw: "monthly",
+    tanggalJadwal: "18 Okt 2026",
     tanggalJadwalRaw: "2026-10-18",
     petugas: "Hendra Wijaya, S.Kom",
     status: "Selesai",
@@ -126,6 +191,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
   },
   {
     id: "2",
+    assetCodeId: 2,
     nomorInventaris: "INV-TIK-2023",
     idBarang: "AST-TIK-2023-0015",
     namaBarang: "PC All-in-One Core i5 Poli Dalam",
@@ -134,6 +200,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
     lokasiRuangan: "Poli Dalam",
     jenisPemeliharaan: "Pembersihan sistem dan update antivirus",
     periode: "Bulanan",
+    periodeRaw: "monthly",
     tanggalJadwal: "08 Okt 2026",
     tanggalJadwalRaw: "2026-10-08",
     petugas: "Ahmad Fauzi",
@@ -142,6 +209,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
   },
   {
     id: "3",
+    assetCodeId: 3,
     nomorInventaris: "INV-TIK-2023",
     idBarang: "AST-TIK-2023-0021",
     namaBarang: "Printer Thermal Kasir Farmasi 2",
@@ -150,6 +218,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
     lokasiRuangan: "Farmasi 2",
     jenisPemeliharaan: "Pembersihan head printer dan kalibrasi",
     periode: "Bulanan",
+    periodeRaw: "monthly",
     tanggalJadwal: "07 Okt 2026",
     tanggalJadwalRaw: "2026-10-07",
     petugas: "M. Hendra",
@@ -158,6 +227,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
   },
   {
     id: "4",
+    assetCodeId: 4,
     nomorInventaris: "INV-TIK-2023",
     idBarang: "AST-TIK-2023-0033",
     namaBarang: "Switch Cisco Catalyst 24 Port Lt.3",
@@ -166,6 +236,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
     lokasiRuangan: "Ruang Server Lt.3",
     jenisPemeliharaan: "Pengecekan port switch dan firmware",
     periode: "3 Bulan",
+    periodeRaw: "quarterly",
     tanggalJadwal: "01 Okt 2026",
     tanggalJadwalRaw: "2026-10-01",
     petugas: "Rian P.",
@@ -174,6 +245,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
   },
   {
     id: "5",
+    assetCodeId: 5,
     nomorInventaris: "INV-TIK-2023",
     idBarang: "AST-SAR-2023-0008",
     namaBarang: "Monitor Pasien Mindray Bed 4 UGD",
@@ -182,38 +254,7 @@ export const initialMaintenanceItems: MaintenanceItem[] = [
     lokasiRuangan: "Bed 4 UGD",
     jenisPemeliharaan: "Pemeriksaan fungsi sensor dan display",
     periode: "Mingguan",
-    tanggalJadwal: "30 Sep 2026",
-    tanggalJadwalRaw: "2026-09-30",
-    petugas: "Budi Santosa",
-    status: "Selesai",
-    isActive: true,
-  },
-  {
-    id: "6",
-    nomorInventaris: "INV-TIK-2023",
-    idBarang: "AST-SAR-2023-0009",
-    namaBarang: "Monitor Pasien Mindray Bed 4 UGD",
-    klasifikasi: "Alat Medis",
-    lokasi: "Gedung UGD",
-    lokasiRuangan: "Bed 4 UGD",
-    jenisPemeliharaan: "Pemeriksaan fungsi sensor dan display",
-    periode: "Mingguan",
-    tanggalJadwal: "30 Sep 2026",
-    tanggalJadwalRaw: "2026-09-30",
-    petugas: "Budi Santosa",
-    status: "Selesai",
-    isActive: true,
-  },
-  {
-    id: "7",
-    nomorInventaris: "INV-TIK-2023",
-    idBarang: "AST-SAR-2023-0010",
-    namaBarang: "Monitor Pasien Mindray Bed 4 UGD",
-    klasifikasi: "Alat Medis",
-    lokasi: "Gedung UGD",
-    lokasiRuangan: "Bed 4 UGD",
-    jenisPemeliharaan: "Pemeriksaan fungsi sensor dan display",
-    periode: "Mingguan",
+    periodeRaw: "weekly",
     tanggalJadwal: "30 Sep 2026",
     tanggalJadwalRaw: "2026-09-30",
     petugas: "Budi Santosa",
@@ -243,148 +284,447 @@ function saveStoredItems(items: MaintenanceItem[]): void {
   }
 }
 
-// Helper untuk promise timeout agar tidak pernah hang
-function withTimeout<T>(promise: Promise<T>, ms = 1500, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+function formatDateDisplay(dateStr?: string): string {
+  if (!dateStr) return "-";
+  const dateObj = new Date(dateStr);
+  if (isNaN(dateObj.getTime())) return dateStr;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Ags",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  return `${String(dateObj.getDate()).padStart(2, "0")} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+}
+
+export function mapApiMaintenanceToItem(item: ApiMaintenanceItem): MaintenanceItem {
+  const latestLog = item.logs && item.logs.length > 0 ? item.logs[0] : null;
+
+  const rawStatus =
+    typeof item.status === "object" && item.status !== null
+      ? item.status.value
+      : String(item.status || "terjadwal");
+
+  let statusFormatted: MaintenanceStatus = "Terjadwal";
+  if (rawStatus.toLowerCase() === "selesai") {
+    statusFormatted = "Selesai";
+  } else if (rawStatus.toLowerCase() === "terlambat") {
+    statusFormatted = "Terlambat";
+  }
+
+  const fullCode = item.asset_code?.full_code || `AST-${item.asset_code_id}`;
+  const itemName =
+    item.asset_code?.asset_item?.name ||
+    item.asset_code?.item?.name ||
+    `Aset #${item.asset_code_id}`;
+
+  let hasilMaintenance: HasilMaintenance | null = null;
+  if (latestLog) {
+    hasilMaintenance = {
+      uraianPekerjaan: latestLog.work_description || "-",
+      hasilPemeliharaan: latestLog.maintenance_result || "-",
+      kondisiPasca: latestLog.post_maintenance_condition || "Baik",
+      waktuMulai: formatDateDisplay(latestLog.started_at || undefined),
+      waktuSelesai: formatDateDisplay(latestLog.completed_at || undefined),
+      fotoHasil:
+        latestLog.proof_photo_object_key || latestLog.photo_path
+          ? {
+              namaFile: latestLog.proof_photo_original_name || "foto_pemeliharaan.jpg",
+              ukuranFile: "-",
+              url: `/storage/${latestLog.proof_photo_object_key || latestLog.photo_path}`,
+            }
+          : undefined,
+    };
+  }
+
+  return {
+    id: String(item.id),
+    assetCodeId: item.asset_code_id,
+    nomorInventaris: fullCode,
+    idBarang: fullCode,
+    namaBarang: itemName,
+    klasifikasi: item.asset_code?.classification?.name || "-",
+    lokasi: item.asset_code?.location?.name || "-",
+    lokasiRuangan: item.asset_code?.location?.name || "-",
+    jenisPemeliharaan: item.maintenance_type,
+    periode: formatPeriod(item.period),
+    periodeRaw: item.period,
+    tanggalJadwal: formatDateDisplay(item.next_scheduled_date),
+    tanggalJadwalRaw: item.next_scheduled_date,
+    petugas: item.assigned_officer?.name || "-",
+    petugasId: item.assigned_officer_id,
+    status: statusFormatted,
+    isActive: Boolean(item.is_active),
+    hasilMaintenance,
+  };
+}
+
+function getStoredItemsFiltered(
+  search?: string,
+  filters?: Partial<MaintenanceFilterState>,
+): MaintenanceItem[] {
+  let items = getStoredItems();
+
+  if (search && search.trim()) {
+    const q = search.toLowerCase().trim();
+    items = items.filter(
+      (item) =>
+        item.nomorInventaris.toLowerCase().includes(q) ||
+        item.namaBarang.toLowerCase().includes(q) ||
+        (item.idBarang && item.idBarang.toLowerCase().includes(q)) ||
+        item.petugas.toLowerCase().includes(q),
+    );
+  }
+
+  if (filters) {
+    if (filters.klasifikasi && filters.klasifikasi !== "Semua klasifikasi") {
+      items = items.filter(
+        (item) => item.klasifikasi?.toLowerCase() === filters.klasifikasi?.toLowerCase(),
+      );
+    }
+    if (filters.lokasiRuangan && filters.lokasiRuangan !== "Semua lokasi") {
+      items = items.filter(
+        (item) => item.lokasiRuangan?.toLowerCase() === filters.lokasiRuangan?.toLowerCase(),
+      );
+    }
+    if (filters.petugas && filters.petugas !== "Semua petugas") {
+      items = items.filter((item) =>
+        item.petugas.toLowerCase().includes(filters.petugas!.toLowerCase()),
+      );
+    }
+    if (filters.status && filters.status !== "Semua status") {
+      items = items.filter((item) => item.status.toLowerCase() === filters.status?.toLowerCase());
+    }
+    if (filters.rentangJadwal) {
+      items = items.filter(
+        (item) =>
+          item.tanggalJadwalRaw === filters.rentangJadwal ||
+          item.tanggalJadwal.includes(filters.rentangJadwal!),
+      );
+    }
+  }
+
+  return items;
 }
 
 export const maintenanceService = {
-  // Ambil daftar maintenance dengan pencarian & filter - INSTAN TANPA HANG
+  // Ambil daftar maintenance dari API backend dengan fallback
   getMaintenances: async (
     search?: string,
     filters?: Partial<MaintenanceFilterState>,
   ): Promise<MaintenanceItem[]> => {
-    // Langsung ambil data dari local storage / initial items secara sinkron & instan
-    let items = getStoredItems();
+    try {
+      const query = new URLSearchParams();
 
-    // Filter Search
-    if (search && search.trim()) {
-      const q = search.toLowerCase().trim();
-      items = items.filter(
-        (item) =>
-          item.nomorInventaris.toLowerCase().includes(q) ||
-          item.namaBarang.toLowerCase().includes(q) ||
-          (item.idBarang && item.idBarang.toLowerCase().includes(q)) ||
-          item.petugas.toLowerCase().includes(q),
-      );
-    }
+      if (search && search.trim()) {
+        query.set("search", search.trim());
+      }
 
-    // Filters
-    if (filters) {
-      if (filters.klasifikasi && filters.klasifikasi !== "Semua klasifikasi") {
+      if (filters?.status && filters.status !== "Semua status") {
+        query.set("status", filters.status.toLowerCase());
+      }
+
+      if (filters?.rentangJadwal) {
+        query.set("date_from", filters.rentangJadwal);
+        query.set("date_to", filters.rentangJadwal);
+      }
+
+      query.set("per_page", "100");
+
+      const queryString = query.toString();
+      const url = queryString
+        ? `${API_BASE_URL}/asset-maintenances?${queryString}`
+        : `${API_BASE_URL}/asset-maintenances`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+        }
+        throw new Error(`Gagal memuat jadwal maintenance (${response.status})`);
+      }
+
+      const resJson = await response.json();
+      const rawList: ApiMaintenanceItem[] = Array.isArray(resJson.data)
+        ? resJson.data
+        : (resJson.data?.data ?? []);
+
+      let items = rawList.map(mapApiMaintenanceToItem);
+
+      // Client-side filtering untuk filter yang tidak didukung langsung oleh backend query
+      if (filters?.klasifikasi && filters.klasifikasi !== "Semua klasifikasi") {
         items = items.filter(
           (item) => item.klasifikasi?.toLowerCase() === filters.klasifikasi?.toLowerCase(),
         );
       }
-      if (filters.lokasiRuangan && filters.lokasiRuangan !== "Semua lokasi") {
+      if (filters?.lokasiRuangan && filters.lokasiRuangan !== "Semua lokasi") {
         items = items.filter(
           (item) => item.lokasiRuangan?.toLowerCase() === filters.lokasiRuangan?.toLowerCase(),
         );
       }
-      if (filters.petugas && filters.petugas !== "Semua petugas") {
+      if (filters?.petugas && filters.petugas !== "Semua petugas") {
         items = items.filter((item) =>
           item.petugas.toLowerCase().includes(filters.petugas!.toLowerCase()),
         );
       }
-      if (filters.status && filters.status !== "Semua status") {
-        items = items.filter((item) => item.status.toLowerCase() === filters.status?.toLowerCase());
-      }
-      if (filters.rentangJadwal) {
-        items = items.filter(
-          (item) =>
-            item.tanggalJadwalRaw === filters.rentangJadwal ||
-            item.tanggalJadwal.includes(filters.rentangJadwal!),
-        );
-      }
-    }
 
-    return items;
+      return items;
+    } catch (err) {
+      console.warn("Koneksi API maintenance gagal/offline, beralih ke cache:", err);
+      return getStoredItemsFiltered(search, filters);
+    }
   },
 
-  // Ambil detail maintenance berdasarkan ID - INSTAN
+  // Ambil detail maintenance berdasarkan ID
   getMaintenanceById: async (id: string): Promise<MaintenanceItem | null> => {
-    const items = getStoredItems();
-    return items.find((item) => String(item.id) === String(id)) || null;
-  },
-
-  // Toggle Aktif / Nonaktif
-  toggleMaintenanceStatus: async (id: string): Promise<boolean> => {
-    const items = getStoredItems();
-    const index = items.findIndex((item) => String(item.id) === String(id));
-    if (index !== -1) {
-      items[index] = {
-        ...items[index],
-        isActive: !items[index].isActive,
-      };
-      saveStoredItems(items);
-      return items[index].isActive;
-    }
-    return true;
-  },
-
-  // Ambil opsi aset dengan fallback instan agar tidak stuck
-  getAssetOptions: async (): Promise<AssetMaintenanceOption[]> => {
     try {
-      const fetchPromise = getAssets({ per_page: 50 }).then((response) => {
-        const assetList = response.data ?? [];
-        if (assetList.length === 0) return fallbackAssetOptions;
-
-        return assetList.map((asset) => {
-          const fullCode = asset.asset_code?.full_code ?? `AST-${asset.id}`;
-          const itemName =
-            asset.asset_code?.item?.name ||
-            asset.model_specification ||
-            asset.brand ||
-            `Aset #${asset.id}`;
-          const roomLocation = asset.asset_code?.location?.name || "-";
-          const locationDetail = asset.location_detail || "-";
-
-          return {
-            id: asset.id,
-            fullCode,
-            itemName,
-            roomLocation,
-            locationDetail,
-            displayLabel: `${fullCode} - ${itemName}`,
-          };
-        });
+      const response = await fetch(`${API_BASE_URL}/asset-maintenances/${id}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
       });
 
-      return await withTimeout(fetchPromise, 1500, fallbackAssetOptions);
-    } catch {
-      return fallbackAssetOptions;
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+        }
+        throw new Error(`Gagal memuat detail maintenance (${response.status})`);
+      }
+
+      const resJson = await response.json();
+      const item: ApiMaintenanceItem = resJson.data ?? resJson;
+      return mapApiMaintenanceToItem(item);
+    } catch (err) {
+      console.warn("Gagal memuat detail dari API, fallback ke cache:", err);
+      const items = getStoredItems();
+      return items.find((item) => String(item.id) === String(id)) || null;
     }
   },
 
-  // Ambil opsi petugas dengan fallback instan agar tidak stuck
-  getOfficerOptions: async (): Promise<OfficerOption[]> => {
+  // Toggle status aktif/nonaktif
+  toggleMaintenanceStatus: async (id: string, currentActive?: boolean): Promise<boolean> => {
     try {
-      const fetchPromise = getUsers().then((response) => {
-        const users = response.data ?? [];
-        const filtered = users.filter((u) => u.status_user === "Aktif");
-        if (filtered.length === 0) return fallbackOfficerOptions;
+      const nextActive = currentActive !== undefined ? !currentActive : false;
+      const response = await fetch(`${API_BASE_URL}/asset-maintenances/${id}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ is_active: nextActive }),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Gagal mengubah status aktif (${response.status})`);
+      }
+
+      const resJson = await response.json();
+      const updatedActive = resJson.data?.is_active ?? nextActive;
+
+      // Update local storage jika ada item yang tersimpan
+      const items = getStoredItems();
+      const idx = items.findIndex((it) => String(it.id) === String(id));
+      if (idx !== -1) {
+        items[idx].isActive = updatedActive;
+        saveStoredItems(items);
+      }
+
+      return Boolean(updatedActive);
+    } catch (err) {
+      console.warn("Gagal toggle status via API, simpan lokal:", err);
+      const items = getStoredItems();
+      const index = items.findIndex((item) => String(item.id) === String(id));
+      if (index !== -1) {
+        items[index] = {
+          ...items[index],
+          isActive: !items[index].isActive,
+        };
+        saveStoredItems(items);
+        return items[index].isActive;
+      }
+      return true;
+    }
+  },
+
+  // Ambil opsi aset dengan filter berdasarkan role (TIK: Alat IT, Sarpras: Non-TIK termasuk Alat Elektronik)
+  getAssetOptions: async (
+    targetDomain?: "tik" | "sarpras" | string,
+  ): Promise<AssetMaintenanceOption[]> => {
+    try {
+      const user = getUser();
+      const currentRole = (user?.role || "").toLowerCase();
+      const isSarpras = targetDomain
+        ? targetDomain.toLowerCase().includes("sarpras")
+        : currentRole.includes("sarpras");
+
+      const classifications = await getAssetClassifications();
+      let targetClassIds: number[] = [];
+
+      if (!isSarpras) {
+        // TIK hanya mencakup klasifikasi Alat IT (kode 6)
+        targetClassIds = classifications
+          .filter(
+            (c) =>
+              c.name.toLowerCase() === "alat it" ||
+              c.name.toLowerCase().includes("tik") ||
+              c.code === 6,
+          )
+          .map((c) => c.id);
+      } else {
+        // Sarpras mencakup klasifikasi non-TIK (Alat Elektronik, Alat Sarpras, Alat Medis, Tanah, Bangunan, dsb)
+        targetClassIds = classifications
+          .filter(
+            (c) =>
+              c.name.toLowerCase() !== "alat it" &&
+              !c.name.toLowerCase().includes("tik") &&
+              c.code !== 6,
+          )
+          .map((c) => c.id);
+      }
+
+      // Ambil aset per klasifikasi seperti di modul Inventaris
+      const fetchPromises = targetClassIds.map((classId) =>
+        getAssets({ asset_classification_id: classId, per_page: 100 }),
+      );
+
+      const responses = await Promise.all(fetchPromises);
+      let assetList: ApiAsset[] = [];
+
+      for (const res of responses) {
+        const raw = res as unknown as { data?: unknown };
+        if (Array.isArray(res.data)) {
+          assetList = assetList.concat(res.data);
+        } else if (
+          raw.data &&
+          typeof raw.data === "object" &&
+          "data" in (raw.data as Record<string, unknown>) &&
+          Array.isArray((raw.data as { data: unknown }).data)
+        ) {
+          assetList = assetList.concat((raw.data as { data: ApiAsset[] }).data);
+        }
+      }
+
+      return assetList.map((asset) => {
+        const fullCode = asset.asset_code?.full_code ?? `AST-${asset.id}`;
+        const itemName =
+          asset.asset_code?.item?.name ||
+          asset.model_specification ||
+          asset.brand ||
+          `Aset #${asset.id}`;
+        const roomLocation = asset.asset_code?.location?.name || "-";
+        const locationDetail = asset.location_detail || "-";
+        const assetCodeId = asset.asset_code?.id ?? asset.id;
+        const clsName = asset.asset_code?.classification?.name?.toLowerCase() || "";
+        const isTik =
+          clsName === "alat it" ||
+          clsName.includes("tik") ||
+          asset.asset_code?.classification?.code === 6;
+
+        return {
+          id: asset.id,
+          assetCodeId,
+          fullCode,
+          itemName,
+          roomLocation,
+          locationDetail,
+          displayLabel: `${fullCode} - ${itemName}`,
+          classificationName: asset.asset_code?.classification?.name,
+          isTik,
+        };
+      });
+    } catch {
+      return [];
+    }
+  },
+
+  // Ambil opsi petugas dengan filter berdasarkan role domain (TIK -> petugas-tik, Sarpras -> petugas-sarpras)
+  getOfficerOptions: async (
+    targetDomain?: "tik" | "sarpras" | string,
+  ): Promise<OfficerOption[]> => {
+    const user = getUser();
+    const currentRole = (user?.role || "").toLowerCase();
+    let domainParam = "tik";
+
+    if (targetDomain) {
+      domainParam = targetDomain.toLowerCase().includes("sarpras") ? "sarpras" : "tik";
+    } else {
+      domainParam = currentRole.includes("sarpras") ? "sarpras" : "tik";
+    }
+
+    const defaultOfficers = domainParam === "sarpras" ? realSarprasOfficers : realTikOfficers;
+
+    try {
+      // Coba ambil daftar user via endpoint standar /users
+      const response = await fetch(`${API_BASE_URL}/users?per_page=100`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        return defaultOfficers;
+      }
+
+      const resJson = await response.json();
+      let rawUsers: Array<{
+        id: number;
+        name?: string;
+        nama?: string;
+        role?: string;
+        roles?: Array<{ name: string }>;
+        jabatan?: string;
+        status_user?: string;
+      }> = [];
+
+      if (Array.isArray(resJson.data)) {
+        rawUsers = resJson.data;
+      } else if (resJson.data && Array.isArray(resJson.data.data)) {
+        rawUsers = resJson.data.data;
+      }
+
+      const targetRoleKey = domainParam === "sarpras" ? "sarpras" : "tik";
+
+      const filtered = rawUsers.filter((u) => {
+        if (u.status_user && u.status_user.toLowerCase() !== "aktif") return false;
+        const roleStr = (u.role || "").toLowerCase();
+        const jabatanStr = (u.jabatan || "").toLowerCase();
+        const rolesArr = (u.roles || []).map((r) => r.name.toLowerCase()).join(" ");
+        return (
+          roleStr.includes(targetRoleKey) ||
+          jabatanStr.includes(targetRoleKey) ||
+          rolesArr.includes(targetRoleKey)
+        );
+      });
+
+      if (filtered.length > 0) {
         return filtered.map((u) => {
-          const roleLabel = u.jabatan || u.role || "Petugas";
+          const displayName = u.nama || u.name || `User #${u.id}`;
+          const defaultRole = domainParam === "sarpras" ? "Petugas Sarpras" : "Petugas TIK";
+          const roleLabel = u.jabatan || u.role || defaultRole;
           return {
             id: u.id,
-            name: u.nama,
+            name: displayName,
             role: roleLabel,
-            displayLabel: `${u.nama} (${roleLabel})`,
+            displayLabel: `${displayName} (${roleLabel})`,
           };
         });
-      });
+      }
 
-      return await withTimeout(fetchPromise, 1500, fallbackOfficerOptions);
-    } catch {
-      return fallbackOfficerOptions;
+      return defaultOfficers;
+    } catch (err) {
+      console.warn("Gagal memuat petugas dari API, gunakan daftar petugas valid:", err);
+      return defaultOfficers;
     }
   },
 
-  // Buat jadwal baru
+  // Buat jadwal baru ke API backend
   createSchedule: async (
     payload: CreateMaintenanceSchedulePayload,
     extraData?: {
@@ -395,95 +735,156 @@ export const maintenanceService = {
       petugasName?: string;
     },
   ): Promise<MaintenanceItem> => {
-    const dateObj = new Date(payload.scheduled_date);
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "Mei",
-      "Jun",
-      "Jul",
-      "Ags",
-      "Sep",
-      "Okt",
-      "Nov",
-      "Des",
-    ];
-    const formattedDate = !isNaN(dateObj.getTime())
-      ? `${String(dateObj.getDate()).padStart(2, "0")} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`
-      : payload.scheduled_date;
+    const assetCodeId = payload.asset_code_id ?? payload.asset_id;
+    const officerId = payload.assigned_officer_id ?? payload.officer_id;
+    const scheduledDate = payload.next_scheduled_date ?? payload.scheduled_date ?? "";
+    const apiPeriod = formatPeriodToApi(payload.period);
 
-    const newItem: MaintenanceItem = {
-      id: String(Date.now()),
-      nomorInventaris: extraData?.fullCode || `INV-TIK-${new Date().getFullYear()}`,
-      idBarang: extraData?.fullCode || `AST-TIK-${new Date().getFullYear()}-${payload.asset_id}`,
-      namaBarang: extraData?.namaBarang || `Aset #${payload.asset_id}`,
-      klasifikasi: "Alat IT",
-      lokasi: extraData?.lokasi || "Gedung Ruangan A",
-      lokasiRuangan: extraData?.lokasiRuangan || "Ruangan Default",
-      jenisPemeliharaan: payload.maintenance_type || "Pembersihan & Pengecekan Rutin",
-      periode: payload.period,
-      tanggalJadwal: formattedDate,
-      tanggalJadwalRaw: payload.scheduled_date,
-      petugas: extraData?.petugasName || `Petugas #${payload.officer_id}`,
-      status: "Terjadwal",
-      isActive: true,
+    const bodyPayload = {
+      asset_code_id: assetCodeId,
+      assigned_officer_id: officerId,
+      maintenance_type: payload.maintenance_type || "Pembersihan & Pengecekan Rutin",
+      period: apiPeriod,
+      next_scheduled_date: scheduledDate,
     };
 
-    const existing = getStoredItems();
-    const updated = [newItem, ...existing];
-    saveStoredItems(updated);
+    try {
+      const response = await fetch(`${API_BASE_URL}/asset-maintenances`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(bodyPayload),
+      });
 
-    return newItem;
+      const resJson = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+          throw new Error("Sesi login Anda telah berakhir. Silakan login kembali.");
+        }
+        const errorMsg =
+          resJson.message ||
+          (resJson.errors
+            ? Object.values(resJson.errors).flat().join(", ")
+            : "Gagal membuat jadwal maintenance.");
+        throw new Error(errorMsg);
+      }
+
+      const createdItem: ApiMaintenanceItem = resJson.data;
+      return mapApiMaintenanceToItem(createdItem);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        !err.message.includes("Failed to fetch") &&
+        !err.message.includes("NetworkError")
+      ) {
+        throw err;
+      }
+
+      console.warn("API maintenance tidak terhubung, fallback simpan lokal:", err);
+      const formattedDate = formatDateDisplay(scheduledDate);
+      const newItem: MaintenanceItem = {
+        id: String(Date.now()),
+        assetCodeId: assetCodeId ? Number(assetCodeId) : undefined,
+        nomorInventaris: extraData?.fullCode || `INV-TIK-${new Date().getFullYear()}`,
+        idBarang: extraData?.fullCode || `AST-TIK-${new Date().getFullYear()}-${assetCodeId}`,
+        namaBarang: extraData?.namaBarang || `Aset #${assetCodeId}`,
+        klasifikasi: "Alat IT",
+        lokasi: extraData?.lokasi || "Gedung Ruangan A",
+        lokasiRuangan: extraData?.lokasiRuangan || "Ruangan Default",
+        jenisPemeliharaan: payload.maintenance_type || "Pembersihan & Pengecekan Rutin",
+        periode: formatPeriod(payload.period),
+        periodeRaw: apiPeriod,
+        tanggalJadwal: formattedDate,
+        tanggalJadwalRaw: scheduledDate,
+        petugas: extraData?.petugasName || `Petugas #${officerId}`,
+        petugasId: officerId,
+        status: "Terjadwal",
+        isActive: true,
+      };
+
+      const existing = getStoredItems();
+      saveStoredItems([newItem, ...existing]);
+      return newItem;
+    }
   },
 
-  // Update jadwal yang sudah ada
+  // Update jadwal yang sudah ada ke API backend
   updateSchedule: async (
     id: string,
-    updates: {
+    payload: UpdateMaintenanceSchedulePayload & {
       jenisPemeliharaan?: string;
       periode?: string;
       tanggalJadwalRaw?: string;
       petugas?: string;
     },
   ): Promise<MaintenanceItem | null> => {
-    const items = getStoredItems();
-    const index = items.findIndex((item) => String(item.id) === String(id));
-    if (index !== -1) {
-      let formattedDate = items[index].tanggalJadwal;
-      if (updates.tanggalJadwalRaw) {
-        const dateObj = new Date(updates.tanggalJadwalRaw);
-        const months = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "Mei",
-          "Jun",
-          "Jul",
-          "Ags",
-          "Sep",
-          "Okt",
-          "Nov",
-          "Des",
-        ];
-        if (!isNaN(dateObj.getTime())) {
-          formattedDate = `${String(dateObj.getDate()).padStart(2, "0")} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
-        }
+    const rawPeriod = payload.period ?? payload.periode;
+    const apiPeriod = rawPeriod ? formatPeriodToApi(rawPeriod) : undefined;
+    const scheduledDate =
+      payload.next_scheduled_date ?? payload.scheduled_date ?? payload.tanggalJadwalRaw;
+    const maintenanceType = payload.maintenance_type ?? payload.jenisPemeliharaan;
+
+    const bodyPayload: Record<string, unknown> = {};
+    if (maintenanceType !== undefined) bodyPayload.maintenance_type = maintenanceType;
+    if (apiPeriod !== undefined) bodyPayload.period = apiPeriod;
+    if (scheduledDate !== undefined) bodyPayload.next_scheduled_date = scheduledDate;
+    if (payload.assigned_officer_id !== undefined)
+      bodyPayload.assigned_officer_id = payload.assigned_officer_id;
+    if (payload.is_active !== undefined) bodyPayload.is_active = payload.is_active;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/asset-maintenances/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(bodyPayload),
+      });
+
+      const resJson = await response.json();
+
+      if (!response.ok) {
+        const errorMsg =
+          resJson.message ||
+          (resJson.errors
+            ? Object.values(resJson.errors).flat().join(", ")
+            : "Gagal memperbarui jadwal.");
+        throw new Error(errorMsg);
       }
 
-      items[index] = {
-        ...items[index],
-        jenisPemeliharaan: updates.jenisPemeliharaan ?? items[index].jenisPemeliharaan,
-        periode: updates.periode ?? items[index].periode,
-        tanggalJadwal: formattedDate,
-        tanggalJadwalRaw: updates.tanggalJadwalRaw ?? items[index].tanggalJadwalRaw,
-        petugas: updates.petugas ?? items[index].petugas,
-      };
-      saveStoredItems(items);
-      return items[index];
+      const updatedItem: ApiMaintenanceItem = resJson.data;
+      return mapApiMaintenanceToItem(updatedItem);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        !err.message.includes("Failed to fetch") &&
+        !err.message.includes("NetworkError")
+      ) {
+        throw err;
+      }
+
+      console.warn("API maintenance tidak terhubung, fallback update lokal:", err);
+      const items = getStoredItems();
+      const index = items.findIndex((item) => String(item.id) === String(id));
+      if (index !== -1) {
+        let formattedDate = items[index].tanggalJadwal;
+        if (scheduledDate) {
+          formattedDate = formatDateDisplay(scheduledDate);
+        }
+
+        items[index] = {
+          ...items[index],
+          jenisPemeliharaan: maintenanceType ?? items[index].jenisPemeliharaan,
+          periode: rawPeriod ? formatPeriod(rawPeriod) : items[index].periode,
+          periodeRaw: apiPeriod ?? items[index].periodeRaw,
+          tanggalJadwal: formattedDate,
+          tanggalJadwalRaw: scheduledDate ?? items[index].tanggalJadwalRaw,
+          petugas: payload.petugas ?? items[index].petugas,
+          petugasId: payload.assigned_officer_id ?? items[index].petugasId,
+        };
+        saveStoredItems(items);
+        return items[index];
+      }
+      return null;
     }
-    return null;
   },
 };
