@@ -142,9 +142,6 @@ export default function InventarisTikListPage() {
           c.name.toLowerCase().includes("tik") ||
           c.code === 6,
       );
-      const elektronikClass = classifications.find(
-        (c) => c.name.toLowerCase().includes("elektronik") || c.code === 5,
-      );
 
       const targetClassId = tikClass ? tikClass.id : classificationId;
       if (tikClass) setClassificationId(tikClass.id);
@@ -153,23 +150,13 @@ export default function InventarisTikListPage() {
       const locs = await getAssetLocations().catch(() => []);
       setLocations(locs);
 
-      // 3. Ambil data aset TIK (gabungkan Alat IT dan data Alat Elektronik)
+      // 3. Ambil data aset TIK (Alat IT)
       const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = [];
 
       if (tikClass) {
         fetchPromises.push(
           getAssets({
             asset_classification_id: tikClass.id,
-            per_page: 100,
-            moved_last_3_months: isMoved,
-          }),
-        );
-      }
-
-      if (elektronikClass && (!tikClass || elektronikClass.id !== tikClass.id)) {
-        fetchPromises.push(
-          getAssets({
-            asset_classification_id: elektronikClass.id,
             per_page: 100,
             moved_last_3_months: isMoved,
           }),

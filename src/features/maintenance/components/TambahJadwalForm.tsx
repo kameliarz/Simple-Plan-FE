@@ -28,6 +28,7 @@ export default function TambahJadwalForm() {
   // Form State
   const [form, setForm] = useState<MaintenanceFormState>({
     assetId: "",
+    nomorInventaris: "",
     namaBarang: "",
     lokasiRuangan: "",
     lokasi: "",
@@ -104,14 +105,22 @@ export default function TambahJadwalForm() {
     setForm((prev) => ({
       ...prev,
       assetId: String(asset.id),
+      assetCodeId: asset.assetCodeId,
+      nomorInventaris: asset.fullCode,
       namaBarang: asset.itemName,
       lokasiRuangan: asset.roomLocation,
       lokasi: asset.locationDetail,
+      petugasId: "",
     }));
 
-    setErrors((prev) => ({ ...prev, assetId: undefined }));
+    setErrors((prev) => ({ ...prev, assetId: undefined, petugasId: undefined }));
     setOpenDropdown(null);
     setAssetSearch("");
+
+    const isTik = asset.isTik ?? (asset.classificationName?.toLowerCase().includes("it") || false);
+    void maintenanceService.getOfficerOptions(isTik ? "tik" : "sarpras").then((officerList) => {
+      setOfficers(officerList);
+    });
   };
 
   // Handle Periode Selection
@@ -159,31 +168,33 @@ export default function TambahJadwalForm() {
 
       const targetAsset = assets.find((a) => String(a.id) === form.assetId);
       const targetOfficer = officers.find((o) => String(o.id) === form.petugasId);
+      const assetCodeId = targetAsset?.assetCodeId ?? form.assetCodeId ?? Number(form.assetId);
 
       await maintenanceService.createSchedule(
         {
-          asset_id: Number(form.assetId),
-          maintenance_type: form.jenisPemeliharaan.trim() || undefined,
+          asset_code_id: assetCodeId,
+          maintenance_type: form.jenisPemeliharaan.trim() || "Pembersihan & Pengecekan Rutin",
           period: form.periode,
-          scheduled_date: form.tanggalJadwal,
-          officer_id: Number(form.petugasId),
+          next_scheduled_date: form.tanggalJadwal,
+          assigned_officer_id: Number(form.petugasId),
         },
         {
           namaBarang: form.namaBarang,
           lokasiRuangan: form.lokasiRuangan,
           lokasi: form.lokasi,
-          fullCode: targetAsset?.fullCode,
+          fullCode: targetAsset?.fullCode || form.nomorInventaris,
           petugasName: targetOfficer?.name,
         },
       );
 
-      // Tampilkan banner sukses hijau sesuai screenshot 1
+      // Tampilkan banner sukses hijau
       setShowSuccessAlert(true);
       showToast("Jadwal maintenance berhasil disimpan!", "success");
 
       // Reset form fields
       setForm({
         assetId: "",
+        nomorInventaris: "",
         namaBarang: "",
         lokasiRuangan: "",
         lokasi: "",
@@ -215,7 +226,7 @@ export default function TambahJadwalForm() {
 
   return (
     <div ref={dropdownContainerRef} className="w-full space-y-4">
-      {/* SUCCESS ALERT BANNER (Screenshot 1) */}
+      {/* SUCCESS ALERT BANNER */}
       {showSuccessAlert && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
           <div className="flex items-center gap-2">
@@ -238,6 +249,21 @@ export default function TambahJadwalForm() {
         onSubmit={handleSubmit}
         className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm transition-colors space-y-5"
       >
+        {/* NOMOR INVENTARIS (Readonly / Auto-filled) */}
+        <div>
+          <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
+            NOMOR INVENTARIS
+          </label>
+          <input
+            type="text"
+            readOnly
+            disabled
+            value={form.nomorInventaris || selectedAsset?.fullCode || ""}
+            placeholder="Terisi otomatis dari inventaris"
+            className="h-11 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-700 placeholder-gray-400 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          />
+        </div>
+
         {/* 1. ASET * */}
         <div className="relative">
           <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
@@ -410,7 +436,9 @@ export default function TambahJadwalForm() {
                 form.periode ? "text-gray-800 dark:text-slate-100 font-medium" : "text-gray-400"
               }`}
             >
-              {form.periode || "Pilih periode"}
+              {periodOptions.find((p) => p.value === form.periode)?.label ||
+                form.periode ||
+                "Pilih periode"}
             </span>
             <IconChevronDown
               size={18}
@@ -455,6 +483,7 @@ export default function TambahJadwalForm() {
           <div className="relative">
             <input
               type="date"
+              min={new Date().toISOString().split("T")[0]}
               value={form.tanggalJadwal}
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, tanggalJadwal: e.target.value }));
