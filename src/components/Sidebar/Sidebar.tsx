@@ -39,6 +39,7 @@ export default function Sidebar({ isDarkMode, toggleDarkMode, onClose }: Sidebar
     "petugas-sarpras": "Petugas Sarpras",
     user: "User",
     management: "Manajemen",
+    manajemen: "Manajemen",
   };
 
   const roleName =

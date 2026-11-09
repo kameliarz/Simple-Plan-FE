@@ -202,7 +202,7 @@ function BaseTable<T>({
                   colSpan={columns.length + (selectable ? 1 : 0)}
                   className="px-5 py-8 text-center text-sm text-text-secondary"
                 >
-                  No entries found.
+                  Data tidak ditemukan
                 </td>
               </tr>
             )}
