@@ -32,6 +32,7 @@ import DaftarMaintenancePage from "@/features/maintenance/pages/DaftarMaintenanc
 import TambahJadwalMaintenancePage from "@/features/maintenance/pages/TambahJadwalMaintenancePage";
 import DetailJadwalMaintenancePage from "@/features/maintenance/pages/DetailJadwalMaintenancePage";
 import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMaintenancePage";
+import CatatHasilMaintenancePage from "@/features/maintenance/pages/CatatHasilMaintenancePage";
 
 import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 
@@ -181,6 +182,7 @@ function App() {
           <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
           <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
 
           {/* Fallback */}
           <Route

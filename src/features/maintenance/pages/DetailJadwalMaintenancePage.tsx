@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { getUser } from "@/features/auth-login/services/authStorage";
+import { IconClipboardCheck } from "@tabler/icons-react";
 import {
   IconArrowLeft,
   IconBuilding,
@@ -22,6 +24,17 @@ export default function DetailJadwalMaintenancePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const location = useLocation();
+  const user = getUser();
+  const isPetugas =
+    user?.role === "petugas-tik" ||
+    user?.role === "petugas-sarpras" ||
+    Boolean(user?.role?.includes("petugas"));
+  const isManajemen = user?.role === "manajemen" || user?.role === "management";
+  const locationState = location.state as { successMessage?: string } | null;
+  const [successBanner, setSuccessBanner] = useState<string | null>(
+    locationState?.successMessage || null,
+  );
 
   const [item, setItem] = useState<MaintenanceItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,26 +137,59 @@ export default function DetailJadwalMaintenancePage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Tombol Nonaktifkan / Aktifkan */}
-          <button
-            type="button"
-            onClick={handleOpenDeactivateModal}
-            className="rounded-lg border border-[#003178] bg-white px-4 py-2 text-xs font-semibold text-[#003178] transition hover:bg-blue-50 dark:bg-slate-900 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800 shadow-sm"
-          >
-            {item.isActive ? "Nonaktifkan" : "Aktifkan"}
-          </button>
+          {isManajemen ? null : isPetugas ? (
+            item.status !== "Selesai" && (
+              <button
+                type="button"
+                onClick={() => navigate(`/maintenance/${id}/catat-hasil`)}
+                className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
+              >
+                <IconClipboardCheck size={16} />
+                <span>Catat Hasil</span>
+              </button>
+            )
+          ) : (
+            <>
+              {/* Tombol Nonaktifkan / Aktifkan */}
+              <button
+                type="button"
+                onClick={handleOpenDeactivateModal}
+                className="rounded-lg border border-[#003178] bg-white px-4 py-2 text-xs font-semibold text-[#003178] transition hover:bg-blue-50 dark:bg-slate-900 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800 shadow-sm"
+              >
+                {item.isActive ? "Nonaktifkan" : "Aktifkan"}
+              </button>
 
-          {/* Edit Data */}
-          <button
-            type="button"
-            onClick={() => navigate(`/maintenance/${id}/edit`)}
-            className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
-          >
-            <IconEdit size={15} />
-            <span>Edit Data</span>
-          </button>
+              {/* Edit Data */}
+              <button
+                type="button"
+                onClick={() => navigate(`/maintenance/${id}/edit`)}
+                className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
+              >
+                <IconEdit size={15} />
+                <span>Edit Data</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {successBanner && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <IconCheck size={13} strokeWidth={3} />
+            </div>
+            <span>{successBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessBanner(null)}
+            className="text-emerald-600 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+          >
+            <IconX size={16} />
+          </button>
+        </div>
+      )}
 
       {showDeactivatedBanner && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">

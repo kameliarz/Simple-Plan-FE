@@ -887,4 +887,91 @@ export const maintenanceService = {
       return null;
     }
   },
+
+  recordMaintenanceLog: async (
+    maintenanceId: string,
+    payload: {
+      work_description: string;
+      maintenance_result: string;
+      post_maintenance_condition: "Baik" | "Rusak Ringan" | "Rusak Berat";
+      started_at: string;
+      completed_at: string;
+      photo?: File | null;
+    },
+  ): Promise<MaintenanceItem | null> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("work_description", payload.work_description);
+    formData.append("maintenance_result", payload.maintenance_result);
+    formData.append("post_maintenance_condition", payload.post_maintenance_condition);
+    formData.append("started_at", payload.started_at);
+    formData.append("completed_at", payload.completed_at);
+    if (payload.photo) {
+      formData.append("photo", payload.photo);
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/asset-maintenances/${maintenanceId}/logs`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      const resJson = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+          throw new Error("Sesi login Anda telah berakhir. Silakan login kembali.");
+        }
+        const errorMsg =
+          resJson.message ||
+          (resJson.errors
+            ? Object.values(resJson.errors).flat().join(", ")
+            : "Gagal mencatat hasil maintenance.");
+        throw new Error(errorMsg);
+      }
+
+      return await maintenanceService.getMaintenanceById(maintenanceId);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        !err.message.includes("Failed to fetch") &&
+        !err.message.includes("NetworkError") &&
+        !err.message.includes("403")
+      ) {
+        throw err;
+      }
+
+      console.warn("API record log fallback lokal:", err);
+      const items = getStoredItems();
+      const index = items.findIndex((item) => String(item.id) === String(maintenanceId));
+      if (index !== -1) {
+        items[index] = {
+          ...items[index],
+          status: "Selesai",
+          hasilMaintenance: {
+            uraianPekerjaan: payload.work_description,
+            hasilPemeliharaan: payload.maintenance_result,
+            kondisiPasca: payload.post_maintenance_condition,
+            waktuMulai: formatDateDisplay(payload.started_at),
+            waktuSelesai: formatDateDisplay(payload.completed_at),
+            fotoHasil: payload.photo
+              ? {
+                  namaFile: payload.photo.name,
+                  ukuranFile: `${(payload.photo.size / 1024).toFixed(0)} KB`,
+                  url: URL.createObjectURL(payload.photo),
+                }
+              : undefined,
+          },
+        };
+        saveStoredItems(items);
+        return items[index];
+      }
+      return null;
+    }
+  },
 };
