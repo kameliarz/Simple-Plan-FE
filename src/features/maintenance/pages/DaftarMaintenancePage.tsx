@@ -240,9 +240,6 @@ export default function DaftarMaintenancePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">
-      {/* =========================================================
-          MOBILE VIEW (Khusus Layar HP / Sesuai Desain Figma)
-         ========================================================= */}
       <div className="block md:hidden space-y-4">
         {/* Mobile Search & Filter Button */}
         <div className="flex items-center gap-2">
@@ -269,10 +266,9 @@ export default function DaftarMaintenancePage() {
           </button>
         </div>
 
-        {/* Khusus Role Manajemen: Laporan Maintenance & Kondisi Pasca-Pemeliharaan */}
+        {/*Role Manajemen: Laporan Maintenance & Kondisi Pasca-Pemeliharaan */}
         {isManajemen && (
           <div className="space-y-4">
-            {/* Laporan Maintenance Card (2x2 Grid) */}
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs space-y-3">
               <h2 className="text-xs font-bold text-gray-800">Laporan Maintenance</h2>
               <div className="grid grid-cols-2 gap-3">
