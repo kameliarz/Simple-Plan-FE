@@ -325,7 +325,8 @@ export default function DetailJadwalMaintenancePage() {
         </div>
       </div>
 
-      {item.status === "Selesai" && item.hasilMaintenance && (
+      {/* Section Hasil Maintenance (tampil jika data log hasil maintenance tersedia) */}
+      {item.hasilMaintenance && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 space-y-6">
           <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 border-b border-gray-100 pb-4 dark:border-slate-800">
             Hasil Maintenance
