@@ -6,7 +6,6 @@ import {
   IconPhoto,
   IconChevronDown,
   IconX,
-  IconCalendar,
 } from "@tabler/icons-react";
 import { maintenanceService } from "../services/maintenanceService";
 import type { MaintenanceItem } from "../types/maintenance.types";
@@ -301,15 +300,11 @@ export default function CatatHasilMaintenancePage() {
                       setErrors((prev) => ({ ...prev, waktuMulai: undefined }));
                     }
                   }}
-                  className={`h-10 w-full rounded-lg border bg-white px-4 pr-10 text-xs text-gray-800 outline-none transition focus:border-[#003178] dark:bg-slate-800 dark:text-slate-100 ${
+                  className={`h-10 w-full rounded-lg border bg-white px-4 text-xs text-gray-800 outline-none transition focus:border-[#003178] dark:bg-slate-800 dark:text-slate-100 ${
                     errors.waktuMulai
                       ? "border-red-500 bg-red-50/10 focus:border-red-500"
                       : "border-gray-200 dark:border-slate-700"
                   } ${!waktuMulai ? "text-gray-400 dark:text-slate-500" : ""}`}
-                />
-                <IconCalendar
-                  size={16}
-                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
               {errors.waktuMulai && (
@@ -335,15 +330,11 @@ export default function CatatHasilMaintenancePage() {
                       setErrors((prev) => ({ ...prev, waktuSelesai: undefined }));
                     }
                   }}
-                  className={`h-10 w-full rounded-lg border bg-white px-4 pr-10 text-xs text-gray-800 outline-none transition focus:border-[#003178] dark:bg-slate-800 dark:text-slate-100 ${
+                  className={`h-10 w-full rounded-lg border bg-white px-4 text-xs text-gray-800 outline-none transition focus:border-[#003178] dark:bg-slate-800 dark:text-slate-100 ${
                     errors.waktuSelesai
                       ? "border-red-500 bg-red-50/10 focus:border-red-500"
                       : "border-gray-200 dark:border-slate-700"
                   } ${!waktuSelesai ? "text-gray-400 dark:text-slate-500" : ""}`}
-                />
-                <IconCalendar
-                  size={16}
-                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
               {errors.waktuSelesai && (
