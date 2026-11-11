@@ -93,6 +93,26 @@ export default function DetailJadwalMaintenancePage() {
     }
   };
 
+  const handleDownloadFoto = async (url: string, fileName: string) => {
+    try {
+      const fetchUrl = url.replace(/^https?:\/\/[^/]+\/storage\//i, "/storage/");
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error("Gagal mengunduh file");
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "foto_pemeliharaan.jpg";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      showToast("Gagal mengunduh foto hasil pemeliharaan", "error");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center text-xs text-gray-400">
@@ -372,29 +392,72 @@ export default function DetailJadwalMaintenancePage() {
 
             <div>
               <p className="text-xs font-medium text-gray-400 mb-1.5">Foto hasil pemeliharaan</p>
-              {item.hasilMaintenance.fotoHasil && (
-                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
-                      <IconPhoto size={18} />
+              {item.hasilMaintenance.fotoHasil ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
+                  {item.hasilMaintenance.fotoHasil.url ? (
+                    <a
+                      href={item.hasilMaintenance.fotoHasil.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg transition hover:opacity-80"
+                      title="Lihat foto hasil pemeliharaan"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
+                        <IconPhoto size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-medium text-gray-800 dark:text-slate-100">
+                          {item.hasilMaintenance.fotoHasil.namaFile}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {item.hasilMaintenance.fotoHasil.ukuranFile}
+                        </p>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
+                        <IconPhoto size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-medium text-gray-800 dark:text-slate-100">
+                          {item.hasilMaintenance.fotoHasil.namaFile}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {item.hasilMaintenance.fotoHasil.ukuranFile}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-gray-800 dark:text-slate-100">
-                        {item.hasilMaintenance.fotoHasil.namaFile}
-                      </p>
-                      <p className="text-[10px] text-gray-400">
-                        {item.hasilMaintenance.fotoHasil.ukuranFile}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200"
-                    title="Download"
-                  >
-                    <IconDownload size={16} />
-                  </button>
+                  )}
+
+                  {item.hasilMaintenance.fotoHasil.url ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDownloadFoto(
+                          item.hasilMaintenance!.fotoHasil!.url!,
+                          item.hasilMaintenance!.fotoHasil!.namaFile,
+                        );
+                      }}
+                      className="shrink-0 p-1.5 text-gray-400 transition hover:text-[#003178] dark:hover:text-slate-200 cursor-pointer"
+                      title="Download"
+                    >
+                      <IconDownload size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="shrink-0 p-1.5 text-gray-300 dark:text-slate-600 cursor-not-allowed"
+                      title="File tidak tersedia"
+                    >
+                      <IconDownload size={16} />
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <p className="text-xs text-gray-400">-</p>
               )}
             </div>
           </div>
