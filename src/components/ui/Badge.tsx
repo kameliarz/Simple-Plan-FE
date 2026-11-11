@@ -66,7 +66,7 @@ export const Badge: React.FC<BadgeProps> = ({
                   ? "bg-amber-500"
                   : variant === "success"
                     ? "bg-emerald-500"
-                    : "bg-[#003178]"),
+                    : "bg-primary-600"),
           )}
         />
       )}

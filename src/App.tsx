@@ -35,6 +35,8 @@ import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMa
 
 import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 
+import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
+
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,13 +176,17 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
           <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
           <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
+
+          {/* Graphic Design */}
+          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Fallback */}
           <Route

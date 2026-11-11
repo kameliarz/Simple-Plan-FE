@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import {
+  IconAlertCircle,
   IconFile,
   IconFileTypeJpg,
   IconFileTypePdf,
@@ -135,9 +136,11 @@ export default function FileUpload({
             "flex min-h-25 cursor-pointer flex-col items-center justify-center",
             "rounded-lg border-2 border-dashed px-6 py-4 text-center",
             "transition",
-            isDragging
-              ? "border-primary-600 bg-blue-50"
-              : "border-primary-200 hover:border-primary-300 hover:bg-slate-300/10 ",
+            error || uploadError
+              ? "border-red-400 bg-red-50/20"
+              : isDragging
+                ? "border-primary-600 bg-blue-50"
+                : "border-primary-200 hover:border-primary-300 hover:bg-slate-300/10",
           )}
         >
           <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-button text-text-secondary">
@@ -177,7 +180,10 @@ export default function FileUpload({
       )}
 
       {(error || uploadError) && (
-        <small className="mt-2 block text-xs text-danger-500">{error || uploadError}</small>
+        <small role="alert" className="mt-2 flex items-center gap-1 text-xs text-danger-500">
+          <IconAlertCircle size={14} strokeWidth={2} />
+          <span>{error || uploadError}</span>
+        </small>
       )}
     </div>
   );
