@@ -1,3 +1,4 @@
+import { BACKEND_URL } from "@/config/api";
 import { getAssetClassifications, getAssets } from "@/features/inventaris/services/inventarisApi";
 import { clearAuth, getToken, getUser } from "@/features/auth-login/services/authStorage";
 import type { ApiAsset } from "@/features/inventaris/types/inventaris";
@@ -305,6 +306,13 @@ function formatDateDisplay(dateStr?: string): string {
   return `${String(dateObj.getDate()).padStart(2, "0")} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 }
 
+function formatFileSize(bytes?: number | null): string {
+  if (bytes === undefined || bytes === null || isNaN(bytes)) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function mapApiMaintenanceToItem(item: ApiMaintenanceItem): MaintenanceItem {
   const latestLog = item.logs && item.logs.length > 0 ? item.logs[0] : null;
 
@@ -328,20 +336,31 @@ export function mapApiMaintenanceToItem(item: ApiMaintenanceItem): MaintenanceIt
 
   let hasilMaintenance: HasilMaintenance | null = null;
   if (latestLog) {
+    const rawPhotoKey =
+      latestLog.proof_photo_url || latestLog.proof_photo_object_key || latestLog.photo_path;
+    let photoUrl: string | undefined;
+    if (rawPhotoKey) {
+      if (/^(https?:\/\/|blob:)/i.test(rawPhotoKey)) {
+        photoUrl = rawPhotoKey;
+      } else {
+        const cleanKey = rawPhotoKey.replace(/^\/?(storage\/)?/, "");
+        photoUrl = BACKEND_URL ? `${BACKEND_URL}/storage/${cleanKey}` : `/storage/${cleanKey}`;
+      }
+    }
+
     hasilMaintenance = {
       uraianPekerjaan: latestLog.work_description || "-",
       hasilPemeliharaan: latestLog.maintenance_result || "-",
       kondisiPasca: latestLog.post_maintenance_condition || "Baik",
       waktuMulai: formatDateDisplay(latestLog.started_at || undefined),
       waktuSelesai: formatDateDisplay(latestLog.completed_at || undefined),
-      fotoHasil:
-        latestLog.proof_photo_object_key || latestLog.photo_path
-          ? {
-              namaFile: latestLog.proof_photo_original_name || "foto_pemeliharaan.jpg",
-              ukuranFile: "-",
-              url: `/storage/${latestLog.proof_photo_object_key || latestLog.photo_path}`,
-            }
-          : undefined,
+      fotoHasil: rawPhotoKey
+        ? {
+            namaFile: latestLog.proof_photo_original_name || "foto_pemeliharaan.jpg",
+            ukuranFile: formatFileSize(latestLog.proof_photo_size),
+            url: photoUrl,
+          }
+        : undefined,
     };
   }
 
