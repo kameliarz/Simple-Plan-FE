@@ -36,6 +36,8 @@ import CatatHasilMaintenancePage from "@/features/maintenance/pages/CatatHasilMa
 
 import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 
+import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
+
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,7 +177,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
@@ -183,6 +184,11 @@ function App() {
           <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
           <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
+
+          {/* Graphic Design */}
+          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Fallback */}
           <Route
