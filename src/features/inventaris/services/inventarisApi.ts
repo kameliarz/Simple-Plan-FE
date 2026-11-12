@@ -265,10 +265,29 @@ export async function exportBulkAssetLabels(
   }, 1000);
 }
 
+export async function getAssetQrCodeSvg(assetId: number | string): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/assets/${assetId}/qr`, {
+    method: "GET",
+    headers: {
+      Accept: "image/svg+xml",
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Sesi Anda telah berakhir (401). Silakan login kembali.");
+    }
+    throw new Error(`Gagal memuat QR Code (${response.status})`);
+  }
+
+  return response.text();
+}
+
 export async function downloadSingleAssetLabel(
   assetId: number | string,
-  widthMm = 70,
-  heightMm = 35,
+  widthMm = 50,
+  heightMm = 60,
   assetUid?: string,
 ): Promise<void> {
   const response = await apiFetch(
@@ -307,8 +326,8 @@ export async function downloadSingleAssetLabel(
 
 export async function printSingleAssetLabel(
   assetId: number | string,
-  widthMm = 70,
-  heightMm = 35,
+  widthMm = 50,
+  heightMm = 60,
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/assets/${assetId}/label?format=html&width_mm=${widthMm}&height_mm=${heightMm}`,
