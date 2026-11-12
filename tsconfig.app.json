@@ -26,5 +26,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../simple-plan-api/11111111111111 bentar/InventarisTikDetailPage.tsx",
+    "../simple-plan-api/11111111111111 bentar/InventarisTikListPage.tsx"
+  ]
 }
