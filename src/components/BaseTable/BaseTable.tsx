@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 
 interface Column<T> {
   key: keyof T;
@@ -66,13 +67,14 @@ function BaseTable<T>({
   }, [data, sortKey, sortDirection]);
 
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const safeCurrentPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
 
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const startIndex = (safeCurrentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
     return sortedData.slice(startIndex, endIndex);
-  }, [sortedData, currentPage, itemsPerPage]);
+  }, [sortedData, safeCurrentPage, itemsPerPage]);
 
   const handleSort = (key: keyof T) => {
     if (sortKey === key) {
@@ -86,7 +88,7 @@ function BaseTable<T>({
   };
 
   const handlePreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
+    setCurrentPage((page) => Math.max(Math.min(page, totalPages) - 1, 1));
   };
 
   const handleNextPage = () => {
@@ -97,20 +99,25 @@ function BaseTable<T>({
     setCurrentPage(page);
   };
 
-  const startEntry = sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const startEntry = sortedData.length === 0 ? 0 : (safeCurrentPage - 1) * itemsPerPage + 1;
 
-  const endEntry = Math.min(currentPage * itemsPerPage, sortedData.length);
+  const endEntry = Math.min(safeCurrentPage * itemsPerPage, sortedData.length);
 
-  const visiblePages = Array.from({ length: Math.min(totalPages, 3) }, (_, index) => index + 1);
+  const pageStart = Math.max(1, safeCurrentPage - 2);
+  const pageEnd = Math.min(totalPages, safeCurrentPage + 2);
+  const visiblePages = Array.from(
+    { length: Math.max(0, pageEnd - pageStart + 1) },
+    (_, index) => pageStart + index,
+  );
 
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-sidebar">
+    <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-table-card dark:border-slate-700">
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-175">
-          <thead>
-            <tr className="border-b border-gray-200 bg-background">
+        <table className="w-full min-w-175 text-sm">
+          <thead className="border-b border-slate-200 bg-button dark:border-slate-800">
+            <tr>
               {selectable && (
-                <th className="w-12 px-5 py-3.5 text-left">
+                <th className="h-12 w-12 px-6 text-left align-middle">
                   {showHeaderCheckbox && (
                     <input
                       type="checkbox"
@@ -132,13 +139,13 @@ function BaseTable<T>({
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-text-secondary"
+                  className="h-12 px-6 text-left align-middle text-xs font-semibold uppercase tracking-wide text-text-secondary"
                 >
                   {column.sortable ? (
                     <button
                       type="button"
                       onClick={() => handleSort(column.key)}
-                      className="inline-flex items-center gap-1.5 transition hover:text-primary"
+                      className="inline-flex items-center gap-1.5 transition hover:text-primary-600 dark:hover:text-white"
                     >
                       {column.label}
 
@@ -154,7 +161,7 @@ function BaseTable<T>({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+          <tbody className="divide-y divide-slate-200 bg-table-card dark:divide-slate-600">
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => {
                 const rowId = getId
@@ -166,16 +173,17 @@ function BaseTable<T>({
                   <tr
                     key={rowIndex}
                     onClick={() => onRowClick?.(row)}
-                    className={`transition ${
+                    className={`transition-colors ${
                       isSelected
                         ? "bg-blue-50/70 dark:bg-blue-900/20"
-                        : onRowClick
-                          ? "hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                          : "hover:bg-background"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-700"
                     } ${onRowClick ? "cursor-pointer" : ""}`}
                   >
                     {selectable && (
-                      <td className="w-12 px-5 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="w-12 px-6 py-3 align-middle text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -188,7 +196,10 @@ function BaseTable<T>({
                       const value = row[column.key];
 
                       return (
-                        <td key={String(column.key)} className="px-5 py-3 text-sm text-text">
+                        <td
+                          key={String(column.key)}
+                          className="whitespace-nowrap px-6 py-3 align-middle text-sm text-text-secondary"
+                        >
                           {column.render ? column.render(value, row) : String(value ?? "-")}
                         </td>
                       );
@@ -200,7 +211,7 @@ function BaseTable<T>({
               <tr>
                 <td
                   colSpan={columns.length + (selectable ? 1 : 0)}
-                  className="px-5 py-8 text-center text-sm text-text-secondary"
+                  className="px-6 py-8 text-center text-sm text-text-secondary"
                 >
                   Data tidak ditemukan
                 </td>
@@ -210,7 +221,7 @@ function BaseTable<T>({
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3">
+      <div className="flex items-center justify-between border-t border-slate-200 bg-table-card px-6 py-4 dark:border-slate-600">
         <p className="text-xs text-text-secondary">
           Showing {startEntry} to {endEntry} of {sortedData.length} entries
         </p>
@@ -219,11 +230,11 @@ function BaseTable<T>({
           <button
             type="button"
             onClick={handlePreviousPage}
-            disabled={currentPage === 1}
+            disabled={safeCurrentPage === 1}
             aria-label="Previous page"
-            className="flex h-8 w-8 items-center justify-center text-2xl text-text-secondary transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-6 min-w-6 items-center justify-center rounded-xs text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            ‹
+            <IconChevronLeft size={14} strokeWidth={2} />
           </button>
 
           {visiblePages.map((page) => (
@@ -232,11 +243,11 @@ function BaseTable<T>({
               type="button"
               onClick={() => handlePageChange(page)}
               aria-label={`Page ${page}`}
-              aria-current={currentPage === page ? "page" : undefined}
-              className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition ${
-                currentPage === page
-                  ? "bg-primary text-white"
-                  : "text-text-secondary hover:bg-background"
+              aria-current={safeCurrentPage === page ? "page" : undefined}
+              className={`flex h-6 min-w-6 items-center justify-center rounded-xs text-sm font-medium transition ${
+                safeCurrentPage === page
+                  ? "bg-blue-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
               {page}
@@ -246,11 +257,11 @@ function BaseTable<T>({
           <button
             type="button"
             onClick={handleNextPage}
-            disabled={currentPage === totalPages || totalPages === 0}
+            disabled={safeCurrentPage === totalPages || totalPages === 0}
             aria-label="Next page"
-            className="flex h-8 w-8 items-center justify-center text-2xl text-text-secondary transition hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-6 min-w-6 items-center justify-center rounded-xs text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            ›
+            <IconChevronRight size={14} strokeWidth={2} />
           </button>
         </div>
       </div>

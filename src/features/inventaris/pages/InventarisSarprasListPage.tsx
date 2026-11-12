@@ -235,7 +235,7 @@ export default function InventarisSarprasListPage() {
       key: "nomor" as keyof InventarisSarprasRow,
       label: "NOMOR INVENTARIS",
       render: (value: unknown) => (
-        <span className="font-semibold text-blue-700 hover:underline">{String(value ?? "")}</span>
+        <span className="font-medium text-text-secondary">{String(value ?? "")}</span>
       ),
     },
     { key: "nama" as keyof InventarisSarprasRow, label: "NAMA BARANG" },
@@ -485,7 +485,7 @@ export default function InventarisSarprasListPage() {
       </div>
 
       {/* Main Container Card */}
-      <div className="bg-transparent lg:bg-white lg:dark:bg-slate-800 lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
+      <div className="bg-transparent lg:bg-table-card lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
         {/* Desktop Toolbar */}
         <div className="hidden lg:flex p-4 border-b border-slate-200 dark:border-slate-700 justify-between items-center gap-4">
           <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -522,7 +522,7 @@ export default function InventarisSarprasListPage() {
                     className={`gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isFilterActive
                         ? "bg-blue-50 border-blue-400 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300"
-                        : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                   >
                     Filter <Filter className="h-4 w-4" />
