@@ -6,7 +6,7 @@ import {
   Filter,
   Download,
   X,
-  QrCode,
+  Layers,
   Loader2,
   AlertCircle,
   SlidersHorizontal,
@@ -300,11 +300,6 @@ export default function InventarisTikListPage() {
       matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
     );
   });
-
-  const previewAsset =
-    selectedIds.length > 0
-      ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
-      : tableData[0];
 
   const handleDownloadBulk = async () => {
     setIsDownloading(true);
@@ -904,6 +899,23 @@ export default function InventarisTikListPage() {
 
             {/* Body */}
             <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Ringkasan Aset Terpilih */}
+              <div className="flex items-center gap-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0">
+                  <Layers className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                    {exportMode === "selected"
+                      ? `${selectedIds.length} Aset Terpilih`
+                      : `Semua Aset Terfilter (${filteredData.length} Aset)`}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
+                  </div>
+                </div>
+              </div>
+
               {/* Radio Ukuran Label */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
@@ -933,60 +945,6 @@ export default function InventarisTikListPage() {
                       />
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Pratinjau Label Card */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Pratinjau Label
-                  </label>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold tracking-tight">
-                        {previewAsset?.nomor || "3/1/1/6/2021"}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
-                        INVENTARIS ASET TIK
-                      </div>
-                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-
-                      <div className="space-y-1.5 text-xs">
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            NAMA BARANG
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.nama || "Monitor Pasien Multi-Parameter"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            LOKASI RUANGAN
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.lokasi || "Ruang Rawat Inap Melati 3"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            STATUS
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                            {previewAsset?.status || "Aktif"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 pt-1">
-                      <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
