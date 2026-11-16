@@ -6,7 +6,7 @@ import {
   Filter,
   Download,
   X,
-  QrCode,
+  Layers,
   Loader2,
   AlertCircle,
   SlidersHorizontal,
@@ -15,6 +15,7 @@ import {
   Minus,
 } from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
+import Pagination from "@/components/ui/ui-template/Pagination";
 import { clearAuth, getUser } from "@/features/auth-login/services/authStorage";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -27,15 +28,18 @@ import Toast from "@/components/ui/Toast";
 import {
   getAssets,
   getAssetLocations,
-  getAssetClassifications,
   exportBulkAssetLabels,
+  getAssetQrCodeSvg,
 } from "../services/inventarisApi";
 import type {
   ApiAsset,
+  AssetCollectionResponse,
   AssetLocation,
   BulkAssetLabelFilters,
   InventarisStatus,
 } from "../types/inventaris";
+
+const ITEMS_PER_PAGE = 15;
 
 export interface InventarisTikRow {
   id: string;
@@ -87,13 +91,14 @@ export default function InventarisTikListPage() {
   const canCreate = role === "super-admin" || role === "petugas-tik";
 
   const [assets, setAssets] = useState<ApiAsset[]>([]);
+  const [meta, setMeta] = useState<AssetCollectionResponse["meta"] | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [locations, setLocations] = useState<AssetLocation[]>([]);
+  const [hasLoadedLocations, setHasLoadedLocations] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [classificationId, setClassificationId] = useState<number | undefined>(2);
 
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -102,6 +107,8 @@ export default function InventarisTikListPage() {
   const [exportMode, setExportMode] = useState<"selected" | "all_filtered">("selected");
   const [labelSize, setLabelSize] = useState<"standard" | "small" | "large">("standard");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [singleQrSvg, setSingleQrSvg] = useState<string | null>(null);
+  const [isSingleQrLoading, setIsSingleQrLoading] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
@@ -128,58 +135,24 @@ export default function InventarisTikListPage() {
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
-  // Fetch data
-  const fetchData = async (overridePerpindahan?: boolean) => {
+  // Fetch data aset TIK per halaman (server-side pagination)
+  const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
-      // 1. Ambil klasifikasi untuk TIK / Alat IT
-      const classifications = await getAssetClassifications().catch(() => []);
-      const tikClass = classifications.find(
-        (c) =>
-          c.name.toLowerCase() === "alat it" ||
-          c.name.toLowerCase().includes("tik") ||
-          c.code === 6,
-      );
+      const matchedLocation = locations.find((l) => l.name === filterLokasi);
+      const response = await getAssets({
+        page: currentPage,
+        per_page: ITEMS_PER_PAGE,
+        asset_type: "TIK",
+        search: searchTerm.trim() || undefined,
+        asset_location_id: matchedLocation?.id,
+        status: filterStatus !== "Semua status" ? filterStatus : undefined,
+        moved_last_3_months: filterPerpindahan ? true : undefined,
+      });
 
-      const targetClassId = tikClass ? tikClass.id : classificationId;
-      if (tikClass) setClassificationId(tikClass.id);
-
-      // 2. Ambil lokasi
-      const locs = await getAssetLocations().catch(() => []);
-      setLocations(locs);
-
-      // 3. Ambil data aset TIK (Alat IT)
-      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = [];
-
-      if (tikClass) {
-        fetchPromises.push(
-          getAssets({
-            asset_classification_id: tikClass.id,
-            per_page: 100,
-            moved_last_3_months: isMoved,
-          }),
-        );
-      }
-
-      if (fetchPromises.length === 0 && targetClassId) {
-        fetchPromises.push(
-          getAssets({
-            asset_classification_id: targetClassId,
-            per_page: 100,
-            moved_last_3_months: isMoved,
-          }),
-        );
-      }
-
-      const responses = await Promise.all(fetchPromises);
-      const combinedAssets = responses.flatMap((r) => r.data || []);
-
-      // Urutkan aset dari ID terbesar (paling baru dibuat muncul di paling atas)
-      combinedAssets.sort((a, b) => Number(b.id) - Number(a.id));
-
-      setAssets(combinedAssets);
+      setAssets(response.data || []);
+      setMeta(response.meta || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data inventaris TIK");
     } finally {
@@ -191,7 +164,7 @@ export default function InventarisTikListPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentPage, searchTerm, filterLokasi, filterStatus, filterKlasifikasi, filterPerpindahan]);
 
   // Close filter when clicking outside (desktop)
   useEffect(() => {
@@ -209,6 +182,15 @@ export default function InventarisTikListPage() {
     setTempStatus(filterStatus);
     setTempKlasifikasi(filterKlasifikasi);
     setTempPerpindahan(filterPerpindahan);
+
+    const willOpen = window.innerWidth < 1024 ? true : !isFilterOpen;
+    if (willOpen && !hasLoadedLocations) {
+      setHasLoadedLocations(true);
+      getAssetLocations()
+        .then((locs) => setLocations(locs))
+        .catch(() => setHasLoadedLocations(false));
+    }
+
     if (window.innerWidth < 1024) {
       setIsMobileFilterOpen(true);
     } else {
@@ -221,9 +203,9 @@ export default function InventarisTikListPage() {
     setFilterStatus(tempStatus);
     setFilterKlasifikasi(tempKlasifikasi);
     setFilterPerpindahan(tempPerpindahan);
+    setCurrentPage(1);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(tempPerpindahan);
   };
 
   const handleResetFilter = () => {
@@ -235,9 +217,9 @@ export default function InventarisTikListPage() {
     setFilterStatus("Semua status");
     setFilterKlasifikasi("Semua jenis");
     setFilterPerpindahan(false);
+    setCurrentPage(1);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(false);
   };
 
   const isFilterActive =
@@ -251,7 +233,7 @@ export default function InventarisTikListPage() {
       key: "nomor" as keyof InventarisTikRow,
       label: "NOMOR INVENTARIS",
       render: (value: unknown) => (
-        <span className="font-semibold text-blue-700 hover:underline">{String(value ?? "")}</span>
+        <span className="font-medium text-text-secondary">{String(value ?? "")}</span>
       ),
     },
     { key: "nama" as keyof InventarisTikRow, label: "NAMA BARANG" },
@@ -281,30 +263,8 @@ export default function InventarisTikListPage() {
     raw: item,
   }));
 
-  const filteredData = tableData.filter((item) => {
-    const matchesSearch =
-      item.nomor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.lokasi.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesLokasi = filterLokasi === "Semua lokasi" || item.lokasi === filterLokasi;
-
-    const matchesStatus = filterStatus === "Semua status" || item.status === filterStatus;
-
-    const matchesKlasifikasi =
-      filterKlasifikasi === "Semua jenis" || item.klasifikasi === filterKlasifikasi;
-
-    const matchesPerpindahan = !filterPerpindahan || Boolean(item.perpindahanTerkini);
-
-    return (
-      matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
-    );
-  });
-
-  const previewAsset =
-    selectedIds.length > 0
-      ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
-      : tableData[0];
+  const filteredData = tableData;
+  const totalFilteredCount = meta?.total ?? filteredData.length;
 
   const handleDownloadBulk = async () => {
     setIsDownloading(true);
@@ -341,16 +301,15 @@ export default function InventarisTikListPage() {
       } else {
         // Mode: all_filtered
         const matchedLocation = locations.find((l) => l.name === filterLokasi);
-        const filters: BulkAssetLabelFilters = {};
+        const filters: BulkAssetLabelFilters = {
+          asset_type: "TIK",
+        };
 
         if (matchedLocation?.id) {
           filters.location_id = matchedLocation.id;
         }
         if (filterStatus && filterStatus !== "Semua status") {
           filters.status = filterStatus;
-        }
-        if (classificationId) {
-          filters.classification_id = classificationId;
         }
         if (filterPerpindahan) {
           filters.moved_last_3_months = true;
@@ -376,6 +335,7 @@ export default function InventarisTikListPage() {
       setIsDownloadModalOpen(false);
       setSelectedIds([]);
       setIsSelectMode(false);
+      setSingleQrSvg(null);
     } catch (err) {
       setToast({
         show: true,
@@ -387,6 +347,26 @@ export default function InventarisTikListPage() {
     }
   };
 
+  const handleOpenDownloadModal = (mode: "selected" | "all_filtered") => {
+    setExportMode(mode);
+    setIsDownloadModalOpen(true);
+    if (mode === "selected" && selectedIds.length === 1) {
+      setIsSingleQrLoading(true);
+      getAssetQrCodeSvg(selectedIds[0])
+        .then((svg) => setSingleQrSvg(svg))
+        .catch((err) => {
+          console.error("Gagal memuat QR Code", err);
+          setSingleQrSvg(null);
+        })
+        .finally(() => setIsSingleQrLoading(false));
+    } else {
+      setSingleQrSvg(null);
+    }
+  };
+
+  const isSingleSelected = exportMode === "selected" && selectedIds.length === 1;
+  const singleAsset = isSingleSelected ? tableData.find((d) => d.id === selectedIds[0]) : null;
+
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-4 lg:p-6 bg-slate-50 dark:bg-slate-900">
       {/* Search Bar & Mobile Filter Trigger */}
@@ -397,7 +377,10 @@ export default function InventarisTikListPage() {
             type="text"
             placeholder="Cari Data..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-600 text-sm text-slate-800 dark:text-slate-200 shadow-sm"
           />
         </div>
@@ -462,8 +445,7 @@ export default function InventarisTikListPage() {
               type="button"
               variant="default"
               onClick={() => {
-                setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                setIsDownloadModalOpen(true);
+                handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
               }}
               className="gap-1.5 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold shrink-0"
             >
@@ -503,7 +485,7 @@ export default function InventarisTikListPage() {
       </div>
 
       {/* Main Container Card (Desktop & Mobile) */}
-      <div className="bg-transparent lg:bg-white lg:dark:bg-slate-800 lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
+      <div className="bg-transparent lg:bg-table-card lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
         {/* Desktop Toolbar */}
         <div className="hidden lg:flex p-4 border-b border-slate-200 dark:border-slate-700 justify-between items-center gap-4">
           <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -512,7 +494,10 @@ export default function InventarisTikListPage() {
               type="text"
               placeholder="Cari data..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 text-sm text-slate-800 dark:text-slate-200"
             />
           </div>
@@ -523,8 +508,7 @@ export default function InventarisTikListPage() {
                 type="button"
                 variant="default"
                 onClick={() => {
-                  setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                  setIsDownloadModalOpen(true);
+                  handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
                 }}
                 className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
               >
@@ -541,7 +525,7 @@ export default function InventarisTikListPage() {
                     className={`gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isFilterActive
                         ? "bg-blue-50 border-blue-400 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300"
-                        : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                   >
                     Filter <Filter className="h-4 w-4" />
@@ -671,7 +655,7 @@ export default function InventarisTikListPage() {
                   {selectedIds.length}
                 </span>
                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                  dari {filteredData.length} aset terpilih
+                  dari {totalFilteredCount} aset terpilih
                 </span>
               </div>
 
@@ -695,8 +679,7 @@ export default function InventarisTikListPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setExportMode("all_filtered");
-                    setIsDownloadModalOpen(true);
+                    handleOpenDownloadModal("all_filtered");
                   }}
                   className="text-blue-700 dark:text-blue-400 font-semibold hover:underline"
                 >
@@ -830,6 +813,12 @@ export default function InventarisTikListPage() {
                     </div>
                   );
                 })}
+
+                {meta && (
+                  <div className="mt-2">
+                    <Pagination meta={meta} onPageChange={setCurrentPage} />
+                  </div>
+                )}
               </div>
 
               {/* DESKTOP TABLE VIEW (hidden lg:block) */}
@@ -837,7 +826,19 @@ export default function InventarisTikListPage() {
                 <BaseTable
                   columns={columns}
                   data={filteredData}
-                  itemsPerPage={10}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  serverPagination={
+                    meta
+                      ? {
+                          currentPage: meta.current_page,
+                          lastPage: meta.last_page,
+                          from: meta.from,
+                          to: meta.to,
+                          total: meta.total,
+                          onPageChange: (page) => setCurrentPage(page),
+                        }
+                      : null
+                  }
                   selectable={isSelectMode}
                   showHeaderCheckbox={false}
                   selectedIds={selectedIds}
@@ -904,6 +905,91 @@ export default function InventarisTikListPage() {
 
             {/* Body */}
             <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {isSingleSelected && singleAsset ? (
+                /* Pratinjau Label khusus 1 aset terpilih */
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Pratinjau Label
+                    </label>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold tracking-tight">{singleAsset.nomor}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
+                          INVENTARIS ASET TIK
+                        </div>
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+
+                        <div className="space-y-1.5 text-xs">
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              NAMA BARANG
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.nama}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              LOKASI RUANGAN
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.lokasi}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              STATUS
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                              {singleAsset.status}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* QR Code Asli dari API */}
+                      <div className="shrink-0 pt-1 flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 flex items-center justify-center rounded-lg bg-white p-1 border border-slate-200 dark:border-slate-700">
+                          {isSingleQrLoading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                          ) : singleQrSvg ? (
+                            <div
+                              className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                              dangerouslySetInnerHTML={{ __html: singleQrSvg }}
+                            />
+                          ) : (
+                            <div className="text-[9px] text-red-500 text-center">
+                              Gagal memuat QR
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Ringkasan jika memilih banyak aset */
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                      {exportMode === "selected"
+                        ? `${selectedIds.length} Aset Terpilih`
+                        : `Semua Aset Terfilter (${totalFilteredCount} Aset)`}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Radio Ukuran Label */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
@@ -933,60 +1019,6 @@ export default function InventarisTikListPage() {
                       />
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Pratinjau Label Card */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Pratinjau Label
-                  </label>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold tracking-tight">
-                        {previewAsset?.nomor || "3/1/1/6/2021"}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
-                        INVENTARIS ASET TIK
-                      </div>
-                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-
-                      <div className="space-y-1.5 text-xs">
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            NAMA BARANG
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.nama || "Monitor Pasien Multi-Parameter"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            LOKASI RUANGAN
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.lokasi || "Ruang Rawat Inap Melati 3"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            STATUS
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                            {previewAsset?.status || "Aktif"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 pt-1">
-                      <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

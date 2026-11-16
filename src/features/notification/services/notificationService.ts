@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/apiFetch";
 import { getToken } from "@/features/auth-login/services/authStorage";
 import { API_BASE_URL } from "@/config/api";
+import { resolveNotificationUrl } from "../utils/notificationUrl";
 
 import type {
   Notification,
@@ -67,6 +68,6 @@ export function mapNotification(notification: NotificationApi): Notification {
     createdAtRaw: notification.created_at,
     category: "sistem",
     isRead: notification.is_read,
-    url: notification.url,
+    url: resolveNotificationUrl(notification),
   };
 }

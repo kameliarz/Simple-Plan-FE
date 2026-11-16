@@ -69,20 +69,22 @@ export const UserFilterBottomSheet: React.FC<UserFilterBottomSheetProps> = ({
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium border transition cursor-pointer text-left",
               selectedUnit === ""
-                ? "border-blue-900 text-blue-900 bg-blue-50/50"
-                : "border-slate-200 text-slate-700 hover:border-slate-300",
+                ? "border-blue-900 text-blue-900 bg-blue-50/50 dark:border-blue-500 dark:text-blue-300 dark:bg-blue-950/40"
+                : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600",
             )}
           >
             <div className="flex items-center gap-3">
               <div
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  selectedUnit === "" ? "bg-blue-900" : "bg-slate-200",
+                  selectedUnit === ""
+                    ? "bg-blue-900 dark:bg-blue-400"
+                    : "bg-slate-200 dark:bg-slate-600",
                 )}
               />
               Semua Unit
             </div>
-            {selectedUnit === "" && <Check className="w-4 h-4 text-blue-900" />}
+            {selectedUnit === "" && <Check className="w-4 h-4 text-blue-900 dark:text-blue-400" />}
           </button>
 
           {units.map((unit) => {
@@ -95,20 +97,22 @@ export const UserFilterBottomSheet: React.FC<UserFilterBottomSheetProps> = ({
                 className={cn(
                   "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium border transition cursor-pointer text-left",
                   isSelected
-                    ? "border-blue-900 text-blue-900 bg-blue-50/50"
-                    : "border-slate-200 text-slate-700 hover:border-slate-300",
+                    ? "border-blue-900 text-blue-900 bg-blue-50/50 dark:border-blue-500 dark:text-blue-300 dark:bg-blue-950/40"
+                    : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600",
                 )}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={cn(
                       "w-2 h-2 rounded-full",
-                      isSelected ? "bg-blue-900" : "bg-slate-200",
+                      isSelected
+                        ? "bg-blue-900 dark:bg-blue-400"
+                        : "bg-slate-200 dark:bg-slate-600",
                     )}
                   />
                   {unit.name}
                 </div>
-                {isSelected && <Check className="w-4 h-4 text-blue-900" />}
+                {isSelected && <Check className="w-4 h-4 text-blue-900 dark:text-blue-400" />}
               </button>
             );
           })}
@@ -132,7 +136,7 @@ export const UserFilterBottomSheet: React.FC<UserFilterBottomSheetProps> = ({
                     "px-4 py-2 rounded-xl text-xs font-medium border transition select-none cursor-pointer",
                     isSelected
                       ? "border-blue-900 bg-blue-900 text-white"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50",
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800",
                   )}
                 >
                   {label}

@@ -138,6 +138,9 @@ export interface ApiMaintenanceItem {
     proof_photo_object_key?: string | null;
     photo_path?: string | null;
     proof_photo_original_name?: string | null;
+    proof_photo_mime_type?: string | null;
+    proof_photo_size?: number | null;
+    proof_photo_url?: string | null;
   }>;
 }
 

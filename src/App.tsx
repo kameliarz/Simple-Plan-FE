@@ -39,6 +39,7 @@ import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 import RequestSayaPage from "@/features/design-graphic/pages/RequestSayaPage";
 import BuatRequestDesainPage from "@/features/design-graphic/pages/BuatRequestDesainPage";
 import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage";
+import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
 
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
@@ -179,7 +180,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Maintenance */}
           <Route path="/maintenance" element={<DaftarMaintenancePage />} />
@@ -196,6 +196,9 @@ function App() {
           <Route path="/design-graphic/my-requests" element={<RequestSayaPage />} />
           <Route path="/design-graphic/create" element={<BuatRequestDesainPage />} />
           <Route path="/design-graphic/manage-requests" element={<KelolaRequestPage />} />
+          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Fallback */}
           <Route

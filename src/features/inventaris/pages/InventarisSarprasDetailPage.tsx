@@ -25,6 +25,7 @@ import {
   getAssetDetail,
   downloadSingleAssetLabel,
   printSingleAssetLabel,
+  getAssetQrCodeSvg,
 } from "../services/inventarisApi";
 import type { ApiAsset, InventarisStatus, InventarisCondition } from "../types/inventaris";
 
@@ -77,6 +78,8 @@ export default function InventarisSarprasDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isPreviewLabelOpen, setIsPreviewLabelOpen] = useState(false);
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [toast, setToast] = useState<{
@@ -100,11 +103,25 @@ export default function InventarisSarprasDetailPage() {
   const canEdit =
     role === "super-admin" || role === "koordinator-sarpras" || role === "petugas-sarpras";
 
+  const handleOpenPreviewLabel = () => {
+    setIsPreviewLabelOpen(true);
+    if (!asset?.id) return;
+
+    setIsQrLoading(true);
+    getAssetQrCodeSvg(asset.id)
+      .then((svg) => setQrSvg(svg))
+      .catch((err) => {
+        console.error("Gagal memuat QR Code", err);
+        setQrSvg(null);
+      })
+      .finally(() => setIsQrLoading(false));
+  };
+
   const handleDownloadLabel = async () => {
     if (!asset) return;
     setIsDownloading(true);
     try {
-      await downloadSingleAssetLabel(asset.id, 70, 35, asset.asset_uid);
+      await downloadSingleAssetLabel(asset.id, 50, 60, asset.asset_uid);
       setToast({
         show: true,
         message: "Label aset sarpras berhasil diunduh!",
@@ -126,7 +143,7 @@ export default function InventarisSarprasDetailPage() {
     if (!asset) return;
     setIsPrinting(true);
     try {
-      await printSingleAssetLabel(asset.id, 70, 35);
+      await printSingleAssetLabel(asset.id, 50, 60);
     } catch (err) {
       setToast({
         show: true,
@@ -290,7 +307,7 @@ export default function InventarisSarprasDetailPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsPreviewLabelOpen(true)}
+            onClick={handleOpenPreviewLabel}
             className="gap-2 py-2 text-xs font-semibold rounded-full border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
           >
             <Printer className="h-4 w-4" /> Cetak Label
@@ -327,7 +344,7 @@ export default function InventarisSarprasDetailPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsPreviewLabelOpen(true)}
+            onClick={handleOpenPreviewLabel}
             className="gap-2 px-4 py-2 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 text-sm font-medium"
           >
             <Printer className="h-4 w-4" /> Cetak Label
@@ -632,55 +649,77 @@ export default function InventarisSarprasDetailPage() {
 
             {/* Modal Body */}
             <div className="p-6">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm text-slate-800 dark:text-slate-200">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold tracking-tight">{fullCode}</div>
-                    <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
-                      INVENTARIS ASET SARPRAS
-                    </div>
-                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2.5"></div>
-
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                          NAMA BARANG
-                        </div>
-                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                          {namaBarang}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                          LOKASI RUANGAN
-                        </div>
-                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                          {lokasiRuangan}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                          STATUS
-                        </div>
-                        <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                          {asset.status}
-                        </div>
-                      </div>
+              <div className="bg-white rounded-xl border border-slate-300 p-4 shadow-sm text-black max-w-[280px] mx-auto">
+                {/* Kop Rumah Sakit */}
+                <div className="border-b-[1.5px] border-black pb-1.5 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <img
+                      src="/logo-cithus.png"
+                      alt="Logo RS Citra Husada"
+                      className="h-7 w-auto object-contain shrink-0"
+                    />
+                    <div className="text-[10px] font-bold font-serif leading-tight text-black text-left">
+                      KARTU INVENTARIS
+                      <br />
+                      RS CITRA HUSADA
                     </div>
                   </div>
-
-                  <div className="shrink-0 pt-1">
-                    <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
+                  <div className="text-[7.5px] font-serif text-black mt-0.5 whitespace-nowrap">
+                    Jl. Teratai No. 22 Jember 0331-486200
                   </div>
                 </div>
 
-                <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <Scan className="h-3.5 w-3.5" />
-                    <span>Format Thermal Barcode</span>
+                {/* Konten Data Aset */}
+                <div className="mt-2 text-[10px] space-y-0.5 leading-snug text-black">
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Nomor</span>
+                    <span>:</span>
+                    <span className="font-medium break-all">{fullCode}</span>
                   </div>
-                  <div>70 x 35 mm</div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Nama</span>
+                    <span>:</span>
+                    <span className="font-medium line-clamp-2">{namaBarang}</span>
+                  </div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Lokasi</span>
+                    <span>:</span>
+                    <span className="font-medium">{lokasiRuangan}</span>
+                  </div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Kondisi</span>
+                    <span>:</span>
+                    <span className="font-medium">{asset.condition || "-"}</span>
+                  </div>
                 </div>
+
+                {/* QR Code dari API */}
+                <div className="mt-2 flex flex-col items-center">
+                  <div className="w-24 h-24 flex items-center justify-center">
+                    {isQrLoading ? (
+                      <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
+                    ) : qrSvg ? (
+                      <div
+                        className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                        dangerouslySetInnerHTML={{ __html: qrSvg }}
+                      />
+                    ) : (
+                      <div className="text-[10px] text-red-500 text-center">Gagal memuat QR</div>
+                    )}
+                  </div>
+                  <div className="text-[7.5px] text-center text-black mt-1">
+                    Pindai QR untuk mengakses detail data inventaris
+                  </div>
+                </div>
+              </div>
+
+              {/* Ukuran Format */}
+              <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <Scan className="h-3.5 w-3.5" />
+                  <span>Stiker Roll (Thermal)</span>
+                </div>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">50 x 60 mm</span>
               </div>
             </div>
 

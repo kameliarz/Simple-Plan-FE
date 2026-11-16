@@ -1,6 +1,7 @@
 import { IconChevronDown, IconExternalLink } from "@tabler/icons-react";
 
 import type { Notification } from "../types/notification.types";
+import { Link } from "react-router-dom";
 
 interface NotificationItemProps {
   notification: Notification;
@@ -101,12 +102,10 @@ export default function NotificationItem({
               {notification.message}
             </p>
 
-            {/* LINK TIKET */}
+            {/* LINK HALAMAN NOTIFIKASI */}
             {notification.url && (
-              <a
-                href={notification.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to={notification.url}
                 className="
                   mt-3 mb-1 flex items-center gap-2
                   rounded-lg bg-[#EBF2FF]
@@ -119,8 +118,8 @@ export default function NotificationItem({
                 "
               >
                 <IconExternalLink size={19} stroke={2} />
-                <span>Buka halaman tiket masuk</span>
-              </a>
+                <span>Buka halaman terkait</span>
+              </Link>
             )}
           </div>
         </div>

@@ -54,7 +54,7 @@
   --color-badge-done-stroke: #10b98133;
   --color-badge-done-fill: #10b9811a;
 
-  --color-badge-denied-text: #dc2626;
+  --color-badge-denied-text: var(--app-badge-denied-text);
   --color-badge-denied-stroke: #dc262633;
   --color-badge-denied-fill: #dc26261a;
 
@@ -103,6 +103,8 @@
   --app-soft-border: #e2e8f0;
   --app-med-border: #e2e8f0;
 
+  --app-badge-denied-text: #dc2626;
+
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --heading: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
@@ -139,6 +141,7 @@
 
   --app-badge-new-text: #bcc7de;
   --app-badge-process-text: #1a61cf;
+  --app-badge-denied-text: #f72f2f;
 
   --app-soft-border: #314158;
   --app-med-border: #62748e;

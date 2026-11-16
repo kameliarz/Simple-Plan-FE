@@ -27,10 +27,6 @@ import type {
 export default function DaftarMaintenancePage() {
   const navigate = useNavigate();
   const user = getUser();
-  const isPetugas =
-    user?.role === "petugas-tik" ||
-    user?.role === "petugas-sarpras" ||
-    Boolean(user?.role?.includes("petugas"));
   const isManajemen = user?.role === "manajemen" || user?.role === "management";
 
   const [items, setItems] = useState<MaintenanceItem[]>([]);
@@ -346,10 +342,23 @@ export default function DaftarMaintenancePage() {
 
         {/* Daftar Maintenance List Header */}
         <div className="flex items-center justify-between pt-1">
-          <h2 className="text-xs font-bold text-gray-800">Daftar Maintenance</h2>
-          <span className="text-[11px] text-gray-400">
-            Menampilkan {Math.min(mobileVisibleCount, items.length)} dari {items.length}
-          </span>
+          <h2 className="text-sm font-bold text-gray-800 dark:text-slate-100">
+            Daftar Maintenance
+          </h2>
+          {!isManajemen ? (
+            <button
+              type="button"
+              onClick={() => navigate("/maintenance/create")}
+              className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#00255c] active:scale-98"
+            >
+              <IconPlus size={15} strokeWidth={2.5} />
+              <span>Tambah Jadwal</span>
+            </button>
+          ) : (
+            <span className="text-[11px] text-gray-400">
+              Menampilkan {Math.min(mobileVisibleCount, items.length)} dari {items.length}
+            </span>
+          )}
         </div>
 
         {/* Cards List or Empty State */}
@@ -370,9 +379,9 @@ export default function DaftarMaintenancePage() {
               <div
                 key={item.id}
                 onClick={() => navigate(`/maintenance/${item.id}`)}
-                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs space-y-2.5 active:scale-[0.99] transition cursor-pointer"
+                className="rounded-2xl border border-gray-200 border-l-4 border-l-[#003178] bg-white p-4 shadow-2xs space-y-2.5 active:scale-[0.99] transition cursor-pointer"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between border-b border-gray-100 pb-2.5">
                   <div>
                     <p className="text-[10px] text-gray-400">Nomor Inventaris</p>
                     <p className="text-xs font-bold text-gray-800">{item.nomorInventaris}</p>
@@ -382,7 +391,7 @@ export default function DaftarMaintenancePage() {
                 <div>
                   <p className="text-xs font-bold text-gray-900">{item.namaBarang}</p>
                 </div>
-                <div className="flex flex-col gap-0.5 text-[11px] text-gray-500 pt-2 border-t border-gray-50">
+                <div className="flex flex-col gap-0.5 text-[11px] text-gray-500">
                   <p>
                     Tanggal Jadwal:{" "}
                     <span className="font-medium text-gray-700">{item.tanggalJadwal}</span>
@@ -685,8 +694,8 @@ export default function DaftarMaintenancePage() {
             />
           </div>
 
-          {/* Button Tambah Jadwal (Hidden for Petugas) */}
-          {!isPetugas && !isManajemen && (
+          {/* Button Tambah Jadwal */}
+          {!isManajemen && (
             <button
               type="button"
               onClick={() => navigate("/maintenance/create")}
