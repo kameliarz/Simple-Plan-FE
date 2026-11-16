@@ -6,7 +6,7 @@ import {
   Filter,
   Download,
   X,
-  QrCode,
+  Layers,
   Loader2,
   AlertCircle,
   SlidersHorizontal,
@@ -29,6 +29,7 @@ import {
   getAssetLocations,
   getAssetClassifications,
   exportBulkAssetLabels,
+  getAssetQrCodeSvg,
 } from "../services/inventarisApi";
 import type {
   ApiAsset,
@@ -104,6 +105,8 @@ export default function InventarisSarprasListPage() {
   const [exportMode, setExportMode] = useState<"selected" | "all_filtered">("selected");
   const [labelSize, setLabelSize] = useState<"standard" | "small" | "large">("standard");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [singleQrSvg, setSingleQrSvg] = useState<string | null>(null);
+  const [isSingleQrLoading, setIsSingleQrLoading] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
@@ -235,7 +238,7 @@ export default function InventarisSarprasListPage() {
       key: "nomor" as keyof InventarisSarprasRow,
       label: "NOMOR INVENTARIS",
       render: (value: unknown) => (
-        <span className="font-semibold text-blue-700 hover:underline">{String(value ?? "")}</span>
+        <span className="font-medium text-text-secondary">{String(value ?? "")}</span>
       ),
     },
     { key: "nama" as keyof InventarisSarprasRow, label: "NAMA BARANG" },
@@ -282,11 +285,6 @@ export default function InventarisSarprasListPage() {
       matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
     );
   });
-
-  const previewAsset =
-    selectedIds.length > 0
-      ? tableData.find((d) => selectedIds.includes(d.id)) || tableData[0]
-      : tableData[0];
 
   const handleDownloadBulk = async () => {
     setIsDownloading(true);
@@ -360,6 +358,7 @@ export default function InventarisSarprasListPage() {
       setIsDownloadModalOpen(false);
       setSelectedIds([]);
       setIsSelectMode(false);
+      setSingleQrSvg(null);
     } catch (err) {
       setToast({
         show: true,
@@ -370,6 +369,26 @@ export default function InventarisSarprasListPage() {
       setIsDownloading(false);
     }
   };
+
+  const handleOpenDownloadModal = (mode: "selected" | "all_filtered") => {
+    setExportMode(mode);
+    setIsDownloadModalOpen(true);
+    if (mode === "selected" && selectedIds.length === 1) {
+      setIsSingleQrLoading(true);
+      getAssetQrCodeSvg(selectedIds[0])
+        .then((svg) => setSingleQrSvg(svg))
+        .catch((err) => {
+          console.error("Gagal memuat QR Code", err);
+          setSingleQrSvg(null);
+        })
+        .finally(() => setIsSingleQrLoading(false));
+    } else {
+      setSingleQrSvg(null);
+    }
+  };
+
+  const isSingleSelected = exportMode === "selected" && selectedIds.length === 1;
+  const singleAsset = isSingleSelected ? tableData.find((d) => d.id === selectedIds[0]) : null;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-4 lg:p-6 bg-slate-50 dark:bg-slate-900">
@@ -445,8 +464,7 @@ export default function InventarisSarprasListPage() {
               type="button"
               variant="default"
               onClick={() => {
-                setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                setIsDownloadModalOpen(true);
+                handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
               }}
               className="gap-1.5 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold shrink-0"
             >
@@ -485,7 +503,7 @@ export default function InventarisSarprasListPage() {
       </div>
 
       {/* Main Container Card */}
-      <div className="bg-transparent lg:bg-white lg:dark:bg-slate-800 lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
+      <div className="bg-transparent lg:bg-table-card lg:rounded-lg lg:shadow-sm lg:border lg:border-slate-200 lg:dark:border-slate-700 flex flex-col">
         {/* Desktop Toolbar */}
         <div className="hidden lg:flex p-4 border-b border-slate-200 dark:border-slate-700 justify-between items-center gap-4">
           <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -505,8 +523,7 @@ export default function InventarisSarprasListPage() {
                 type="button"
                 variant="default"
                 onClick={() => {
-                  setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                  setIsDownloadModalOpen(true);
+                  handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
                 }}
                 className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
               >
@@ -522,7 +539,7 @@ export default function InventarisSarprasListPage() {
                     className={`gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isFilterActive
                         ? "bg-blue-50 border-blue-400 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300"
-                        : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                   >
                     Filter <Filter className="h-4 w-4" />
@@ -676,8 +693,7 @@ export default function InventarisSarprasListPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setExportMode("all_filtered");
-                    setIsDownloadModalOpen(true);
+                    handleOpenDownloadModal("all_filtered");
                   }}
                   className="text-blue-700 dark:text-blue-400 font-semibold hover:underline"
                 >
@@ -884,6 +900,90 @@ export default function InventarisSarprasListPage() {
 
             {/* Body */}
             <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {isSingleSelected && singleAsset ? (
+                /* Pratinjau Label khusus 1 aset terpilih */
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Pratinjau Label
+                    </label>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold tracking-tight">{singleAsset.nomor}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
+                          INVENTARIS ASET SARPRAS
+                        </div>
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+
+                        <div className="space-y-1.5 text-xs">
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              NAMA BARANG
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.nama}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              LOKASI RUANGAN
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.lokasi}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              STATUS
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                              {singleAsset.status}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 pt-1 flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 flex items-center justify-center rounded-lg bg-white p-1 border border-slate-200 dark:border-slate-700">
+                          {isSingleQrLoading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                          ) : singleQrSvg ? (
+                            <div
+                              className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                              dangerouslySetInnerHTML={{ __html: singleQrSvg }}
+                            />
+                          ) : (
+                            <div className="text-[9px] text-red-500 text-center">
+                              Gagal memuat QR
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Ringkasan jika memilih banyak aset */
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                      {exportMode === "selected"
+                        ? `${selectedIds.length} Aset Terpilih`
+                        : `Semua Aset Terfilter (${filteredData.length} Aset)`}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Ukuran <span className="text-rose-500">*</span>
@@ -912,60 +1012,6 @@ export default function InventarisSarprasListPage() {
                       />
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Pratinjau Label Card */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Pratinjau Label
-                  </label>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold tracking-tight">
-                        {previewAsset?.nomor || "3/1/1/6/2021"}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
-                        INVENTARIS ASET SARPRAS
-                      </div>
-                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-
-                      <div className="space-y-1.5 text-xs">
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            NAMA BARANG
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.nama || "Kursi Pasien Ergonomis"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            LOKASI RUANGAN
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
-                            {previewAsset?.lokasi || "Poli Penyakit Dalam"}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] text-slate-400 uppercase font-semibold">
-                            STATUS
-                          </div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
-                            {previewAsset?.status || "Aktif"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 pt-1">
-                      <QrCode className="h-20 w-20 text-slate-900 dark:text-slate-100" />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
