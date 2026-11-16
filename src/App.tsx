@@ -196,7 +196,7 @@ function App() {
           <Route path="/design-graphic/my-requests" element={<RequestSayaPage />} />
           <Route path="/design-graphic/create" element={<BuatRequestDesainPage />} />
           <Route path="/design-graphic/manage-requests" element={<KelolaRequestPage />} />
-          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+          <Route path="/design-graphic/:designId" element={<GraphicDesignDetailPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
