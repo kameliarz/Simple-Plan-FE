@@ -1,3 +1,5 @@
+import type { ApiMeta } from "@/types/api";
+
 export type InventarisStatus = "Digunakan" | "Tidak Digunakan" | "Dipinjam" | "Rusak" | "Aktif";
 export type InventarisCondition = "Baik" | "Rusak Ringan" | "Rusak Berat";
 
@@ -72,6 +74,7 @@ export interface GetAssetsParams {
   page?: number;
   per_page?: number;
   search?: string;
+  asset_type?: "TIK" | "Sarpras";
   asset_classification_id?: number | string;
   classification_id?: number | string;
   asset_location_id?: number | string;
@@ -82,6 +85,7 @@ export interface GetAssetsParams {
   condition?: string;
   purchase_year?: number | string;
   moved_last_3_months?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface AssetCollectionResponse {
@@ -92,14 +96,7 @@ export interface AssetCollectionResponse {
     prev: string | null;
     next: string | null;
   };
-  meta?: {
-    current_page: number;
-    from: number | null;
-    last_page: number;
-    per_page: number;
-    to: number | null;
-    total: number;
-  };
+  meta?: ApiMeta;
 }
 
 export interface AssetDetailResponse {

@@ -32,6 +32,7 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   if (params.search) query.set("search", params.search);
+  if (params.asset_type) query.set("asset_type", params.asset_type);
   if (params.asset_classification_id)
     query.set("asset_classification_id", String(params.asset_classification_id));
   if (params.classification_id) query.set("classification_id", String(params.classification_id));
@@ -51,6 +52,7 @@ export async function getAssets(params: GetAssetsParams = {}): Promise<AssetColl
   const response = await apiFetch(url, {
     method: "GET",
     headers: getAuthHeaders(),
+    signal: params.signal,
   });
 
   if (!response.ok) {

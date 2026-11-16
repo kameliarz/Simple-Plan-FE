@@ -19,12 +19,20 @@ interface BaseTableProps<T> {
   onSelectRow?: (id: string, selected: boolean) => void;
   onSelectAll?: (selected: boolean) => void;
   showHeaderCheckbox?: boolean;
+  serverPagination?: {
+    currentPage: number;
+    lastPage: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+    onPageChange: (page: number) => void;
+  } | null;
 }
 
 function BaseTable<T>({
   columns,
   data,
-  itemsPerPage = 4,
+  itemsPerPage = 15,
   onRowClick,
   selectable = false,
   selectedIds = [],
@@ -32,6 +40,7 @@ function BaseTable<T>({
   onSelectRow,
   onSelectAll,
   showHeaderCheckbox = false,
+  serverPagination = null,
 }: BaseTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -66,15 +75,25 @@ function BaseTable<T>({
     });
   }, [data, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const safeCurrentPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+  const totalPages = serverPagination
+    ? Math.max(serverPagination.lastPage, 1)
+    : Math.ceil(sortedData.length / itemsPerPage);
+  const safeCurrentPage = serverPagination
+    ? Math.max(serverPagination.currentPage, 1)
+    : totalPages > 0
+      ? Math.min(currentPage, totalPages)
+      : 1;
 
   const paginatedData = useMemo(() => {
+    if (serverPagination) {
+      return sortedData;
+    }
+
     const startIndex = (safeCurrentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
     return sortedData.slice(startIndex, endIndex);
-  }, [sortedData, safeCurrentPage, itemsPerPage]);
+  }, [sortedData, safeCurrentPage, itemsPerPage, serverPagination]);
 
   const handleSort = (key: keyof T) => {
     if (sortKey === key) {
@@ -84,24 +103,47 @@ function BaseTable<T>({
       setSortDirection("asc");
     }
 
-    setCurrentPage(1);
+    if (serverPagination) {
+      serverPagination.onPageChange(1);
+    } else {
+      setCurrentPage(1);
+    }
   };
 
   const handlePreviousPage = () => {
-    setCurrentPage((page) => Math.max(Math.min(page, totalPages) - 1, 1));
+    if (serverPagination) {
+      serverPagination.onPageChange(Math.max(safeCurrentPage - 1, 1));
+    } else {
+      setCurrentPage((page) => Math.max(Math.min(page, totalPages) - 1, 1));
+    }
   };
 
   const handleNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, totalPages));
+    if (serverPagination) {
+      serverPagination.onPageChange(Math.min(safeCurrentPage + 1, totalPages));
+    } else {
+      setCurrentPage((page) => Math.min(page + 1, totalPages));
+    }
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (serverPagination) {
+      serverPagination.onPageChange(page);
+    } else {
+      setCurrentPage(page);
+    }
   };
 
-  const startEntry = sortedData.length === 0 ? 0 : (safeCurrentPage - 1) * itemsPerPage + 1;
+  const totalEntries = serverPagination ? serverPagination.total : sortedData.length;
+  const startEntry = serverPagination
+    ? (serverPagination.from ?? (sortedData.length === 0 ? 0 : 1))
+    : sortedData.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * itemsPerPage + 1;
 
-  const endEntry = Math.min(safeCurrentPage * itemsPerPage, sortedData.length);
+  const endEntry = serverPagination
+    ? (serverPagination.to ?? sortedData.length)
+    : Math.min(safeCurrentPage * itemsPerPage, sortedData.length);
 
   const pageStart = Math.max(1, safeCurrentPage - 2);
   const pageEnd = Math.min(totalPages, safeCurrentPage + 2);
@@ -223,7 +265,7 @@ function BaseTable<T>({
 
       <div className="flex items-center justify-between border-t border-slate-200 bg-table-card px-6 py-4 dark:border-slate-600">
         <p className="text-xs text-text-secondary">
-          Showing {startEntry} to {endEntry} of {sortedData.length} entries
+          Showing {startEntry} to {endEntry} of {totalEntries} entries
         </p>
 
         <div className="flex items-center gap-1">
