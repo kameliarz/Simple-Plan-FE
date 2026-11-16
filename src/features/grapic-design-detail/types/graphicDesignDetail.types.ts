@@ -24,6 +24,16 @@ export interface DesignDraft {
 
 export interface GraphicDesignDetail {
   id: string;
+  requestNumber: string;
+  draftNumber?: number;
+  history: {
+    id: string;
+    number: number;
+    date: string;
+    notes: string;
+    file: DesignFile;
+    revisionNote: string;
+  }[];
   title: string;
   status: DesignStatus;
   priority: DesignPriority | null;
