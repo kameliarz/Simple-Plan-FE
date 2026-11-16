@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import Button from "@/components/ui/ui-template/Button";
 import Search from "@/components/ui/ui-template/Search";
@@ -50,6 +50,12 @@ export default function RequestSayaPage() {
     void loadData(val, 1);
   };
 
+  const handleOpenRequest = (item: DesignRequestItem) => {
+    navigate(`/design-graphic/${encodeURIComponent(item.id)}`, {
+      state: { from: "/design-graphic/my-requests" },
+    });
+  };
+
   return (
     <div className="min-w-0 space-y-4 p-3 m-1 md:m-5 md:space-y-5 md:p-0">
       {/* mobile */}
@@ -88,9 +94,11 @@ export default function RequestSayaPage() {
         ) : (
           <div className="space-y-2.5">
             {items.map((item) => (
-              <div
+              <Link
                 key={item.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs dark:border-slate-700"
+                to={`/design-graphic/${encodeURIComponent(item.id)}`}
+                state={{ from: "/design-graphic/my-requests" }}
+                className="block overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary-600 dark:border-slate-700 dark:hover:bg-slate-800/50"
               >
                 <div className="flex items-start justify-between border-b border-slate-100 pb-2.5 dark:border-slate-700">
                   <div>
@@ -110,7 +118,7 @@ export default function RequestSayaPage() {
                     <span className="font-semibold text-text">{item.tanggalDibutuhkan}</span>
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
             {/* Mobile Pagination */}
             {meta && meta.last_page > 1 && (
@@ -168,6 +176,7 @@ export default function RequestSayaPage() {
           <DesignRequestTable
             items={items}
             isLoading={isLoading}
+            onRowClick={handleOpenRequest}
             meta={meta}
             onPageChange={(page) => setCurrentPage(page)}
           />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Download } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 import Button from "@/components/ui/ui-template/Button";
@@ -36,12 +36,17 @@ import type {
 
 export default function GraphicDesignDetailPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { designId } = useParams<{ designId: string }>();
   const { user } = useAuth();
   const { showToast } = useToast();
 
   const isSuperAdmin = user?.role === "super-admin";
-  const graphicDesignListPath = "/graphic-design";
+  const from = location.state?.from;
+  const graphicDesignListPath =
+    from === "/design-graphic/manage-requests" || from === "/design-graphic/my-requests"
+      ? from
+      : "/design-graphic/my-requests";
 
   // ==========================================
   // DETAIL STATE

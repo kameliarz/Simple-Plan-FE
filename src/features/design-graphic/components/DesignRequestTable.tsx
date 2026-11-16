@@ -85,9 +85,20 @@ export default function DesignRequestTable({
               <tr
                 key={item.id}
                 onClick={() => onRowClick?.(item)}
+                tabIndex={onRowClick ? 0 : undefined}
+                aria-label={
+                  onRowClick ? `Lihat detail ${item.nomorRequest}: ${item.judulRequest}` : undefined
+                }
+                onKeyDown={(event) => {
+                  if (onRowClick && (event.key === "Enter" || event.key === " ")) {
+                    event.preventDefault();
+                    onRowClick(item);
+                  }
+                }}
                 className={cn(
                   "transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50",
-                  onRowClick && "cursor-pointer",
+                  onRowClick &&
+                    "cursor-pointer focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:-outline-offset-2",
                 )}
               >
                 <Table.Td className="whitespace-nowrap font-semibold text-primary-600 dark:text-blue-400">
