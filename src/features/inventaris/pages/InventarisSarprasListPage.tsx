@@ -15,6 +15,7 @@ import {
   Minus,
 } from "lucide-react";
 import BaseTable from "@/components/BaseTable/BaseTable";
+import Pagination from "@/components/ui/ui-template/Pagination";
 import { clearAuth, getUser } from "@/features/auth-login/services/authStorage";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -34,10 +35,13 @@ import {
 import type {
   ApiAsset,
   AssetClassification,
+  AssetCollectionResponse,
   AssetLocation,
   BulkAssetLabelFilters,
   InventarisStatus,
 } from "../types/inventaris";
+
+const ITEMS_PER_PAGE = 15;
 
 export interface InventarisSarprasRow {
   id: string;
@@ -90,15 +94,17 @@ export default function InventarisSarprasListPage() {
     role === "super-admin" || role === "koordinator-sarpras" || role === "petugas-sarpras";
 
   const [assets, setAssets] = useState<ApiAsset[]>([]);
+  const [meta, setMeta] = useState<AssetCollectionResponse["meta"] | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [locations, setLocations] = useState<AssetLocation[]>([]);
   const [hasLoadedLocations, setHasLoadedLocations] = useState(false);
+  const [hasLoadedClassifications, setHasLoadedClassifications] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
   const [classifications, setClassifications] = useState<AssetClassification[]>([]);
-  const classificationsRef = useRef<AssetClassification[]>([]);
 
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -135,41 +141,27 @@ export default function InventarisSarprasListPage() {
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
-  // Fetch initial data (assets & classifications tanpa memuat filter lokasi di awal)
-  const fetchData = async (overridePerpindahan?: boolean) => {
+  // Fetch data aset Sarpras per halaman (server-side pagination)
+  const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
-      let classificationsData = classificationsRef.current;
-      if (classificationsData.length === 0) {
-        classificationsData = await getAssetClassifications().catch(() => []);
-        classificationsRef.current = classificationsData;
-        setClassifications(classificationsData);
-      }
+      const matchedLocation = locations.find((l) => l.name === filterLokasi);
+      const matchedClassification = classifications.find((c) => c.name === filterKlasifikasi);
 
-      const sarprasClasses = classificationsData.filter(
-        (c) =>
-          c.name.toLowerCase() !== "alat it" &&
-          !c.name.toLowerCase().includes("tik") &&
-          c.code !== 6,
-      );
+      const response = await getAssets({
+        page: currentPage,
+        per_page: ITEMS_PER_PAGE,
+        asset_type: "Sarpras",
+        search: searchTerm.trim() || undefined,
+        asset_location_id: matchedLocation?.id,
+        asset_classification_id: matchedClassification?.id,
+        status: filterStatus !== "Semua status" ? filterStatus : undefined,
+        moved_last_3_months: filterPerpindahan ? true : undefined,
+      });
 
-      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = sarprasClasses.map((sc) =>
-        getAssets({
-          asset_classification_id: sc.id,
-          per_page: 100,
-          moved_last_3_months: isMoved,
-        }),
-      );
-
-      const responses = await Promise.all(fetchPromises);
-      const combinedAssets = responses.flatMap((r) => r.data || []);
-
-      // Urutkan aset dari ID terbesar (paling baru dibuat muncul di paling atas)
-      combinedAssets.sort((a, b) => Number(b.id) - Number(a.id));
-
-      setAssets(combinedAssets);
+      setAssets(response.data || []);
+      setMeta(response.meta || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat data inventaris sarpras");
     } finally {
@@ -181,7 +173,7 @@ export default function InventarisSarprasListPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentPage, searchTerm, filterLokasi, filterStatus, filterKlasifikasi, filterPerpindahan]);
 
   // Close filter when clicking outside
   useEffect(() => {
@@ -201,11 +193,19 @@ export default function InventarisSarprasListPage() {
     setTempPerpindahan(filterPerpindahan);
 
     const willOpen = window.innerWidth < 1024 ? true : !isFilterOpen;
-    if (willOpen && !hasLoadedLocations) {
-      setHasLoadedLocations(true);
-      getAssetLocations()
-        .then((locs) => setLocations(locs))
-        .catch(() => setHasLoadedLocations(false));
+    if (willOpen) {
+      if (!hasLoadedLocations) {
+        setHasLoadedLocations(true);
+        getAssetLocations()
+          .then((locs) => setLocations(locs))
+          .catch(() => setHasLoadedLocations(false));
+      }
+      if (!hasLoadedClassifications) {
+        setHasLoadedClassifications(true);
+        getAssetClassifications()
+          .then((cls) => setClassifications(cls))
+          .catch(() => setHasLoadedClassifications(false));
+      }
     }
 
     if (window.innerWidth < 1024) {
@@ -216,20 +216,16 @@ export default function InventarisSarprasListPage() {
   };
 
   const handleApplyFilter = () => {
-    const perpindahanChanged = tempPerpindahan !== filterPerpindahan;
     setFilterLokasi(tempLokasi);
     setFilterStatus(tempStatus);
     setFilterKlasifikasi(tempKlasifikasi);
     setFilterPerpindahan(tempPerpindahan);
+    setCurrentPage(1);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    if (perpindahanChanged) {
-      fetchData(tempPerpindahan);
-    }
   };
 
   const handleResetFilter = () => {
-    const perpindahanChanged = filterPerpindahan !== false;
     setTempLokasi("Semua lokasi");
     setTempStatus("Semua status");
     setTempKlasifikasi("Semua jenis");
@@ -238,11 +234,9 @@ export default function InventarisSarprasListPage() {
     setFilterStatus("Semua status");
     setFilterKlasifikasi("Semua jenis");
     setFilterPerpindahan(false);
+    setCurrentPage(1);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    if (perpindahanChanged) {
-      fetchData(false);
-    }
   };
 
   const isFilterActive =
@@ -284,25 +278,8 @@ export default function InventarisSarprasListPage() {
     raw: item,
   }));
 
-  const filteredData = tableData.filter((item) => {
-    const matchesSearch =
-      item.nomor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.lokasi.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesLokasi = filterLokasi === "Semua lokasi" || item.lokasi === filterLokasi;
-
-    const matchesStatus = filterStatus === "Semua status" || item.status === filterStatus;
-
-    const matchesKlasifikasi =
-      filterKlasifikasi === "Semua jenis" || item.klasifikasi === filterKlasifikasi;
-
-    const matchesPerpindahan = !filterPerpindahan || Boolean(item.perpindahanTerkini);
-
-    return (
-      matchesSearch && matchesLokasi && matchesStatus && matchesKlasifikasi && matchesPerpindahan
-    );
-  });
+  const filteredData = tableData;
+  const totalFilteredCount = meta?.total ?? filteredData.length;
 
   const handleDownloadBulk = async () => {
     setIsDownloading(true);
@@ -341,7 +318,9 @@ export default function InventarisSarprasListPage() {
         const matchedLocation = locations.find((l) => l.name === filterLokasi);
         const matchedClassification = classifications.find((c) => c.name === filterKlasifikasi);
 
-        const filters: BulkAssetLabelFilters = {};
+        const filters: BulkAssetLabelFilters = {
+          asset_type: "Sarpras",
+        };
 
         if (matchedLocation?.id) {
           filters.location_id = matchedLocation.id;
@@ -418,7 +397,10 @@ export default function InventarisSarprasListPage() {
             type="text"
             placeholder="Cari Data..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-600 text-sm text-slate-800 dark:text-slate-200 shadow-sm"
           />
         </div>
@@ -530,7 +512,10 @@ export default function InventarisSarprasListPage() {
               type="text"
               placeholder="Cari data..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 text-sm text-slate-800 dark:text-slate-200"
             />
           </div>
@@ -687,7 +672,7 @@ export default function InventarisSarprasListPage() {
                   {selectedIds.length}
                 </span>
                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                  dari {filteredData.length} aset terpilih
+                  dari {totalFilteredCount} aset terpilih
                 </span>
               </div>
 
@@ -845,6 +830,12 @@ export default function InventarisSarprasListPage() {
                     </div>
                   );
                 })}
+
+                {meta && (
+                  <div className="mt-2">
+                    <Pagination meta={meta} onPageChange={setCurrentPage} />
+                  </div>
+                )}
               </div>
 
               {/* DESKTOP TABLE VIEW (hidden lg:block) */}
@@ -852,7 +843,19 @@ export default function InventarisSarprasListPage() {
                 <BaseTable
                   columns={columns}
                   data={filteredData}
-                  itemsPerPage={10}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  serverPagination={
+                    meta
+                      ? {
+                          currentPage: meta.current_page,
+                          lastPage: meta.last_page,
+                          from: meta.from,
+                          to: meta.to,
+                          total: meta.total,
+                          onPageChange: (page) => setCurrentPage(page),
+                        }
+                      : null
+                  }
                   selectable={isSelectMode}
                   showHeaderCheckbox={false}
                   selectedIds={selectedIds}
@@ -993,7 +996,7 @@ export default function InventarisSarprasListPage() {
                     <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
                       {exportMode === "selected"
                         ? `${selectedIds.length} Aset Terpilih`
-                        : `Semua Aset Terfilter (${filteredData.length} Aset)`}
+                        : `Semua Aset Terfilter (${totalFilteredCount} Aset)`}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
