@@ -50,6 +50,12 @@ export default function RequestSayaPage() {
     void loadData(val, 1);
   };
 
+  const handleOpenRequest = (item: DesignRequestItem) => {
+    navigate(`/design-graphic/${encodeURIComponent(item.id)}`, {
+      state: { from: "/design-graphic/my-requests" },
+    });
+  };
+
   return (
     <div className="min-w-0 space-y-4 p-3 m-1 md:m-5 md:space-y-5 md:p-0">
       {/* mobile */}
@@ -90,7 +96,7 @@ export default function RequestSayaPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                onClick={() => navigate(`/design-graphic/${item.id}`)}
+                onClick={() => handleOpenRequest(item)}
                 className="overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs dark:border-slate-700 cursor-pointer hover:border-blue-500/50 transition-colors"
               >
                 <div className="flex items-start justify-between border-b border-slate-100 pb-2.5 dark:border-slate-700">
@@ -171,7 +177,7 @@ export default function RequestSayaPage() {
             isLoading={isLoading}
             meta={meta}
             onPageChange={(page) => setCurrentPage(page)}
-            onRowClick={(item) => navigate(`/design-graphic/${item.id}`)}
+            onRowClick={handleOpenRequest}
           />
         </div>
       </div>
