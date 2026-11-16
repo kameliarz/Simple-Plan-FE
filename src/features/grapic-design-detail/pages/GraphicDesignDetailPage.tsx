@@ -41,7 +41,9 @@ export default function GraphicDesignDetailPage() {
   const { showToast } = useToast();
 
   const isSuperAdmin = user?.role === "super-admin";
-  const graphicDesignListPath = "/graphic-design";
+  const graphicDesignListPath = isSuperAdmin
+    ? "/design-graphic/manage-requests"
+    : "/design-graphic/my-requests";
 
   // ==========================================
   // DETAIL STATE
@@ -109,7 +111,11 @@ export default function GraphicDesignDetailPage() {
   // ==========================================
 
   const handleBack = () => {
-    navigate(graphicDesignListPath);
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(graphicDesignListPath);
+    }
   };
 
   // ==========================================

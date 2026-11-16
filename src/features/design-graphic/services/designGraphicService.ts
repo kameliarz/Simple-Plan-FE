@@ -402,7 +402,7 @@ export const designGraphicService = {
       if (response.ok) {
         const body = (await response.json()) as { data: ApiDesignRequest };
         const raw = body.data;
-        return {
+        const createdItem: DesignRequestItem = {
           id: String(raw.id),
           nomorRequest: raw.request_number,
           judulRequest: raw.title,
@@ -416,30 +416,28 @@ export const designGraphicService = {
           fileReferensiName: raw.reference_file?.original_name,
           createdAt: raw.created_at,
         };
+
+        // Simpan juga ke stored requests lokal
+        const current = readStoredRequests();
+        writeStoredRequests([createdItem, ...current]);
+        return createdItem;
+      } else {
+        const errorBody = (await response.json().catch(() => null)) as {
+          message?: string;
+          errors?: Record<string, string[]>;
+        } | null;
+
+        console.error("Gagal membuat request via API:", response.status, errorBody);
+        const errorMsg =
+          errorBody?.message ||
+          (errorBody?.errors
+            ? Object.values(errorBody.errors).flat().join(", ")
+            : `Gagal membuat request desain (${response.status})`);
+        throw new Error(errorMsg);
       }
     } catch (err) {
-      console.warn("Gagal membuat request desain via API, fallback ke penyimpanan lokal:", err);
+      console.error("Error createRequest:", err);
+      throw err;
     }
-
-    const current = readStoredRequests();
-    const nextNumber = 18 + current.length + 1;
-    const newItem: DesignRequestItem = {
-      id: `req-${Date.now()}`,
-      nomorRequest: `#REQ-DG20230${nextNumber}`,
-      judulRequest: payload.judulRequest.trim(),
-      jenisDesain: payload.jenisDesain.trim(),
-      deskripsiKebutuhan: payload.deskripsiKebutuhan.trim(),
-      unit: payload.unit || "IT",
-      namaPemohon: payload.namaPemohon || "Agung Sunaryo S.Kom",
-      tanggalDibutuhkan: formatTanggalIndoPendek(payload.tanggalDibutuhkan),
-      tanggalDibutuhkanRaw: payload.tanggalDibutuhkan,
-      status: "Baru",
-      fileReferensiName: payload.fileReferensi?.name,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [newItem, ...current];
-    writeStoredRequests(updated);
-    return newItem;
   },
 };

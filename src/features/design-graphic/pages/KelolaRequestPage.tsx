@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconAdjustmentsHorizontal, IconInfoCircle, IconX } from "@tabler/icons-react";
 import Button from "@/components/ui/ui-template/Button";
 import Dropdown from "@/components/ui/ui-template/Dropdown";
@@ -14,6 +15,7 @@ const DESKTOP_FILTER_OPTIONS = ["Semua status", ...DESIGN_STATUS_LIST];
 const ITEMS_PER_PAGE = 15;
 
 export default function KelolaRequestPage() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<DesignRequestItem[]>([]);
   const [meta, setMeta] = useState<ApiMeta | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,7 +128,8 @@ export default function KelolaRequestPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs dark:border-slate-700"
+                onClick={() => navigate(`/design-graphic/${item.id}`)}
+                className="overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs dark:border-slate-700 cursor-pointer hover:border-blue-500/50 transition-colors"
               >
                 <div className="flex items-start justify-between border-b border-slate-100 pb-2.5 dark:border-slate-700">
                   <div>
@@ -282,6 +285,7 @@ export default function KelolaRequestPage() {
             isLoading={isLoading}
             meta={meta}
             onPageChange={(page) => setCurrentPage(page)}
+            onRowClick={(item) => navigate(`/design-graphic/${item.id}`)}
           />
         </div>
       </div>
