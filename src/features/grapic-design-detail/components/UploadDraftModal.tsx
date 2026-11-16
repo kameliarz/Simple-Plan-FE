@@ -83,10 +83,10 @@ export default function UploadDraftModal({
             value={file}
             onChange={handleFileChange}
             accept=".pdf,.jpg,.jpeg,.png"
-            maxSize={5 * 1024 * 1024}
+            maxSize={10 * 1024 * 1024}
             title="Tarik & lepas file di sini, atau"
             actionText="Pilih Dokumen"
-            description="Format: PDF, JPG, PNG (Maksimal 5MB)"
+            description="Format: PDF, JPG, PNG (Maksimal 10MB)"
             error={fileError}
           />
         </div>
