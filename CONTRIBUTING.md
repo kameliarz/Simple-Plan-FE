@@ -105,10 +105,10 @@ feature/<nama-task>
 
 Pull Request sebaiknya menjelaskan:
 
-* Perubahan yang dilakukan
-* Alasan perubahan
-* Detail implementasi yang penting
-* Keterbatasan atau masalah yang masih diketahui
+- Perubahan yang dilakukan
+- Alasan perubahan
+- Detail implementasi yang penting
+- Keterbatasan atau masalah yang masih diketahui
 
 ### Langkah 7: Review dan Merge
 
@@ -237,12 +237,12 @@ FE2 bertanggung jawab terutama pada design system, reusable UI component, dan UI
 
 Keduanya perlu berkoordinasi ketika perubahan berkaitan dengan struktur bersama seperti:
 
-* `components/`
-* `layouts/`
-* design token
-* reusable UI component
-* routing
-* konfigurasi aplikasi
+- `components/`
+- `layouts/`
+- design token
+- reusable UI component
+- routing
+- konfigurasi aplikasi
 
 Keputusan yang memengaruhi struktur bersama perlu didiskusikan sebelum implementasi.
 
@@ -250,10 +250,10 @@ Keputusan yang memengaruhi struktur bersama perlu didiskusikan sebelum implement
 
 ## 6. Aturan Umum
 
-* Kerjakan perubahan sesuai ruang lingkup task.
-* Ambil perubahan terbaru dari `develop` sebelum memulai task baru.
-* Gunakan nama branch yang deskriptif.
-* Gunakan Conventional Commits.
-* Jangan melakukan direct push untuk pekerjaan fitur ke `main`.
-* Jangan menyimpan API key, credential, atau secret di repository.
-* Komunikasikan perubahan struktur kepada frontend developer lainnya sebelum implementasi.
+- Kerjakan perubahan sesuai ruang lingkup task.
+- Ambil perubahan terbaru dari `develop` sebelum memulai task baru.
+- Gunakan nama branch yang deskriptif.
+- Gunakan Conventional Commits.
+- Jangan melakukan direct push untuk pekerjaan fitur ke `main`.
+- Jangan menyimpan API key, credential, atau secret di repository.
+- Komunikasikan perubahan struktur kepada frontend developer lainnya sebelum implementasi.

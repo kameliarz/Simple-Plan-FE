@@ -90,10 +90,10 @@ feature/helpdesk-dashboard
 
 Pemisahan ini membuat perubahan:
 
-* Lebih mudah dikembangkan secara independen
-* Lebih mudah direview melalui Pull Request
-* Lebih mudah diketahui berasal dari task apa
-* Lebih kecil kemungkinan mengganggu pekerjaan developer lain
+- Lebih mudah dikembangkan secara independen
+- Lebih mudah direview melalui Pull Request
+- Lebih mudah diketahui berasal dari task apa
+- Lebih kecil kemungkinan mengganggu pekerjaan developer lain
 
 ### Alternatif
 
@@ -131,18 +131,18 @@ Dengan demikian, terdapat proses pemeriksaan tambahan sebelum perubahan memengar
 
 ### Keuntungan
 
-* FE1 dan FE2 dapat bekerja secara paralel.
-* Kode stabil terpisah dari kode yang sedang dikembangkan.
-* Perubahan dapat direview sebelum diintegrasikan.
-* Task lebih mudah dilacak berdasarkan branch.
-* Perubahan tertentu lebih mudah diinvestigasi atau dibatalkan.
+- FE1 dan FE2 dapat bekerja secara paralel.
+- Kode stabil terpisah dari kode yang sedang dikembangkan.
+- Perubahan dapat direview sebelum diintegrasikan.
+- Task lebih mudah dilacak berdasarkan branch.
+- Perubahan tertentu lebih mudah diinvestigasi atau dibatalkan.
 
 ### Konsekuensi
 
-* Workflow lebih kompleks dibandingkan menggunakan satu branch.
-* Developer perlu memahami pengelolaan branch.
-* Merge conflict tetap dapat terjadi.
-* Pull Request membutuhkan waktu tambahan untuk proses review.
+- Workflow lebih kompleks dibandingkan menggunakan satu branch.
+- Developer perlu memahami pengelolaan branch.
+- Merge conflict tetap dapat terjadi.
+- Pull Request membutuhkan waktu tambahan untuk proses review.
 
 ## Dokumentasi Terkait
 

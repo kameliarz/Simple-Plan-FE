@@ -1,122 +1,206 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+import { useEffect, useState } from "react";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+import MainLayout from "@/layouts/MainLayout";
+import LoginPage from "@/features/auth-login/pages/LoginPage";
+import { useAuth } from "@/features/auth-login/context/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import UnauthorizedPage from "@/pages/UnauthorizedPage";
+import { BACKUP_ROLES } from "@/types/auth";
 
-      <div className="ticks"></div>
+import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskListPage";
+import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
+import HelpdeskCreateTicketPage from "@/features/helpdesk-create/pages/HelpdeskCreateTicketPage";
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+import ScanBarcodePage from "@/features/helpdesk-create/pages/ScanBarcodePage";
+import HelpdeskInventoryDetailPage from "@/features/helpdesk-create/pages/HelpdeskInventoryDetailPage";
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+import UserDetailPage from "@/features/master-data/users/pages/UserDetailPage";
+import UserListPage from "@/features/master-data/users/pages/UserListPage";
+
+import InventarisTikListPage from "@/features/inventaris/pages/InventarisTikListPage";
+import InventarisTikDetailPage from "@/features/inventaris/pages/InventarisTikDetailPage";
+import InventarisSarprasListPage from "@/features/inventaris/pages/InventarisSarprasListPage";
+import InventarisSarprasDetailPage from "@/features/inventaris/pages/InventarisSarprasDetailPage";
+
+import CreateInventoryPage from "@/features/inventory-create-change/pages/CreateInventoryPage";
+import EditInventoryPage from "@/features/inventory-create-change/pages/EditInventoryPage";
+
+import NotificationMobilePage from "@/features/notification/pages/NotificationMobilePage";
+import DaftarMaintenancePage from "@/features/maintenance/pages/DaftarMaintenancePage";
+import TambahJadwalMaintenancePage from "@/features/maintenance/pages/TambahJadwalMaintenancePage";
+import DetailJadwalMaintenancePage from "@/features/maintenance/pages/DetailJadwalMaintenancePage";
+import UbahJadwalMaintenancePage from "@/features/maintenance/pages/UbahJadwalMaintenancePage";
+import CatatHasilMaintenancePage from "@/features/maintenance/pages/CatatHasilMaintenancePage";
+
+import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
+
+import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
+
+function ResponsiveNotificationRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      const previousPath = location.state?.from;
+
+      const destination =
+        typeof previousPath === "string" &&
+        previousPath.startsWith("/") &&
+        !previousPath.startsWith("//") &&
+        !previousPath.startsWith("/\\") &&
+        previousPath.split(/[?#]/)[0] !== "/notification"
+          ? previousPath
+          : "/helpdesk/tik";
+
+      navigate(destination, { replace: true });
+    }
+  }, [isMobile, navigate, location.state]);
+
+  if (!isMobile) {
+    return null;
+  }
+
+  return <NotificationMobilePage />;
 }
 
-export default App
+function RoleAwareHelpdeskList() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const isSuperAdmin = user?.role === "super-admin";
+  const pathname = location.pathname;
+
+  if (isSuperAdmin) {
+    if (pathname === "/helpdesk") {
+      return <Navigate to="/helpdesk/tik" replace />;
+    }
+
+    return <HelpdeskListPage />;
+  }
+
+  if (pathname !== "/helpdesk") {
+    return <Navigate to="/helpdesk" replace />;
+  }
+
+  return <HelpdeskListPage />;
+}
+
+function App() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  if (location.pathname === "/login") {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <MainLayout>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
+            }
+          />
+
+          {/* Helpdesk */}
+          <Route path="/helpdesk" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/tik" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/sarpras" element={<RoleAwareHelpdeskList />} />
+          <Route path="/helpdesk/tik/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/sarpras/:ticketId" element={<HelpdeskDetailPage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+
+          <Route path="/helpdesk/scan" element={<ScanBarcodePage />} />
+          <Route path="/helpdesk/create" element={<HelpdeskCreateTicketPage />} />
+          <Route path="/helpdesk/inventory-detail" element={<HelpdeskInventoryDetailPage />} />
+
+          {/* Master Data */}
+          <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
+          <Route path="/master-data/users" element={<UserListPage />} />
+          <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
+
+          {/* Inventaris Aset */}
+          <Route path="/inventaris/tik" element={<InventarisTikListPage />} />
+          <Route path="/inventaris/tik/:id" element={<InventarisTikDetailPage />} />
+          <Route path="/inventaris/sarpras" element={<InventarisSarprasListPage />} />
+          <Route path="/inventaris/sarpras/:id" element={<InventarisSarprasDetailPage />} />
+          <Route
+            path="/inventory/tik/create"
+            element={<CreateInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/create"
+            element={<CreateInventoryPage inventoryType="sarpras" />}
+          />
+          <Route
+            path="/inventory/tik/:id/edit"
+            element={<EditInventoryPage inventoryType="tik" />}
+          />
+          <Route
+            path="/inventory/sarpras/:id/edit"
+            element={<EditInventoryPage inventoryType="sarpras" />}
+          />
+
+          <Route path="/notification" element={<ResponsiveNotificationRoute />} />
+
+          {/* Backup */}
+          <Route
+            path="/back-up-data"
+            element={
+              <ProtectedRoute allowedRoles={BACKUP_ROLES}>
+                <BackupDataPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Maintenance */}
+          <Route path="/maintenance" element={<DaftarMaintenancePage />} />
+          <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
+          <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
+
+          {/* Graphic Design */}
+          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+          {/* Fallback */}
+          <Route
+            path="*"
+            element={
+              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
+            }
+          />
+        </Routes>
+      </MainLayout>
+    </ProtectedRoute>
+  );
+}
+
+export default App;

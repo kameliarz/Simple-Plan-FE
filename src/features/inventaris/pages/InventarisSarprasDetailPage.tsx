@@ -1,0 +1,775 @@
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Printer,
+  Edit,
+  Info,
+  QrCode,
+  Clock,
+  X,
+  Download,
+  Scan,
+  Wrench,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Image as ImageIcon,
+} from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { getUser } from "@/features/auth-login/services/authStorage";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { AttachmentCard } from "@/components/ui/AttachmentCard";
+import Toast from "@/components/ui/Toast";
+import {
+  getAssetDetail,
+  downloadSingleAssetLabel,
+  printSingleAssetLabel,
+  getAssetQrCodeSvg,
+} from "../services/inventarisApi";
+import type { ApiAsset, InventarisStatus, InventarisCondition } from "../types/inventaris";
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return (
+      d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }) +
+      ", " +
+      d.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
+  } catch {
+    return dateStr;
+  }
+}
+
+export default function InventarisSarprasDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [isPreviewLabelOpen, setIsPreviewLabelOpen] = useState(false);
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    variant?: "success" | "danger" | "info";
+  }>({
+    show: false,
+    message: "",
+    variant: "info",
+  });
+
+  const [asset, setAsset] = useState<ApiAsset | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const user = getUser();
+  const role = user?.role || "";
+
+  // Hak akses edit: Super Admin, Koordinator Sarpras, Petugas Sarpras
+  const canEdit =
+    role === "super-admin" || role === "koordinator-sarpras" || role === "petugas-sarpras";
+
+  const handleOpenPreviewLabel = () => {
+    setIsPreviewLabelOpen(true);
+    if (!asset?.id) return;
+
+    setIsQrLoading(true);
+    getAssetQrCodeSvg(asset.id)
+      .then((svg) => setQrSvg(svg))
+      .catch((err) => {
+        console.error("Gagal memuat QR Code", err);
+        setQrSvg(null);
+      })
+      .finally(() => setIsQrLoading(false));
+  };
+
+  const handleDownloadLabel = async () => {
+    if (!asset) return;
+    setIsDownloading(true);
+    try {
+      await downloadSingleAssetLabel(asset.id, 50, 60, asset.asset_uid);
+      setToast({
+        show: true,
+        message: "Label aset sarpras berhasil diunduh!",
+        variant: "success",
+      });
+      setIsPreviewLabelOpen(false);
+    } catch (err) {
+      setToast({
+        show: true,
+        message: err instanceof Error ? err.message : "Gagal mengunduh label aset sarpras",
+        variant: "danger",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePrintLabel = async () => {
+    if (!asset) return;
+    setIsPrinting(true);
+    try {
+      await printSingleAssetLabel(asset.id, 50, 60);
+    } catch (err) {
+      setToast({
+        show: true,
+        message: err instanceof Error ? err.message : "Gagal mencetak label aset sarpras",
+        variant: "danger",
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const fetchDetail = () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+    getAssetDetail(id)
+      .then((data) => {
+        setAsset(data);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Gagal memuat detail inventaris sarpras");
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const getStatusVariant = (status?: InventarisStatus): BadgeVariant => {
+    switch (status) {
+      case "Digunakan":
+      case "Aktif":
+        return "success";
+      case "Dipinjam":
+        return "warning";
+      case "Rusak":
+        return "danger";
+      case "Tidak Digunakan":
+      default:
+        return "default";
+    }
+  };
+
+  const getConditionBadge = (kondisi?: InventarisCondition) => {
+    switch (kondisi) {
+      case "Baik":
+        return { variant: "info" as BadgeVariant, dotColor: "bg-blue-500" };
+      case "Rusak Ringan":
+        return { variant: "warning" as BadgeVariant, dotColor: "bg-amber-500" };
+      case "Rusak Berat":
+        return { variant: "danger" as BadgeVariant, dotColor: "bg-rose-500" };
+      default:
+        return { variant: "default" as BadgeVariant, dotColor: "bg-slate-400" };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900">
+        <Loader2 className="h-10 w-10 text-blue-600 animate-spin mb-4" />
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+          Memuat data inventaris sarpras...
+        </p>
+      </div>
+    );
+  }
+
+  if (error || !asset) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-900 gap-4">
+        <div className="p-4 bg-red-50 dark:bg-red-950/40 rounded-full text-red-600 dark:text-red-400">
+          <AlertCircle className="h-10 w-10" />
+        </div>
+        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+          {error || "Data inventaris tidak ditemukan"}
+        </h2>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => navigate("/inventaris/sarpras")}>
+            Kembali ke Daftar
+          </Button>
+          <Button variant="default" onClick={fetchDetail}>
+            Coba Lagi
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const namaBarang =
+    asset.asset_code?.item?.name || asset.brand || asset.model_specification || "Barang Sarpras";
+  const kategoriBarang = asset.asset_code?.classification?.name || "Sarana dan Prasarana";
+  const fullCode = asset.asset_code?.full_code || "-";
+  const lokasiRuangan = asset.asset_code?.location?.name || "-";
+  const lokasiDetail = asset.location_detail || "-";
+  const spesifikasi = asset.model_specification || "-";
+  const serialNumber = asset.serial_number || "-";
+  const tahunBeli = asset.purchase_year ? String(asset.purchase_year) : "-";
+  const garansi = formatDate(asset.warranty_until);
+  const keterangan = asset.notes || "Tidak ada keterangan tambahan.";
+  const conditionBadgeInfo = getConditionBadge(asset.condition);
+
+  const handleDownloadKalibrasi = () => {
+    if (asset.calibration_document?.url) {
+      window.open(asset.calibration_document.url, "_blank");
+    } else {
+      alert(`Mengunduh ${asset.calibration_document?.original_name || "dokumen"}`);
+    }
+  };
+
+  const handleDownloadPhoto = () => {
+    if (asset.photo?.url) {
+      window.open(asset.photo.url, "_blank");
+    } else {
+      alert(`Mengunduh ${asset.photo?.original_name || "foto aset"}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 lg:gap-6 p-4 lg:p-6 min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-900">
+      {/* MOBILE HEADER (lg:hidden) */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <Link
+            to="/inventaris/sarpras"
+            className="w-10 h-10 rounded-full bg-[#0a192f] text-white flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-95"
+            aria-label="Kembali"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Detail Aset
+            </div>
+            <h1 className="text-base font-bold text-[#0f2d59] dark:text-blue-100 leading-snug">
+              {namaBarang}
+            </h1>
+          </div>
+        </div>
+
+        {/* Badges row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <Wrench className="h-3.5 w-3.5 text-slate-500" /> {kategoriBarang} (Tetap)
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {asset.status}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            {asset.condition || "Baik"}
+          </span>
+        </div>
+
+        {/* Action buttons row */}
+        <div className="grid grid-cols-2 gap-3 mt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOpenPreviewLabel}
+            className="gap-2 py-2 text-xs font-semibold rounded-full border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+          >
+            <Printer className="h-4 w-4" /> Cetak Label
+          </Button>
+
+          {canEdit && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => navigate(`/inventory/sarpras/${asset.id}/edit`)}
+              className="gap-2 py-2 text-xs font-semibold rounded-full bg-[#0f2d59] hover:bg-blue-900 text-white"
+            >
+              <Edit className="h-4 w-4" /> Edit Data
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP TOP BAR (hidden lg:flex) */}
+      <div className="hidden lg:flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/inventaris/sarpras"
+            className="p-2 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-600 dark:text-slate-300"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+            Detail Data Inventaris Sarpras
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOpenPreviewLabel}
+            className="gap-2 px-4 py-2 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 text-sm font-medium"
+          >
+            <Printer className="h-4 w-4" /> Cetak Label
+          </Button>
+
+          {canEdit && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => navigate(`/inventory/sarpras/${asset.id}/edit`)}
+              className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
+            >
+              <Edit className="h-4 w-4" /> Ubah Data
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP HEADER CARD (hidden lg:flex) */}
+      <div className="hidden lg:flex bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center">
+            <Wrench className="h-7 w-7" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
+              {namaBarang}
+            </h2>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge variant="default" size="lg" className="gap-1.5">
+                <Wrench className="h-3.5 w-3.5" /> {kategoriBarang}
+              </Badge>
+              <Badge variant={getStatusVariant(asset.status)} size="lg" dot>
+                {asset.status}
+              </Badge>
+              <Badge
+                variant={conditionBadgeInfo.variant}
+                size="lg"
+                dot
+                dotColor={conditionBadgeInfo.dotColor}
+              >
+                {asset.condition || "Baik"}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
+          <QrCode className="h-10 w-10 text-slate-700 dark:text-slate-300" />
+          <div>
+            <div className="text-xs text-slate-400 font-medium">QR CODE ASET</div>
+            <div className="text-sm font-bold text-blue-700 break-all max-w-[200px]">
+              {asset.asset_uid}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+        <div className="xl:col-span-2 space-y-4 lg:space-y-6">
+          {/* 1. Identitas Aset */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Info className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
+              Identitas Aset
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">ID Barang</div>
+                <div className="text-xs lg:text-sm font-semibold text-blue-700 dark:text-blue-400 break-all">
+                  {asset.asset_uid}
+                </div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">No. Inventaris</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {fullCode}
+                </div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">Lokasi Ruangan</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {lokasiRuangan}
+                </div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">Lokasi</div>
+                <div className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {lokasiDetail}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Spesifikasi */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <Wrench className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400" />
+              Spesifikasi
+            </h3>
+
+            <div className="space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-400 font-medium mb-0.5">
+                  Model / Merk / Spesifikasi
+                </div>
+                <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                  {spesifikasi !== "-" ? spesifikasi : asset.brand || "-"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Serial Number</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200 break-all">
+                    {serialNumber}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Tahun Beli</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {tahunBeli}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="text-[11px] text-slate-400 font-medium mb-0.5">Garansi s/d</div>
+                  <div className="text-xs lg:text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {garansi}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Keterangan */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-3">
+              Keterangan
+            </h3>
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-xl text-xs lg:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+              {keterangan}
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Riwayat Mutasi Aset & Dokumen / Foto */}
+        <div className="space-y-4 lg:space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6">
+            <h3 className="text-sm lg:text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">
+              Riwayat Mutasi Aset
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Catatan perubahan lokasi, kondisi, dan status
+            </p>
+
+            {asset.histories && asset.histories.length > 0 ? (
+              <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 mt-4 space-y-4 pb-2">
+                {asset.histories.map((item, idx) => (
+                  <div key={item.id || idx} className="relative pl-5">
+                    <div
+                      className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 bg-white dark:bg-slate-800 border-2 rounded-full ${
+                        idx === 0 ? "border-blue-600" : "border-slate-300 dark:border-slate-600"
+                      }`}
+                    ></div>
+                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-xl p-3.5">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <span
+                          className={`text-xs font-semibold ${
+                            idx === 0 ? "text-blue-700 dark:text-blue-400" : "text-slate-500"
+                          }`}
+                        >
+                          {formatDateTime(item.created_at)}
+                        </span>
+                        <Badge variant="primary" size="sm">
+                          {item.is_location_change
+                            ? "Mutasi Unit"
+                            : item.event_type === "created"
+                              ? "Pendaftaran"
+                              : "Pembaruan"}
+                        </Badge>
+                      </div>
+                      <h4 className="text-xs lg:text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                        {item.is_location_change
+                          ? "Perubahan Lokasi Ruangan"
+                          : item.event_type === "created"
+                            ? "Pendaftaran Aset Baru"
+                            : "Pembaruan Data Aset"}
+                      </h4>
+
+                      {item.is_location_change && (
+                        <div className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5 mb-2">
+                          <div>
+                            Dari:{" "}
+                            <span className="font-medium">
+                              {typeof item.old_values?.location === "string"
+                                ? item.old_values.location
+                                : typeof item.old_values?.location_name === "string"
+                                  ? item.old_values.location_name
+                                  : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            Ke:{" "}
+                            <span className="font-medium">
+                              {typeof item.new_values?.location === "string"
+                                ? item.new_values.location
+                                : typeof item.new_values?.location_name === "string"
+                                  ? item.new_values.location_name
+                                  : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            No. Inventaris: <span className="font-medium">{fullCode}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {item.changed_by && (
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                          Oleh:{" "}
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {item.changed_by.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 bg-slate-50/70 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  Belum Ada Riwayat Mutasi
+                </h4>
+                <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                  Belum tercatat adanya mutasi lokasi, perubahan kondisi, ataupun perubahan status
+                  pada aset ini.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Dokumen Kalibrasi */}
+          {asset.calibration_document && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6 space-y-3">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" /> Dokumen Kalibrasi
+              </div>
+              <AttachmentCard
+                name={asset.calibration_document.original_name}
+                size={formatFileSize(asset.calibration_document.size)}
+                onDownload={handleDownloadKalibrasi}
+              />
+            </div>
+          )}
+
+          {/* Foto Aset */}
+          {asset.photo && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 lg:p-6 space-y-3">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-blue-600" /> Foto Aset
+              </div>
+              {asset.photo.url && (
+                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 max-h-48 flex items-center justify-center">
+                  <img
+                    src={asset.photo.url}
+                    alt={asset.photo.original_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <AttachmentCard
+                name={asset.photo.original_name}
+                size={formatFileSize(asset.photo.size)}
+                onDownload={handleDownloadPhoto}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Preview Label Aset Modal */}
+      {isPreviewLabelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                Preview Label Aset
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsPreviewLabelOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="bg-white rounded-xl border border-slate-300 p-4 shadow-sm text-black max-w-[280px] mx-auto">
+                {/* Kop Rumah Sakit */}
+                <div className="border-b-[1.5px] border-black pb-1.5 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <img
+                      src="/logo-cithus.png"
+                      alt="Logo RS Citra Husada"
+                      className="h-7 w-auto object-contain shrink-0"
+                    />
+                    <div className="text-[10px] font-bold font-serif leading-tight text-black text-left">
+                      KARTU INVENTARIS
+                      <br />
+                      RS CITRA HUSADA
+                    </div>
+                  </div>
+                  <div className="text-[7.5px] font-serif text-black mt-0.5 whitespace-nowrap">
+                    Jl. Teratai No. 22 Jember 0331-486200
+                  </div>
+                </div>
+
+                {/* Konten Data Aset */}
+                <div className="mt-2 text-[10px] space-y-0.5 leading-snug text-black">
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Nomor</span>
+                    <span>:</span>
+                    <span className="font-medium break-all">{fullCode}</span>
+                  </div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Nama</span>
+                    <span>:</span>
+                    <span className="font-medium line-clamp-2">{namaBarang}</span>
+                  </div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Lokasi</span>
+                    <span>:</span>
+                    <span className="font-medium">{lokasiRuangan}</span>
+                  </div>
+                  <div className="grid grid-cols-[45px_6px_1fr] items-start">
+                    <span className="font-bold">Kondisi</span>
+                    <span>:</span>
+                    <span className="font-medium">{asset.condition || "-"}</span>
+                  </div>
+                </div>
+
+                {/* QR Code dari API */}
+                <div className="mt-2 flex flex-col items-center">
+                  <div className="w-24 h-24 flex items-center justify-center">
+                    {isQrLoading ? (
+                      <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
+                    ) : qrSvg ? (
+                      <div
+                        className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                        dangerouslySetInnerHTML={{ __html: qrSvg }}
+                      />
+                    ) : (
+                      <div className="text-[10px] text-red-500 text-center">Gagal memuat QR</div>
+                    )}
+                  </div>
+                  <div className="text-[7.5px] text-center text-black mt-1">
+                    Pindai QR untuk mengakses detail data inventaris
+                  </div>
+                </div>
+              </div>
+
+              {/* Ukuran Format */}
+              <div className="mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <Scan className="h-3.5 w-3.5" />
+                  <span>Stiker Roll (Thermal)</span>
+                </div>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">50 x 60 mm</span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPrinting || isDownloading}
+                onClick={handlePrintLabel}
+                className="gap-2 py-2.5 rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold disabled:opacity-50"
+              >
+                {isPrinting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan...
+                  </>
+                ) : (
+                  <>
+                    <Printer className="h-4 w-4" /> Cetak
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                disabled={isDownloading || isPrinting}
+                onClick={handleDownloadLabel}
+                className="gap-2 py-2.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Mengunduh...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" /> Unduh
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        variant={toast.variant}
+        onClose={() => setToast((prev) => ({ ...prev, show: false }))}
+      />
+    </div>
+  );
+}
