@@ -29,6 +29,7 @@ import {
   getAssetLocations,
   getAssetClassifications,
   exportBulkAssetLabels,
+  getAssetQrCodeSvg,
 } from "../services/inventarisApi";
 import type {
   ApiAsset,
@@ -102,6 +103,8 @@ export default function InventarisTikListPage() {
   const [exportMode, setExportMode] = useState<"selected" | "all_filtered">("selected");
   const [labelSize, setLabelSize] = useState<"standard" | "small" | "large">("standard");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [singleQrSvg, setSingleQrSvg] = useState<string | null>(null);
+  const [isSingleQrLoading, setIsSingleQrLoading] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
@@ -371,6 +374,7 @@ export default function InventarisTikListPage() {
       setIsDownloadModalOpen(false);
       setSelectedIds([]);
       setIsSelectMode(false);
+      setSingleQrSvg(null);
     } catch (err) {
       setToast({
         show: true,
@@ -381,6 +385,26 @@ export default function InventarisTikListPage() {
       setIsDownloading(false);
     }
   };
+
+  const handleOpenDownloadModal = (mode: "selected" | "all_filtered") => {
+    setExportMode(mode);
+    setIsDownloadModalOpen(true);
+    if (mode === "selected" && selectedIds.length === 1) {
+      setIsSingleQrLoading(true);
+      getAssetQrCodeSvg(selectedIds[0])
+        .then((svg) => setSingleQrSvg(svg))
+        .catch((err) => {
+          console.error("Gagal memuat QR Code", err);
+          setSingleQrSvg(null);
+        })
+        .finally(() => setIsSingleQrLoading(false));
+    } else {
+      setSingleQrSvg(null);
+    }
+  };
+
+  const isSingleSelected = exportMode === "selected" && selectedIds.length === 1;
+  const singleAsset = isSingleSelected ? tableData.find((d) => d.id === selectedIds[0]) : null;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-4 lg:p-6 bg-slate-50 dark:bg-slate-900">
@@ -457,8 +481,7 @@ export default function InventarisTikListPage() {
               type="button"
               variant="default"
               onClick={() => {
-                setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                setIsDownloadModalOpen(true);
+                handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
               }}
               className="gap-1.5 px-3 py-1.5 bg-[#0f2d59] hover:bg-blue-900 text-white rounded-lg text-xs font-semibold shrink-0"
             >
@@ -518,8 +541,7 @@ export default function InventarisTikListPage() {
                 type="button"
                 variant="default"
                 onClick={() => {
-                  setExportMode(selectedIds.length > 0 ? "selected" : "all_filtered");
-                  setIsDownloadModalOpen(true);
+                  handleOpenDownloadModal(selectedIds.length > 0 ? "selected" : "all_filtered");
                 }}
                 className="gap-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-md text-sm font-medium"
               >
@@ -690,8 +712,7 @@ export default function InventarisTikListPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setExportMode("all_filtered");
-                    setIsDownloadModalOpen(true);
+                    handleOpenDownloadModal("all_filtered");
                   }}
                   className="text-blue-700 dark:text-blue-400 font-semibold hover:underline"
                 >
@@ -899,22 +920,90 @@ export default function InventarisTikListPage() {
 
             {/* Body */}
             <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-              {/* Ringkasan Aset Terpilih */}
-              <div className="flex items-center gap-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0">
-                  <Layers className="h-5 w-5" />
-                </div>
+              {isSingleSelected && singleAsset ? (
+                /* Pratinjau Label khusus 1 aset terpilih */
                 <div>
-                  <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
-                    {exportMode === "selected"
-                      ? `${selectedIds.length} Aset Terpilih`
-                      : `Semua Aset Terfilter (${filteredData.length} Aset)`}
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Pratinjau Label
+                    </label>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm text-slate-800 dark:text-slate-200">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold tracking-tight">{singleAsset.nomor}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold tracking-wider">
+                          INVENTARIS ASET TIK
+                        </div>
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+
+                        <div className="space-y-1.5 text-xs">
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              NAMA BARANG
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.nama}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              LOKASI RUANGAN
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate">
+                              {singleAsset.lokasi}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-semibold">
+                              STATUS
+                            </div>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                              {singleAsset.status}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* QR Code Asli dari API */}
+                      <div className="shrink-0 pt-1 flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 flex items-center justify-center rounded-lg bg-white p-1 border border-slate-200 dark:border-slate-700">
+                          {isSingleQrLoading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                          ) : singleQrSvg ? (
+                            <div
+                              className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                              dangerouslySetInnerHTML={{ __html: singleQrSvg }}
+                            />
+                          ) : (
+                            <div className="text-[9px] text-red-500 text-center">
+                              Gagal memuat QR
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Ringkasan jika memilih banyak aset */
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shrink-0">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                      {exportMode === "selected"
+                        ? `${selectedIds.length} Aset Terpilih`
+                        : `Semua Aset Terfilter (${filteredData.length} Aset)`}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Label akan otomatis dicetak ke dalam satu file dokumen PDF siap cetak.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Radio Ukuran Label */}
               <div>
