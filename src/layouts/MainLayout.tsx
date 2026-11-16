@@ -47,6 +47,9 @@ export default function MainLayout({
     if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
       return "inventaris";
     }
+    if (location.pathname.startsWith("/design-graphic")) {
+      return "design-graphic";
+    }
     if (location.pathname.startsWith("/helpdesk")) {
       return "helpdesk";
     }
@@ -66,6 +69,8 @@ export default function MainLayout({
       navigate("/helpdesk/tik");
     } else if (tab === "inventaris") {
       navigate("/inventaris/tik");
+    } else if (tab === "design-graphic") {
+      navigate("/design-graphic/my-requests");
     } else if (tab === "profile") {
       navigate("/master-data/users");
     }
@@ -236,6 +241,23 @@ export default function MainLayout({
       if (role === "petugas-sarpras") label = "Petugas Sarpras";
 
       return [{ label }, { label: "Maintenance" }];
+    }
+
+    if (path.startsWith("/design-graphic")) {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "manajemen" || role === "management") label = "Manajemen";
+      if (role === "user") label = user?.jabatan || "User";
+
+      if (path.startsWith("/design-graphic/manage-requests")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
+      }
+
+      return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
     }
 
     return [];
