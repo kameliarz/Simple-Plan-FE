@@ -275,6 +275,18 @@ export interface AssetByUid {
   location: string;
 }
 
+interface AssetByUidResponse {
+  id: number;
+  uid: string;
+  asset_code?: string | null;
+  code?: string | null;
+  name?: string | null;
+  detail_name?: string | null;
+  brand?: string | null;
+  location?: string | null;
+  detail_location?: string | null;
+}
+
 export async function getAssetByUid(uid: string): Promise<AssetByUid> {
   const cleaned = uid.trim();
 
@@ -297,7 +309,7 @@ export async function getAssetByUid(uid: string): Promise<AssetByUid> {
   }
 
   const result = (await response.json()) as {
-    data?: AssetByUid;
+    data?: AssetByUidResponse;
   };
 
   if (
@@ -309,7 +321,21 @@ export async function getAssetByUid(uid: string): Promise<AssetByUid> {
     throw new Error("Data inventaris dari server tidak valid.");
   }
 
-  return result.data;
+  const asset = result.data;
+  const joinDetails = (...parts: (string | null | undefined)[]) =>
+    parts
+      .map((part) => part?.trim())
+      .filter(Boolean)
+      .join(" ");
+
+  return {
+    id: asset.id,
+    uid: asset.uid,
+    code: asset.asset_code ?? asset.code ?? null,
+    name: joinDetails(asset.name, asset.detail_name, asset.brand),
+    brand: asset.brand?.trim() ?? "",
+    location: joinDetails(asset.location, asset.detail_location),
+  };
 }
 
 // ==========================================
