@@ -59,7 +59,10 @@ export default function MainLayout({
     if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
       return "inventaris";
     }
-    if (location.pathname.startsWith("/design-graphic")) {
+    if (
+      location.pathname.startsWith("/design-graphic") ||
+      location.pathname.startsWith("/graphic-design")
+    ) {
       return "design-graphic";
     }
     if (location.pathname.startsWith("/helpdesk")) {
@@ -433,7 +436,7 @@ export default function MainLayout({
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
     }
 
-    if (path.startsWith("/design-graphic")) {
+    if (path.startsWith("/design-graphic") || path.startsWith("/graphic-design")) {
       const user = getUser();
       const role = user?.role;
       let label = "Super Admin";
@@ -443,8 +446,27 @@ export default function MainLayout({
       if (role === "manajemen" || role === "management") label = "Manajemen";
       if (role === "user") label = user?.jabatan || "User";
 
+      if (
+        path.startsWith("/graphic-design/") ||
+        (path.startsWith("/design-graphic/") &&
+          path !== "/design-graphic/my-requests" &&
+          path !== "/design-graphic/manage-requests" &&
+          path !== "/design-graphic/assigned-tasks" &&
+          path !== "/design-graphic/create")
+      ) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Detail Request Desain" }];
+      }
+
       if (path.startsWith("/design-graphic/manage-requests")) {
         return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
+      }
+
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
       }
 
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];

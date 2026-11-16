@@ -39,6 +39,7 @@ import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 import RequestSayaPage from "@/features/design-graphic/pages/RequestSayaPage";
 import BuatRequestDesainPage from "@/features/design-graphic/pages/BuatRequestDesainPage";
 import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage";
+import TugasDesainPage from "@/features/design-graphic/pages/TugasDesainPage";
 import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
 
 function ResponsiveNotificationRoute() {
@@ -196,7 +197,9 @@ function App() {
           <Route path="/design-graphic/my-requests" element={<RequestSayaPage />} />
           <Route path="/design-graphic/create" element={<BuatRequestDesainPage />} />
           <Route path="/design-graphic/manage-requests" element={<KelolaRequestPage />} />
+          <Route path="/design-graphic/assigned-tasks" element={<TugasDesainPage />} />
           <Route path="/design-graphic/:designId" element={<GraphicDesignDetailPage />} />
+          <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 

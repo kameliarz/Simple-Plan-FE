@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { IconAdjustmentsHorizontal, IconInfoCircle, IconX } from "@tabler/icons-react";
 import Button from "@/components/ui/ui-template/Button";
 import Dropdown from "@/components/ui/ui-template/Dropdown";
@@ -132,11 +132,10 @@ export default function KelolaRequestPage() {
             <h1 className="font-poppins text-base font-semibold text-text-title">Kelola Request</h1>
 
             {items.map((item) => (
-              <Link
+              <div
                 key={item.id}
-                to={`/design-graphic/${encodeURIComponent(item.id)}`}
-                state={{ from: "/design-graphic/manage-requests" }}
-                className="block overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary-600 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                onClick={() => handleOpenRequest(item)}
+                className="overflow-hidden rounded-xl border border-slate-200 bg-table-card p-4 shadow-2xs dark:border-slate-700 cursor-pointer hover:border-blue-500/50 transition-colors"
               >
                 <div className="flex items-start justify-between border-b border-slate-100 pb-2.5 dark:border-slate-700">
                   <div>
@@ -156,7 +155,7 @@ export default function KelolaRequestPage() {
                     <span className="font-semibold text-text">{item.tanggalDibutuhkan}</span>
                   </p>
                 </div>
-              </Link>
+              </div>
             ))}
             {/* Mobile Pagination */}
             {meta && meta.last_page > 1 && (
@@ -290,9 +289,9 @@ export default function KelolaRequestPage() {
           <DesignRequestTable
             items={items}
             isLoading={isLoading}
-            onRowClick={handleOpenRequest}
             meta={meta}
             onPageChange={(page) => setCurrentPage(page)}
+            onRowClick={handleOpenRequest}
           />
         </div>
       </div>
