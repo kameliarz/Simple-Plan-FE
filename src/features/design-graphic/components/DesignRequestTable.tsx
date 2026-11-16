@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconInfoCircle } from "@tabler/icons-react";
 import Table from "@/components/ui/ui-template/Table";
 import { cn } from "@/lib/utils";
+import type { ApiMeta } from "@/types/api";
 import type { DesignRequestItem } from "../types/designGraphic.types";
 import DesignStatusBadge from "./DesignStatusBadge";
 
@@ -9,22 +10,44 @@ interface DesignRequestTableProps {
   items: DesignRequestItem[];
   isLoading?: boolean;
   onRowClick?: (item: DesignRequestItem) => void;
+  meta?: ApiMeta | null;
+  onPageChange?: (page: number) => void;
+}
+
+function visiblePages(currentPage: number, lastPage: number) {
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(lastPage, currentPage + 2);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 export default function DesignRequestTable({
   items,
   isLoading = false,
   onRowClick,
+  meta,
+  onPageChange,
 }: DesignRequestTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
 
-  const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedItems = items.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+  const totalPages = meta ? meta.last_page : Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const activePage = meta ? meta.current_page : Math.min(currentPage, totalPages);
+  const paginatedItems = meta
+    ? items
+    : items.slice((activePage - 1) * itemsPerPage, activePage * itemsPerPage);
+
+  const pages = visiblePages(activePage, totalPages);
+
+  const handlePageClick = (page: number) => {
+    if (onPageChange) {
+      onPageChange(page);
+    } else {
+      setCurrentPage(page);
+    }
+  };
 
   const buttonClass =
-    "flex h-6 min-w-6 items-center justify-center rounded-xs text-sm font-medium transition";
+    "flex h-6 min-w-6 items-center justify-center rounded-xs text-sm font-medium transition cursor-pointer";
 
   if (isLoading) {
     return (
@@ -82,49 +105,61 @@ export default function DesignRequestTable({
         </Table.Tbody>
       </Table>
 
-      {/* Pagination Footer (matching ui-template/Pagination.tsx) */}
+      {/* Pagination Footer */}
       <div className="flex w-full items-center justify-between border-t border-slate-200 bg-table-card px-6 py-4 dark:border-slate-600">
         <p className="text-xs text-text-secondary">
-          {items.length === 0 ? "Showing 0 to 0 of 0 entries" : "Showing 1 to 4 of 48 entries"}
+          {meta
+            ? `Showing ${meta.from ?? 0} to ${meta.to ?? 0} of ${meta.total} entries`
+            : items.length === 0
+              ? "Showing 0 to 0 of 0 entries"
+              : `Showing ${(activePage - 1) * itemsPerPage + 1} to ${Math.min(activePage * itemsPerPage, items.length)} of ${items.length} entries`}
         </p>
 
-        <div className="flex items-center gap-1">
-          <button
-            className={cn(buttonClass, "text-slate-400 hover:bg-slate-100")}
-            disabled={safePage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            type="button"
-            aria-label="Halaman sebelumnya"
-          >
-            <IconChevronLeft size={14} strokeWidth={2} />
-          </button>
-
-          {[1, 2, 3].map((page) => (
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
             <button
-              key={page}
-              type="button"
-              onClick={() => setCurrentPage(page)}
               className={cn(
                 buttonClass,
-                safePage === page
-                  ? "bg-blue-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed",
               )}
+              disabled={activePage <= 1}
+              onClick={() => handlePageClick(activePage - 1)}
+              type="button"
+              aria-label="Halaman sebelumnya"
             >
-              {page}
+              <IconChevronLeft size={14} strokeWidth={2} />
             </button>
-          ))}
 
-          <button
-            className={cn(buttonClass, "text-slate-400 hover:bg-slate-100")}
-            disabled={safePage >= 3}
-            onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
-            type="button"
-            aria-label="Halaman berikutnya"
-          >
-            <IconChevronRight size={14} strokeWidth={2} />
-          </button>
-        </div>
+            {pages.map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => handlePageClick(page)}
+                className={cn(
+                  buttonClass,
+                  activePage === page
+                    ? "bg-blue-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                )}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              className={cn(
+                buttonClass,
+                "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed",
+              )}
+              disabled={activePage >= totalPages}
+              onClick={() => handlePageClick(activePage + 1)}
+              type="button"
+              aria-label="Halaman berikutnya"
+            >
+              <IconChevronRight size={14} strokeWidth={2} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,9 @@ import type {
   DesignRequestItem,
   DesignRequestStatus,
 } from "../types/designGraphic.types";
+import { apiFetch } from "@/lib/apiFetch";
+import { getToken } from "@/features/auth-login/services/authStorage";
+import type { ApiMeta } from "@/types/api";
 
 const STORAGE_KEY = "simple_plan_design_graphic_requests_v1";
 
@@ -191,26 +194,233 @@ export const DESIGN_STATUS_LIST: DesignRequestStatus[] = [
   "Ditolak",
 ];
 
-export const designGraphicService = {
-  async getRequests(search = "", statusFilter = "Semua status"): Promise<DesignRequestItem[]> {
-    const all = readStoredRequests();
-    const query = search.trim().toLowerCase();
+const STATUS_MAP_FROM_API: Record<string, DesignRequestStatus> = {
+  baru: "Baru",
+  ditugaskan: "Ditugaskan",
+  menunggu_persetujuan: "Menunggu Persetujuan",
+  perlu_revisi: "Perlu Revisi",
+  selesai: "Selesai",
+  ditolak: "Ditolak",
+};
 
-    return all.filter((item) => {
+const STATUS_MAP_TO_API: Record<string, string> = {
+  Baru: "baru",
+  Ditugaskan: "ditugaskan",
+  "Menunggu Persetujuan": "menunggu_persetujuan",
+  "Perlu Revisi": "perlu_revisi",
+  Selesai: "selesai",
+  Ditolak: "ditolak",
+};
+
+interface ApiDesignRequest {
+  id: number;
+  request_number: string;
+  title: string;
+  design_type: string;
+  description: string;
+  needed_at: string;
+  status: string;
+  requester?: {
+    id: number;
+    name: string;
+  };
+  unit?: {
+    id: number;
+    name: string;
+  };
+  reference_file?: {
+    original_name: string;
+    mime_type: string;
+    size: number;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GetDesignRequestsParams {
+  scope?: "mine" | "all" | "assigned";
+  search?: string;
+  statusFilter?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface DesignRequestCollectionResponse {
+  data: DesignRequestItem[];
+  meta: ApiMeta;
+}
+
+export const designGraphicService = {
+  async getRequests(
+    paramsOrSearch: GetDesignRequestsParams | string = {},
+    maybeStatusFilter = "Semua status",
+  ): Promise<DesignRequestCollectionResponse> {
+    let params: GetDesignRequestsParams;
+    if (typeof paramsOrSearch === "string") {
+      params = {
+        search: paramsOrSearch,
+        statusFilter: maybeStatusFilter,
+      };
+    } else {
+      params = paramsOrSearch;
+    }
+
+    const {
+      scope = "mine",
+      search = "",
+      statusFilter = "Semua status",
+      page = 1,
+      per_page = 15,
+    } = params;
+
+    const query = new URLSearchParams();
+    query.set("scope", scope);
+    query.set("page", String(page));
+    query.set("per_page", String(per_page));
+
+    if (search.trim()) {
+      query.set("search", search.trim());
+    }
+
+    if (statusFilter && statusFilter !== "Semua status") {
+      const apiStatus = STATUS_MAP_TO_API[statusFilter] || statusFilter.toLowerCase();
+      query.set("status", apiStatus);
+    }
+
+    try {
+      const token = getToken();
+      const headers: HeadersInit = {
+        Accept: "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await apiFetch(`/api/v1/design-requests?${query.toString()}`, {
+        headers,
+      });
+
+      if (response.ok) {
+        const body = (await response.json()) as {
+          data: ApiDesignRequest[];
+          meta?: ApiMeta;
+        };
+
+        const mappedData: DesignRequestItem[] = (body.data || []).map((raw) => ({
+          id: String(raw.id),
+          nomorRequest: raw.request_number,
+          judulRequest: raw.title,
+          jenisDesain: raw.design_type,
+          deskripsiKebutuhan: raw.description,
+          unit: raw.unit?.name ?? "-",
+          namaPemohon: raw.requester?.name ?? "-",
+          tanggalDibutuhkan: formatTanggalIndoPendek(raw.needed_at),
+          tanggalDibutuhkanRaw: raw.needed_at,
+          status: STATUS_MAP_FROM_API[raw.status] ?? "Baru",
+          fileReferensiName: raw.reference_file?.original_name,
+          createdAt: raw.created_at,
+        }));
+
+        const meta = body.meta || {
+          current_page: page,
+          from: mappedData.length > 0 ? (page - 1) * per_page + 1 : 0,
+          last_page: Math.max(1, Math.ceil(mappedData.length / per_page)),
+          per_page,
+          to: (page - 1) * per_page + mappedData.length,
+          total: mappedData.length,
+        };
+
+        return {
+          data: mappedData,
+          meta,
+        };
+      }
+    } catch (err) {
+      console.warn("Gagal memanggil API /api/v1/design-requests, fallback ke data lokal:", err);
+    }
+
+    // Fallback jika API gagal atau offline
+    const all = readStoredRequests();
+    const q = search.trim().toLowerCase();
+
+    const filtered = all.filter((item) => {
       const matchesSearch =
-        !query ||
-        item.nomorRequest.toLowerCase().includes(query) ||
-        item.judulRequest.toLowerCase().includes(query) ||
-        item.unit.toLowerCase().includes(query);
+        !q ||
+        item.nomorRequest.toLowerCase().includes(q) ||
+        item.judulRequest.toLowerCase().includes(q) ||
+        item.unit.toLowerCase().includes(q);
 
       const matchesStatus =
         !statusFilter || statusFilter === "Semua status" || item.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
+
+    const total = filtered.length;
+    const lastPage = Math.max(1, Math.ceil(total / per_page));
+    const safePage = Math.min(Math.max(1, page), lastPage);
+    const paginated = filtered.slice((safePage - 1) * per_page, safePage * per_page);
+
+    return {
+      data: paginated,
+      meta: {
+        current_page: safePage,
+        from: total > 0 ? (safePage - 1) * per_page + 1 : 0,
+        last_page: lastPage,
+        per_page,
+        to: Math.min(safePage * per_page, total),
+        total,
+      },
+    };
   },
 
   async createRequest(payload: CreateDesignRequestPayload): Promise<DesignRequestItem> {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("title", payload.judulRequest.trim());
+    formData.append("design_type", payload.jenisDesain.trim());
+    formData.append("description", payload.deskripsiKebutuhan.trim());
+    formData.append("needed_at", payload.tanggalDibutuhkan);
+    if (payload.fileReferensi) {
+      formData.append("reference_file", payload.fileReferensi);
+    }
+
+    try {
+      const headers: HeadersInit = {
+        Accept: "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await apiFetch("/api/v1/design-requests", {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (response.ok) {
+        const body = (await response.json()) as { data: ApiDesignRequest };
+        const raw = body.data;
+        return {
+          id: String(raw.id),
+          nomorRequest: raw.request_number,
+          judulRequest: raw.title,
+          jenisDesain: raw.design_type,
+          deskripsiKebutuhan: raw.description,
+          unit: raw.unit?.name ?? "-",
+          namaPemohon: raw.requester?.name ?? "-",
+          tanggalDibutuhkan: formatTanggalIndoPendek(raw.needed_at),
+          tanggalDibutuhkanRaw: raw.needed_at,
+          status: STATUS_MAP_FROM_API[raw.status] ?? "Baru",
+          fileReferensiName: raw.reference_file?.original_name,
+          createdAt: raw.created_at,
+        };
+      }
+    } catch (err) {
+      console.warn("Gagal membuat request desain via API, fallback ke penyimpanan lokal:", err);
+    }
+
     const current = readStoredRequests();
     const nextNumber = 18 + current.length + 1;
     const newItem: DesignRequestItem = {

@@ -3,22 +3,34 @@ import { useNavigate } from "react-router-dom";
 import { IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import Button from "@/components/ui/ui-template/Button";
 import Search from "@/components/ui/ui-template/Search";
+import type { ApiMeta } from "@/types/api";
 import DesignRequestTable from "../components/DesignRequestTable";
 import DesignStatusBadge from "../components/DesignStatusBadge";
 import { designGraphicService } from "../services/designGraphicService";
 import type { DesignRequestItem } from "../types/designGraphic.types";
 
+const ITEMS_PER_PAGE = 15;
+
 export default function RequestSayaPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<DesignRequestItem[]>([]);
+  const [meta, setMeta] = useState<ApiMeta | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const loadData = async (query = searchTerm) => {
+  const loadData = async (query = searchTerm, page = currentPage) => {
     setIsLoading(true);
     try {
-      const data = await designGraphicService.getRequests(query, "Semua status");
-      setItems(data);
+      const res = await designGraphicService.getRequests({
+        scope: "mine",
+        search: query,
+        statusFilter: "Semua status",
+        page,
+        per_page: ITEMS_PER_PAGE,
+      });
+      setItems(res.data);
+      setMeta(res.meta);
     } catch (err) {
       console.error("Gagal memuat daftar request saya:", err);
     } finally {
@@ -27,31 +39,15 @@ export default function RequestSayaPage() {
   };
 
   useEffect(() => {
-    let active = true;
-    designGraphicService
-      .getRequests("", "Semua status")
-      .then((data) => {
-        if (active) {
-          setItems(data);
-        }
-      })
-      .catch((err) => {
-        console.error("Gagal memuat daftar request saya:", err);
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData(searchTerm, currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
-    void loadData(val);
+    setCurrentPage(1);
+    void loadData(val, 1);
   };
 
   return (
@@ -116,6 +112,30 @@ export default function RequestSayaPage() {
                 </div>
               </div>
             ))}
+            {/* Mobile Pagination */}
+            {meta && meta.last_page > 1 && (
+              <div className="flex justify-center items-center gap-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={meta.current_page <= 1}
+                  className="px-3 py-1 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-text-secondary">
+                  {meta.current_page} / {meta.last_page}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(meta.last_page, p + 1))}
+                  disabled={meta.current_page >= meta.last_page}
+                  className="px-3 py-1 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -145,7 +165,12 @@ export default function RequestSayaPage() {
           </div>
 
           {/* Table */}
-          <DesignRequestTable items={items} isLoading={isLoading} />
+          <DesignRequestTable
+            items={items}
+            isLoading={isLoading}
+            meta={meta}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </div>
     </div>

@@ -4,15 +4,19 @@ import Button from "@/components/ui/ui-template/Button";
 import Dropdown from "@/components/ui/ui-template/Dropdown";
 import Search from "@/components/ui/ui-template/Search";
 import { cn } from "@/lib/utils";
+import type { ApiMeta } from "@/types/api";
 import DesignRequestTable from "../components/DesignRequestTable";
 import DesignStatusBadge from "../components/DesignStatusBadge";
 import { DESIGN_STATUS_LIST, designGraphicService } from "../services/designGraphicService";
 import type { DesignRequestItem } from "../types/designGraphic.types";
 
 const DESKTOP_FILTER_OPTIONS = ["Semua status", ...DESIGN_STATUS_LIST];
+const ITEMS_PER_PAGE = 15;
 
 export default function KelolaRequestPage() {
   const [items, setItems] = useState<DesignRequestItem[]>([]);
+  const [meta, setMeta] = useState<ApiMeta | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua status");
@@ -21,11 +25,18 @@ export default function KelolaRequestPage() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [mobileTempStatus, setMobileTempStatus] = useState("");
 
-  const loadData = async (query = searchTerm, currentStatus = statusFilter) => {
+  const loadData = async (query = searchTerm, currentStatus = statusFilter, page = currentPage) => {
     setIsLoading(true);
     try {
-      const data = await designGraphicService.getRequests(query, currentStatus);
-      setItems(data);
+      const res = await designGraphicService.getRequests({
+        scope: "all",
+        search: query,
+        statusFilter: currentStatus,
+        page,
+        per_page: ITEMS_PER_PAGE,
+      });
+      setItems(res.data);
+      setMeta(res.meta);
     } catch (err) {
       console.error("Gagal memuat daftar kelola request:", err);
     } finally {
@@ -34,36 +45,21 @@ export default function KelolaRequestPage() {
   };
 
   useEffect(() => {
-    let active = true;
-    designGraphicService
-      .getRequests("", "Semua status")
-      .then((data) => {
-        if (active) {
-          setItems(data);
-        }
-      })
-      .catch((err) => {
-        console.error("Gagal memuat daftar kelola request:", err);
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData(searchTerm, statusFilter, currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
-    void loadData(val, statusFilter);
+    setCurrentPage(1);
+    void loadData(val, statusFilter, 1);
   };
 
   const handleSelectDesktopStatus = (status: string) => {
     setStatusFilter(status);
-    void loadData(searchTerm, status);
+    setCurrentPage(1);
+    void loadData(searchTerm, status, 1);
   };
 
   const handleOpenMobileFilter = () => {
@@ -75,14 +71,16 @@ export default function KelolaRequestPage() {
     const applied = mobileTempStatus || "Semua status";
     setStatusFilter(applied);
     setShowMobileFilter(false);
-    void loadData(searchTerm, applied);
+    setCurrentPage(1);
+    void loadData(searchTerm, applied, 1);
   };
 
   const handleResetMobileFilter = () => {
     setMobileTempStatus("");
     setStatusFilter("Semua status");
     setShowMobileFilter(false);
-    void loadData(searchTerm, "Semua status");
+    setCurrentPage(1);
+    void loadData(searchTerm, "Semua status", 1);
   };
 
   return (
@@ -150,6 +148,30 @@ export default function KelolaRequestPage() {
                 </div>
               </div>
             ))}
+            {/* Mobile Pagination */}
+            {meta && meta.last_page > 1 && (
+              <div className="flex justify-center items-center gap-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={meta.current_page <= 1}
+                  className="px-3 py-1 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-text-secondary">
+                  {meta.current_page} / {meta.last_page}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(meta.last_page, p + 1))}
+                  disabled={meta.current_page >= meta.last_page}
+                  className="px-3 py-1 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg disabled:opacity-50 cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -255,7 +277,12 @@ export default function KelolaRequestPage() {
           </div>
 
           {/* Table */}
-          <DesignRequestTable items={items} isLoading={isLoading} />
+          <DesignRequestTable
+            items={items}
+            isLoading={isLoading}
+            meta={meta}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </div>
     </div>
