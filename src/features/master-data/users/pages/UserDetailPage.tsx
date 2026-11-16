@@ -95,11 +95,11 @@ export default function UserDetailPage() {
   const isAktif = user.status_user === "Aktif";
 
   return (
-    <div className="flex h-full flex-col bg-slate-50 relative pb-28 md:pb-8 overflow-y-auto">
+    <div className="flex h-full flex-col bg-background text-text relative pb-28 md:pb-8 overflow-y-auto">
       {/* Absolute Success Banner aligned below the header center */}
       {successMessage && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-5 py-2.5 text-[13.5px] font-medium text-emerald-600 shadow-sm animate-in fade-in slide-in-from-top-4">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200/50 text-emerald-600">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/80 px-5 py-2.5 text-[13.5px] font-medium text-emerald-600 dark:text-emerald-300 shadow-sm animate-in fade-in slide-in-from-top-4">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200/50 dark:bg-emerald-800 text-emerald-600 dark:text-emerald-300">
             <Check className="h-3.5 w-3.5 stroke-[3]" />
           </div>
           {successMessage}
@@ -111,30 +111,32 @@ export default function UserDetailPage() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => navigate("/master-data/users")}
-            className="p-1 -ml-1 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+            className="p-1 -ml-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             aria-label="Kembali ke daftar user"
           >
             <ArrowLeft className="h-6 w-6" strokeWidth={2} />
           </button>
-          <h1 className="text-xl font-bold text-slate-800">Detail User</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Detail User</h1>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
+        <div className="bg-table-card rounded-2xl border border-slate-200/80 dark:border-slate-700 p-6 md:p-8 shadow-xs">
           {/* Header Profile Section */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-100">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded-full bg-[#003178] text-white font-bold text-2xl flex items-center justify-center shrink-0 shadow-xs">
                 {initials}
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-lg md:text-xl font-bold text-slate-900">{user.nama}</h2>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100">
+                    {user.nama}
+                  </h2>
                   <Badge variant={isAktif ? "success" : "danger"} dot>
                     {user.status_user}
                   </Badge>
                 </div>
-                <p className="text-sm text-slate-500 font-normal mt-0.5">{user.jabatan}</p>
+                <p className="text-sm text-text-secondary font-normal mt-0.5">{user.jabatan}</p>
               </div>
             </div>
 
@@ -160,37 +162,51 @@ export default function UserDetailPage() {
 
           {/* Details Grid (6 Cards, 2 Columns) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">Nama</span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.nama}</span>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">Nama</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.nama}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">
                 NIP (Nomor Induk Pegawai)
               </span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.nip}</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.nip}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">Unit</span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.unit_user}</span>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">Unit</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.unit_user}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">Jabatan</span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.jabatan}</span>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">Jabatan</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.jabatan}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">Nomor HP</span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.no_hp}</span>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">Nomor HP</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.no_hp}
+              </span>
             </div>
-            <div className="rounded-xl border border-slate-200/80 p-4 bg-white">
-              <span className="block text-xs font-medium text-slate-500">Role</span>
-              <span className="block text-sm font-bold text-slate-900 mt-1">{user.role}</span>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/60">
+              <span className="block text-xs font-medium text-text-secondary">Role</span>
+              <span className="block text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {user.role}
+              </span>
             </div>
 
             {!isAktif && user.alasan_nonaktif && (
-              <div className="md:col-span-2 rounded-xl border border-rose-200 bg-rose-50/60 p-4">
-                <span className="block text-xs font-medium text-rose-600">Alasan Nonaktif</span>
-                <span className="block text-sm font-semibold text-rose-900 mt-1">
+              <div className="md:col-span-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-950/40 p-4">
+                <span className="block text-xs font-medium text-rose-600 dark:text-rose-400">
+                  Alasan Nonaktif
+                </span>
+                <span className="block text-sm font-semibold text-rose-900 dark:text-rose-200 mt-1">
                   {user.alasan_nonaktif}
                 </span>
               </div>
@@ -200,10 +216,10 @@ export default function UserDetailPage() {
       </div>
 
       {/* Mobile Bottom Action Bar (di bawah pada layar mobile) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 flex gap-3 md:hidden z-20 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-table-card border-t border-slate-200 dark:border-slate-700 p-4 flex gap-3 md:hidden z-20 shadow-lg">
         <button
           onClick={() => (isAktif ? setShowDeactivateModal(true) : setShowActivateModal(true))}
-          className="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition cursor-pointer"
+          className="flex-1 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
         >
           {isAktif ? "Nonaktifkan User" : "Aktifkan User"}
         </button>

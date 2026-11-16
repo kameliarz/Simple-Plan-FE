@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   IconAlertCircle,
-  IconCalendar,
   IconCheck,
   IconChevronDown,
   IconSearch,
@@ -490,15 +489,11 @@ export default function TambahJadwalForm() {
                 setErrors((prev) => ({ ...prev, tanggalJadwal: undefined }));
               }}
               placeholder="mm/dd/yyyy"
-              className={`h-11 w-full rounded-lg border px-4 pr-10 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:border-primary-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
+              className={`h-11 w-full rounded-lg border px-4 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:border-primary-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
                 errors.tanggalJadwal
                   ? "border-red-500 bg-white dark:bg-slate-900"
                   : "border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900"
               }`}
-            />
-            <IconCalendar
-              size={18}
-              className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
           </div>
 

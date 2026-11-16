@@ -36,6 +36,9 @@ import CatatHasilMaintenancePage from "@/features/maintenance/pages/CatatHasilMa
 
 import BackupDataPage from "@/features/back-up-data/pages/BackupDataPage";
 
+import RequestSayaPage from "@/features/design-graphic/pages/RequestSayaPage";
+import BuatRequestDesainPage from "@/features/design-graphic/pages/BuatRequestDesainPage";
+import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage";
 import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
 
 function ResponsiveNotificationRoute() {
@@ -185,7 +188,14 @@ function App() {
           <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
           <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
 
-          {/* Graphic Design */}
+          {/* Desain Grafis */}
+          <Route
+            path="/design-graphic"
+            element={<Navigate to="/design-graphic/my-requests" replace />}
+          />
+          <Route path="/design-graphic/my-requests" element={<RequestSayaPage />} />
+          <Route path="/design-graphic/create" element={<BuatRequestDesainPage />} />
+          <Route path="/design-graphic/manage-requests" element={<KelolaRequestPage />} />
           <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />

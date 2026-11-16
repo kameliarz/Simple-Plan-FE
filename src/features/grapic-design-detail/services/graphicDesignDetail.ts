@@ -1,578 +1,257 @@
+import { apiFetch } from "@/lib/apiFetch";
+import { getToken } from "@/features/auth-login/services/authStorage";
 import type {
+  DesignFile,
   DesignOfficer,
   DesignPriority,
+  DesignStatus,
   GraphicDesignDetail,
 } from "../types/graphicDesignDetail.types";
 
-// ==========================================
-// MOCK DATA
-// ==========================================
+interface ApiFile {
+  original_name: string;
+  size: number;
+  mime_type: string;
+  url?: string;
+}
+interface Person {
+  id: number;
+  name: string;
+}
+interface ApiDraft {
+  id: number;
+  created_at: string;
+  notes: string | null;
+  file: ApiFile;
+  uploaded_by: Person;
+}
+export type DesignHistoryEvent =
+  | (ApiDraft & { type: "draft" })
+  | {
+      type: "revision";
+      id: number;
+      created_at: string;
+      design_draft_id: number;
+      revision_note: string;
+      requested_by: Person;
+    };
+interface ApiDetail {
+  id: number;
+  request_number: string;
+  title: string;
+  design_type: string;
+  description: string;
+  needed_at: string;
+  status: string;
+  priority: string | null;
+  requester: Person;
+  unit: { name: string } | null;
+  assigned_officer: Person | null;
+  reference_file: ApiFile | null;
+  latest_draft: ApiDraft | null;
+  latest_revision: { design_draft_id: number; revision_note: string } | null;
+  rejection_note: string | null;
+  created_at: string;
+}
 
-const mockDesignDetails: Record<string, GraphicDesignDetail> = {
-  "DG-2026-0007": {
-    id: "DG-2026-0007",
-    title: "Poster Hari Kesehatan Nasional",
-    status: "Baru",
-    priority: null,
-    designType: "Poster",
-    description:
-      "Membutuhkan poster edukasi untuk peringatan Hari Kesehatan Nasional yang akan dipasang di lobi dan area rawat jalan. Ukuran A3 potret, memuat logo RS Citra Husada, tema kegiatan, tanggal, dan ajakan hidup sehat. Warna dominan biru dan putih mengikuti identitas rumah sakit.",
-    requiredDate: "05/11/2026",
-    requesterName: "Agung Sunaryo S.Kom",
-    unit: "IT",
-    requestDate: "01/11/2026",
-    assignee: null,
-    referenceFile: {
-      name: "referensi.jpg",
-      size: "920 KB",
-      url: "/files/referensi.jpg",
-    },
-    draft: null,
-    rejectionNote: null,
-    requesterId: 53,
-    revisionNote: null,
-  },
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (init.body && !(init.body instanceof FormData))
+    headers.set("Content-Type", "application/json");
+  const response = await apiFetch(`/api/v1${path}`, { ...init, headers });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errors = body?.errors as Record<string, string[]> | undefined;
+    throw new Error(
+      errors
+        ? Object.values(errors).flat().join("\n")
+        : body?.message || `Permintaan gagal (${response.status}).`,
+    );
+  }
+  return body as T;
+}
+const path = (id: string) => `/design-requests/${encodeURIComponent(id)}`;
+const date = (value: string) =>
+  value
+    ? new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(value))
+    : "-";
+const file = (value: ApiFile): DesignFile => ({
+  name: value.original_name,
+  size:
+    value.size < 1024 * 1024
+      ? `${(value.size / 1024).toFixed(1)} KB`
+      : `${(value.size / (1024 * 1024)).toFixed(1)} MB`,
+  url: value.url ?? "",
+});
+const officer = (value: Person): DesignOfficer => ({
+  ...value,
+  role: "Petugas TIK",
+  initials: value.name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase(),
+});
+const statuses: Record<string, DesignStatus> = {
+  baru: "Baru",
+  ditugaskan: "Ditugaskan",
+  menunggu_persetujuan: "Menunggu Persetujuan",
+  perlu_revisi: "Perlu Revisi",
+  selesai: "Selesai",
+  ditolak: "Ditolak",
+};
+const priorities: Record<string, DesignPriority> = {
+  rendah: "Rendah",
+  sedang: "Sedang",
+  tinggi: "Tinggi",
 };
 
-// ==========================================
-// MOCK OFFICERS
-// ==========================================
-
-const mockOfficers: DesignOfficer[] = [
-  {
-    id: 1,
-    name: "Hendra Wijaya",
-    role: "IT Support - SIMRS",
-    initials: "HW",
-  },
-  {
-    id: 2,
-    name: "Rian Pratama",
-    role: "Teknisi Lapangan",
-    initials: "RP",
-  },
-  {
-    id: 3,
-    name: "Siti Aisyah",
-    role: "IT Helpdesk",
-    initials: "SA",
-  },
-  {
-    id: 54,
-    name: "Haris Arifin, S.Kom",
-    role: "IT Support - Hardware",
-    initials: "AF",
-  },
-];
-
-// ==========================================
-// STORAGE CONFIGURATION
-// ==========================================
-
-const STORAGE_PREFIX = "graphic-design-detail:";
-
-const DRAFT_DB_NAME = "graphic-design-drafts";
-const DRAFT_STORE_NAME = "draft-files";
-
-const MAX_DRAFT_SIZE = 5 * 1024 * 1024;
-
-const ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png"];
-
-const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-
-// ==========================================
-// LOCAL STORAGE HELPERS
-// ==========================================
-
-const storageKey = (id: string): string => {
-  return `${STORAGE_PREFIX}${id}`;
-};
-
-function readDesign(id: string): GraphicDesignDetail {
-  const initial = mockDesignDetails[id];
-
-  if (!initial) {
-    throw new Error("Data request desain tidak ditemukan.");
-  }
-
-  const saved = localStorage.getItem(storageKey(id));
-
-  if (saved) {
-    try {
-      const parsed: GraphicDesignDetail = JSON.parse(saved);
-
-      if (parsed.id === id) {
-        return parsed;
-      }
-    } catch {
-      // Gunakan mock data awal jika data lokal rusak.
-    }
-  }
-
-  return structuredClone(initial);
+export async function getGraphicDesignHistory(id: string): Promise<DesignHistoryEvent[]> {
+  return (await request<{ data: DesignHistoryEvent[] }>(`${path(id)}/history`)).data;
 }
-
-function writeDesign(detail: GraphicDesignDetail): void {
-  localStorage.setItem(storageKey(detail.id), JSON.stringify(detail));
-}
-
-// ==========================================
-// INDEXED DB HELPERS
-// ==========================================
-
-function openDraftDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DRAFT_DB_NAME, 1);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-
-      if (!db.objectStoreNames.contains(DRAFT_STORE_NAME)) {
-        db.createObjectStore(DRAFT_STORE_NAME);
-      }
-    };
-
-    request.onsuccess = () => {
-      resolve(request.result);
-    };
-
-    request.onerror = () => {
-      reject(new Error("Gagal membuka penyimpanan draft."));
-    };
-
-    request.onblocked = () => {
-      reject(new Error("Penyimpanan draft sedang digunakan oleh halaman lain."));
-    };
-  });
-}
-
-// ==========================================
-// SAVE DRAFT FILE
-// ==========================================
-
-async function saveDraftFile(designId: string, file: File): Promise<void> {
-  const db = await openDraftDatabase();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(DRAFT_STORE_NAME, "readwrite");
-
-      const store = transaction.objectStore(DRAFT_STORE_NAME);
-
-      store.put(file, designId);
-
-      transaction.oncomplete = () => {
-        resolve();
-      };
-
-      transaction.onerror = () => {
-        reject(new Error("Gagal menyimpan file draft."));
-      };
-
-      transaction.onabort = () => {
-        reject(new Error("Penyimpanan draft dibatalkan."));
-      };
-    });
-  } finally {
-    db.close();
-  }
-}
-
-// ==========================================
-// LOAD DRAFT FILE
-// ==========================================
-
-async function loadDraftFile(designId: string): Promise<Blob | null> {
-  const db = await openDraftDatabase();
-
-  try {
-    return await new Promise<Blob | null>((resolve, reject) => {
-      const transaction = db.transaction(DRAFT_STORE_NAME, "readonly");
-
-      const store = transaction.objectStore(DRAFT_STORE_NAME);
-
-      const request = store.get(designId);
-
-      request.onsuccess = () => {
-        resolve((request.result as Blob | undefined) ?? null);
-      };
-
-      request.onerror = () => {
-        reject(new Error("Gagal membaca file draft."));
-      };
-    });
-  } finally {
-    db.close();
-  }
-}
-
-// ==========================================
-// DELETE DRAFT FILE
-// ==========================================
-
-async function deleteDraftFile(designId: string): Promise<void> {
-  const db = await openDraftDatabase();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(DRAFT_STORE_NAME, "readwrite");
-
-      transaction.objectStore(DRAFT_STORE_NAME).delete(designId);
-
-      transaction.oncomplete = () => {
-        resolve();
-      };
-
-      transaction.onerror = () => {
-        reject(new Error("Gagal menghapus file draft."));
-      };
-
-      transaction.onabort = () => {
-        reject(new Error("Penghapusan file draft dibatalkan."));
-      };
-    });
-  } finally {
-    db.close();
-  }
-}
-
-// ==========================================
-// FORMAT FILE SIZE
-// ==========================================
-
-function formatDraftFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-// ==========================================
-// FORMAT DATE
-// ==========================================
-
-function formatDraftDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-}
-
-// ==========================================
-// VALIDATE DRAFT FILE
-// ==========================================
-
-function validateDraftFile(file: File): void {
-  if (!file || file.size === 0) {
-    throw new Error("File draft wajib diunggah!");
-  }
-
-  const extension = file.name.split(".").pop()?.toLowerCase();
-
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    throw new Error("Format file tidak didukung. Gunakan PDF, JPG, atau PNG.");
-  }
-
-  if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
-    throw new Error("Format file draft tidak didukung.");
-  }
-
-  if (file.size > MAX_DRAFT_SIZE) {
-    throw new Error("Ukuran file draft maksimal 5MB.");
-  }
-}
-
-// ==========================================
-// GET DETAIL REQUEST
-// ==========================================
-
 export async function getGraphicDesignDetail(id: string): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  if (!detail.draft?.file) {
-    return detail;
-  }
-
-  const storedFile = await loadDraftFile(id);
-
-  if (!storedFile) {
-    return {
-      ...detail,
-      draft: {
-        ...detail.draft,
-        file: {
-          ...detail.draft.file,
-          url: "",
-        },
-      },
-    };
-  }
-
+  const [detail, events] = await Promise.all([
+    request<{ data: ApiDetail }>(path(id)),
+    getGraphicDesignHistory(id),
+  ]);
+  const data = detail.data;
+  const drafts = events
+    .filter((event) => event.type === "draft")
+    .sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime() || a.id - b.id,
+    );
+  const revisionFor = (draftId: number) =>
+    events
+      .filter((event) => event.type === "revision" && event.design_draft_id === draftId)
+      .map((event) => (event.type === "revision" ? event.revision_note : ""))
+      .join("\n\n");
+  const latest = data.latest_draft;
+  const latestFile = drafts.find((draft) => draft.id === latest?.id)?.file ?? latest?.file;
   return {
-    ...detail,
-    draft: {
-      ...detail.draft,
-      file: {
-        ...detail.draft.file,
-        url: URL.createObjectURL(storedFile),
-      },
-    },
+    id: String(data.id),
+    requestNumber: data.request_number,
+    title: data.title,
+    status: statuses[data.status],
+    priority: data.priority ? (priorities[data.priority] ?? null) : null,
+    designType: data.design_type,
+    description: data.description,
+    requiredDate: date(data.needed_at),
+    requesterId: data.requester.id,
+    requesterName: data.requester.name,
+    unit: data.unit?.name ?? "-",
+    requestDate: date(data.created_at),
+    assignee: data.assigned_officer ? officer(data.assigned_officer) : null,
+    referenceFile: data.reference_file ? file(data.reference_file) : null,
+    draft: latest
+      ? {
+          date: date(latest.created_at),
+          notes: latest.notes ?? "",
+          file: latestFile ? file(latestFile) : null,
+        }
+      : null,
+    draftNumber: latest
+      ? drafts.findIndex((draft) => draft.id === latest.id) + 1 || drafts.length + 1
+      : undefined,
+    history: drafts.flatMap((draft, index) =>
+      draft.id === latest?.id
+        ? []
+        : [
+            {
+              id: String(draft.id),
+              number: index + 1,
+              date: date(draft.created_at),
+              notes: draft.notes ?? "",
+              file: file(draft.file),
+              revisionNote: revisionFor(draft.id),
+            },
+          ],
+    ),
+    rejectionNote: data.rejection_note,
+    revisionNote:
+      latest && data.latest_revision?.design_draft_id === latest.id
+        ? data.latest_revision.revision_note
+        : null,
   };
 }
-
-// ==========================================
-// GET OFFICER OPTIONS
-// ==========================================
 
 export async function getDesignOfficerOptions(search = ""): Promise<DesignOfficer[]> {
+  // The users endpoint is available to super-admin; assignment eligibility is validated by the backend.
+  interface User {
+    id: number;
+    nama: string;
+    role: string;
+    status_user: string;
+    jabatan: string;
+  }
+  const users: User[] = [];
+  let page = 1;
+  while (true) {
+    const result = await request<{ data: { data: User[]; meta?: { last_page: number } } }>(
+      `/users?per_page=100&page=${page}`,
+    );
+    users.push(...result.data.data);
+    if (page >= (result.data.meta?.last_page ?? 1)) break;
+    page++;
+  }
   const keyword = search.trim().toLowerCase();
-
-  return mockOfficers.filter((officer) => {
-    const matchName = officer.name.toLowerCase().includes(keyword);
-
-    const matchRole = officer.role.toLowerCase().includes(keyword);
-
-    return matchName || matchRole;
-  });
+  return users
+    .filter(
+      (user) =>
+        user.role === "petugas-tik" &&
+        user.status_user === "Aktif" &&
+        `${user.nama} ${user.jabatan}`.toLowerCase().includes(keyword),
+    )
+    .map((user) => ({
+      ...officer({ id: user.id, name: user.nama }),
+      role: user.jabatan || "Petugas TIK",
+    }));
 }
-
-// ==========================================
-// ASSIGN REQUEST
-// ==========================================
-
 export async function assignGraphicDesign(
   id: string,
-  payload: {
-    priority: DesignPriority;
-    officerId: number;
-  },
-): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  if (detail.status !== "Baru") {
-    throw new Error("Request ini tidak dapat ditugaskan.");
-  }
-
-  const allowedPriorities: DesignPriority[] = ["Rendah", "Sedang", "Tinggi"];
-
-  if (!allowedPriorities.includes(payload.priority)) {
-    throw new Error("Prioritas tidak valid.");
-  }
-
-  const officer = mockOfficers.find((item) => item.id === payload.officerId);
-
-  if (!officer) {
-    throw new Error("Petugas tidak ditemukan.");
-  }
-
-  const updated: GraphicDesignDetail = {
-    ...detail,
-    status: "Ditugaskan",
-    priority: payload.priority,
-    assignee: officer,
-    draft: null,
-    rejectionNote: null,
-  };
-
-  writeDesign(updated);
-
-  return updated;
+  payload: { priority: DesignPriority; officerId: number },
+) {
+  await request(`${path(id)}/assignment`, {
+    method: "PUT",
+    body: JSON.stringify({
+      priority: payload.priority.toLowerCase(),
+      assigned_officer_id: payload.officerId,
+    }),
+  });
+  return getGraphicDesignDetail(id);
 }
-
-// ==========================================
-// REJECT REQUEST
-// ==========================================
-
-export async function rejectGraphicDesign(
-  id: string,
-  reason: string,
-): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  if (detail.status !== "Baru") {
-    throw new Error("Request ini tidak dapat ditolak.");
-  }
-
-  const rejectionNote = reason.trim();
-
-  if (!rejectionNote) {
-    throw new Error("Catatan penolakan wajib diisi!");
-  }
-
-  const updated: GraphicDesignDetail = {
-    ...detail,
-    status: "Ditolak",
-    priority: null,
-    assignee: null,
-    draft: null,
-    rejectionNote,
-  };
-
-  writeDesign(updated);
-
-  return updated;
+export async function rejectGraphicDesign(id: string, reason: string) {
+  await request(`${path(id)}/rejections`, {
+    method: "POST",
+    body: JSON.stringify({ rejection_note: reason.trim() }),
+  });
+  return getGraphicDesignDetail(id);
 }
-
-// ==========================================
-// UPLOAD DRAFT
-// ==========================================
-
-export async function uploadGraphicDesignDraft(
-  id: string,
-  payload: {
-    file: File;
-    notes: string;
-    officerId: number;
-  },
-): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  // Validasi status request
-  if (detail.status !== "Ditugaskan") {
-    throw new Error("Request tidak berada dalam tahap unggah draft.");
-  }
-
-  // Validasi petugas
-  if (detail.assignee?.id !== payload.officerId) {
-    throw new Error("Hanya petugas yang ditugaskan yang dapat mengunggah draft.");
-  }
-
-  // Validasi file
-  validateDraftFile(payload.file);
-
-  // Simpan file ke IndexedDB
-  await saveDraftFile(id, payload.file);
-
-  const updated: GraphicDesignDetail = {
-    ...detail,
-    status: "Menunggu Persetujuan",
-    draft: {
-      date: formatDraftDate(new Date()),
-      notes: payload.notes.trim(),
-      file: {
-        name: payload.file.name,
-        size: formatDraftFileSize(payload.file.size),
-        url: "",
-      },
-    },
-  };
-
-  // Simpan metadata ke localStorage
-  try {
-    writeDesign(updated);
-  } catch (error) {
-    // Hindari meninggalkan file tanpa metadata
-    // jika penyimpanan metadata gagal.
-    await deleteDraftFile(id).catch(() => undefined);
-    throw error;
-  }
-
-  // Kembalikan data beserta URL untuk preview/download
-  return {
-    ...updated,
-    draft: {
-      ...updated.draft!,
-      file: {
-        ...updated.draft!.file!,
-        url: URL.createObjectURL(payload.file),
-      },
-    },
-  };
+export async function uploadGraphicDesignDraft(id: string, payload: { file: File; notes: string }) {
+  if (!payload.file.size) throw new Error("File draft wajib diunggah.");
+  if (payload.file.size > 10 * 1024 * 1024) throw new Error("Ukuran file draft maksimal 10 MB.");
+  const body = new FormData();
+  body.append("file", payload.file);
+  if (payload.notes.trim()) body.append("notes", payload.notes.trim());
+  await request(`${path(id)}/drafts`, { method: "POST", body });
+  return getGraphicDesignDetail(id);
 }
-
-// ==========================================
-// RESET MOCK DATA (DEVELOPMENT ONLY)
-// ==========================================
-
-export async function resetGraphicDesignDetail(id: string): Promise<void> {
-  localStorage.removeItem(storageKey(id));
-
-  await deleteDraftFile(id);
+export async function approveGraphicDesignDraft(id: string) {
+  await request(`${path(id)}/approvals`, { method: "POST" });
 }
-
-// ==========================================
-// APPROVE DRAFT
-// ==========================================
-
-export async function approveGraphicDesignDraft(
-  id: string,
-  requesterId: number,
-): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  if (detail.status !== "Menunggu Persetujuan") {
-    throw new Error("Draft belum berada dalam tahap persetujuan.");
-  }
-
-  if (String(detail.requesterId) !== String(requesterId)) {
-    throw new Error("Hanya pemohon yang dapat menyetujui draft.");
-  }
-
-  if (!detail.draft?.file) {
-    throw new Error("File draft tidak ditemukan.");
-  }
-
-  const storedFile = await loadDraftFile(id);
-
-  if (!storedFile) {
-    throw new Error("File draft tidak tersedia.");
-  }
-
-  const updated: GraphicDesignDetail = {
-    ...detail,
-    status: "Selesai",
-    revisionNote: null,
-  };
-
-  writeDesign(updated);
-
-  return updated;
+export async function requestGraphicDesignRevision(id: string, payload: { notes: string }) {
+  await request(`${path(id)}/revisions`, {
+    method: "POST",
+    body: JSON.stringify({ revision_note: payload.notes.trim() }),
+  });
 }
-
-// ==========================================
-// REQUEST DRAFT REVISION
-// ==========================================
-
-export async function requestGraphicDesignRevision(
-  id: string,
-  payload: {
-    requesterId: number;
-    notes: string;
-  },
-): Promise<GraphicDesignDetail> {
-  const detail = readDesign(id);
-
-  if (detail.status !== "Menunggu Persetujuan") {
-    throw new Error("Draft tidak berada dalam tahap pengajuan revisi.");
-  }
-
-  if (String(detail.requesterId) !== String(payload.requesterId)) {
-    throw new Error("Hanya pemohon yang dapat mengajukan revisi.");
-  }
-
-  if (!detail.draft?.file) {
-    throw new Error("Draft desain tidak ditemukan.");
-  }
-
-  const revisionNote = payload.notes.trim();
-
-  if (!revisionNote) {
-    throw new Error("Catatan revisi wajib diisi!");
-  }
-
-  const updated: GraphicDesignDetail = {
-    ...detail,
-    status: "Perlu Revisi",
-    revisionNote,
-  };
-
-  writeDesign(updated);
-
-  return updated;
+export async function getGraphicDesignFinalFile(id: string) {
+  return request<{ final_file_url: string; file: ApiFile }>(`${path(id)}/final-file`);
 }

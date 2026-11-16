@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconCalendar, IconChevronDown, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconX } from "@tabler/icons-react";
 import type { MaintenanceFilterState } from "../types/maintenance.types";
 
 interface MaintenanceFilterPopoverProps {
@@ -183,11 +183,7 @@ export default function MaintenanceFilterPopover({
               value={draft.rentangJadwal}
               onChange={(e) => setDraft((p) => ({ ...p, rentangJadwal: e.target.value }))}
               placeholder="mm/dd/yyyy"
-              className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 pr-9 text-xs text-gray-800 outline-none focus:border-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            />
-            <IconCalendar
-              size={16}
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-800 outline-none focus:border-primary-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </div>
         </div>
