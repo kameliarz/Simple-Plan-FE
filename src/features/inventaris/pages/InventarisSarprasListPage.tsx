@@ -91,12 +91,14 @@ export default function InventarisSarprasListPage() {
 
   const [assets, setAssets] = useState<ApiAsset[]>([]);
   const [locations, setLocations] = useState<AssetLocation[]>([]);
+  const [hasLoadedLocations, setHasLoadedLocations] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
   const [classifications, setClassifications] = useState<AssetClassification[]>([]);
+  const classificationsRef = useRef<AssetClassification[]>([]);
 
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -133,14 +135,18 @@ export default function InventarisSarprasListPage() {
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
-  // Fetch initial data (classifications, locations, assets)
+  // Fetch initial data (assets & classifications tanpa memuat filter lokasi di awal)
   const fetchData = async (overridePerpindahan?: boolean) => {
     setIsLoading(true);
     setError(null);
     try {
       const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
-      const classificationsData = await getAssetClassifications().catch(() => []);
-      setClassifications(classificationsData);
+      let classificationsData = classificationsRef.current;
+      if (classificationsData.length === 0) {
+        classificationsData = await getAssetClassifications().catch(() => []);
+        classificationsRef.current = classificationsData;
+        setClassifications(classificationsData);
+      }
 
       const sarprasClasses = classificationsData.filter(
         (c) =>
@@ -148,9 +154,6 @@ export default function InventarisSarprasListPage() {
           !c.name.toLowerCase().includes("tik") &&
           c.code !== 6,
       );
-
-      const locs = await getAssetLocations().catch(() => []);
-      setLocations(locs);
 
       const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = sarprasClasses.map((sc) =>
         getAssets({
@@ -196,6 +199,15 @@ export default function InventarisSarprasListPage() {
     setTempStatus(filterStatus);
     setTempKlasifikasi(filterKlasifikasi);
     setTempPerpindahan(filterPerpindahan);
+
+    const willOpen = window.innerWidth < 1024 ? true : !isFilterOpen;
+    if (willOpen && !hasLoadedLocations) {
+      setHasLoadedLocations(true);
+      getAssetLocations()
+        .then((locs) => setLocations(locs))
+        .catch(() => setHasLoadedLocations(false));
+    }
+
     if (window.innerWidth < 1024) {
       setIsMobileFilterOpen(true);
     } else {
@@ -204,16 +216,20 @@ export default function InventarisSarprasListPage() {
   };
 
   const handleApplyFilter = () => {
+    const perpindahanChanged = tempPerpindahan !== filterPerpindahan;
     setFilterLokasi(tempLokasi);
     setFilterStatus(tempStatus);
     setFilterKlasifikasi(tempKlasifikasi);
     setFilterPerpindahan(tempPerpindahan);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(tempPerpindahan);
+    if (perpindahanChanged) {
+      fetchData(tempPerpindahan);
+    }
   };
 
   const handleResetFilter = () => {
+    const perpindahanChanged = filterPerpindahan !== false;
     setTempLokasi("Semua lokasi");
     setTempStatus("Semua status");
     setTempKlasifikasi("Semua jenis");
@@ -224,7 +240,9 @@ export default function InventarisSarprasListPage() {
     setFilterPerpindahan(false);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(false);
+    if (perpindahanChanged) {
+      fetchData(false);
+    }
   };
 
   const isFilterActive =

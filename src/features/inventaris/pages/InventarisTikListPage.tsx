@@ -89,12 +89,14 @@ export default function InventarisTikListPage() {
 
   const [assets, setAssets] = useState<ApiAsset[]>([]);
   const [locations, setLocations] = useState<AssetLocation[]>([]);
+  const [hasLoadedLocations, setHasLoadedLocations] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
   const [classificationId, setClassificationId] = useState<number | undefined>(2);
+  const resolvedClassIdRef = useRef<number | undefined>(undefined);
 
   // Mode Unduh Label Massal & Seleksi Baris
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -131,42 +133,35 @@ export default function InventarisTikListPage() {
   const [tempKlasifikasi, setTempKlasifikasi] = useState("Semua jenis");
   const [tempPerpindahan, setTempPerpindahan] = useState(false);
 
-  // Fetch data
+  // Fetch data aset TIK (tanpa memuat data filter lokasi di awal)
   const fetchData = async (overridePerpindahan?: boolean) => {
     setIsLoading(true);
     setError(null);
     try {
       const isMoved = overridePerpindahan !== undefined ? overridePerpindahan : filterPerpindahan;
-      // 1. Ambil klasifikasi untuk TIK / Alat IT
-      const classifications = await getAssetClassifications().catch(() => []);
-      const tikClass = classifications.find(
-        (c) =>
-          c.name.toLowerCase() === "alat it" ||
-          c.name.toLowerCase().includes("tik") ||
-          c.code === 6,
-      );
 
-      const targetClassId = tikClass ? tikClass.id : classificationId;
-      if (tikClass) setClassificationId(tikClass.id);
-
-      // 2. Ambil lokasi
-      const locs = await getAssetLocations().catch(() => []);
-      setLocations(locs);
-
-      // 3. Ambil data aset TIK (Alat IT)
-      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = [];
-
-      if (tikClass) {
-        fetchPromises.push(
-          getAssets({
-            asset_classification_id: tikClass.id,
-            per_page: 100,
-            moved_last_3_months: isMoved,
-          }),
+      // 1. Ambil klasifikasi untuk TIK / Alat IT (hanya jika belum pernah dimuat)
+      let targetClassId = resolvedClassIdRef.current ?? classificationId;
+      if (!resolvedClassIdRef.current) {
+        const classifications = await getAssetClassifications().catch(() => []);
+        const tikClass = classifications.find(
+          (c) =>
+            c.name.toLowerCase() === "alat it" ||
+            c.name.toLowerCase().includes("tik") ||
+            c.code === 6,
         );
+
+        if (tikClass) {
+          targetClassId = tikClass.id;
+          resolvedClassIdRef.current = tikClass.id;
+          setClassificationId(tikClass.id);
+        }
       }
 
-      if (fetchPromises.length === 0 && targetClassId) {
+      // 2. Ambil data aset TIK (Alat IT)
+      const fetchPromises: Promise<{ data?: ApiAsset[] }>[] = [];
+
+      if (targetClassId) {
         fetchPromises.push(
           getAssets({
             asset_classification_id: targetClassId,
@@ -212,6 +207,15 @@ export default function InventarisTikListPage() {
     setTempStatus(filterStatus);
     setTempKlasifikasi(filterKlasifikasi);
     setTempPerpindahan(filterPerpindahan);
+
+    const willOpen = window.innerWidth < 1024 ? true : !isFilterOpen;
+    if (willOpen && !hasLoadedLocations) {
+      setHasLoadedLocations(true);
+      getAssetLocations()
+        .then((locs) => setLocations(locs))
+        .catch(() => setHasLoadedLocations(false));
+    }
+
     if (window.innerWidth < 1024) {
       setIsMobileFilterOpen(true);
     } else {
@@ -220,16 +224,20 @@ export default function InventarisTikListPage() {
   };
 
   const handleApplyFilter = () => {
+    const perpindahanChanged = tempPerpindahan !== filterPerpindahan;
     setFilterLokasi(tempLokasi);
     setFilterStatus(tempStatus);
     setFilterKlasifikasi(tempKlasifikasi);
     setFilterPerpindahan(tempPerpindahan);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(tempPerpindahan);
+    if (perpindahanChanged) {
+      fetchData(tempPerpindahan);
+    }
   };
 
   const handleResetFilter = () => {
+    const perpindahanChanged = filterPerpindahan !== false;
     setTempLokasi("Semua lokasi");
     setTempStatus("Semua status");
     setTempKlasifikasi("Semua jenis");
@@ -240,7 +248,9 @@ export default function InventarisTikListPage() {
     setFilterPerpindahan(false);
     setIsFilterOpen(false);
     setIsMobileFilterOpen(false);
-    fetchData(false);
+    if (perpindahanChanged) {
+      fetchData(false);
+    }
   };
 
   const isFilterActive =
