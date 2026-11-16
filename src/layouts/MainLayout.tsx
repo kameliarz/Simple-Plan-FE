@@ -152,6 +152,7 @@ export default function MainLayout({
       let label = "Koordinator Sarpras";
 
       if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "manajemen" || role === "management") label = "Manajemen";
       if (role === "petugas-tik") label = "Petugas TIK";
       if (role === "super-admin") label = "Super Admin";
 

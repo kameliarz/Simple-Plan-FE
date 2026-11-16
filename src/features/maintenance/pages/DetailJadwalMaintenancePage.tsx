@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { getUser } from "@/features/auth-login/services/authStorage";
+import { IconClipboardCheck } from "@tabler/icons-react";
 import {
   IconArrowLeft,
   IconBuilding,
@@ -22,6 +24,17 @@ export default function DetailJadwalMaintenancePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const location = useLocation();
+  const user = getUser();
+  const isPetugas =
+    user?.role === "petugas-tik" ||
+    user?.role === "petugas-sarpras" ||
+    Boolean(user?.role?.includes("petugas"));
+  const isManajemen = user?.role === "manajemen" || user?.role === "management";
+  const locationState = location.state as { successMessage?: string } | null;
+  const [successBanner, setSuccessBanner] = useState<string | null>(
+    locationState?.successMessage || null,
+  );
 
   const [item, setItem] = useState<MaintenanceItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +78,7 @@ export default function DetailJadwalMaintenancePage() {
     try {
       const nextActive = targetActive !== undefined ? targetActive : !item.isActive;
       // Simpan perubahan status
-      await maintenanceService.toggleMaintenanceStatus(id);
+      await maintenanceService.toggleMaintenanceStatus(id, item.isActive);
       setItem((prev) => (prev ? { ...prev, isActive: nextActive } : null));
 
       if (!nextActive) {
@@ -77,6 +90,26 @@ export default function DetailJadwalMaintenancePage() {
       }
     } catch {
       showToast("Gagal mengubah status maintenance", "error");
+    }
+  };
+
+  const handleDownloadFoto = async (url: string, fileName: string) => {
+    try {
+      const fetchUrl = url.replace(/^https?:\/\/[^/]+\/storage\//i, "/storage/");
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error("Gagal mengunduh file");
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "foto_pemeliharaan.jpg";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      showToast("Gagal mengunduh foto hasil pemeliharaan", "error");
     }
   };
 
@@ -124,26 +157,59 @@ export default function DetailJadwalMaintenancePage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Tombol Nonaktifkan / Aktifkan */}
-          <button
-            type="button"
-            onClick={handleOpenDeactivateModal}
-            className="rounded-lg border border-[#003178] bg-white px-4 py-2 text-xs font-semibold text-[#003178] transition hover:bg-blue-50 dark:bg-slate-900 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800 shadow-sm"
-          >
-            {item.isActive ? "Nonaktifkan" : "Aktifkan"}
-          </button>
+          {isManajemen ? null : isPetugas ? (
+            item.status !== "Selesai" && (
+              <button
+                type="button"
+                onClick={() => navigate(`/maintenance/${id}/catat-hasil`)}
+                className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
+              >
+                <IconClipboardCheck size={16} />
+                <span>Catat Hasil</span>
+              </button>
+            )
+          ) : (
+            <>
+              {/* Tombol Nonaktifkan / Aktifkan */}
+              <button
+                type="button"
+                onClick={handleOpenDeactivateModal}
+                className="rounded-lg border border-[#003178] bg-white px-4 py-2 text-xs font-semibold text-[#003178] transition hover:bg-blue-50 dark:bg-slate-900 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800 shadow-sm"
+              >
+                {item.isActive ? "Nonaktifkan" : "Aktifkan"}
+              </button>
 
-          {/* Edit Data */}
-          <button
-            type="button"
-            onClick={() => navigate(`/maintenance/${id}/edit`)}
-            className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
-          >
-            <IconEdit size={15} />
-            <span>Edit Data</span>
-          </button>
+              {/* Edit Data */}
+              <button
+                type="button"
+                onClick={() => navigate(`/maintenance/${id}/edit`)}
+                className="flex items-center gap-1.5 rounded-lg bg-[#003178] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#00255c] active:scale-98 shadow-sm"
+              >
+                <IconEdit size={15} />
+                <span>Edit Data</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {successBanner && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <IconCheck size={13} strokeWidth={3} />
+            </div>
+            <span>{successBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessBanner(null)}
+            className="text-emerald-600 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+          >
+            <IconX size={16} />
+          </button>
+        </div>
+      )}
 
       {showDeactivatedBanner && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 transition dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -279,7 +345,8 @@ export default function DetailJadwalMaintenancePage() {
         </div>
       </div>
 
-      {item.status === "Selesai" && item.hasilMaintenance && (
+      {/* Section Hasil Maintenance (tampil jika data log hasil maintenance tersedia) */}
+      {item.hasilMaintenance && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 space-y-6">
           <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 border-b border-gray-100 pb-4 dark:border-slate-800">
             Hasil Maintenance
@@ -325,36 +392,78 @@ export default function DetailJadwalMaintenancePage() {
 
             <div>
               <p className="text-xs font-medium text-gray-400 mb-1.5">Foto hasil pemeliharaan</p>
-              {item.hasilMaintenance.fotoHasil && (
-                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
-                      <IconPhoto size={18} />
+              {item.hasilMaintenance.fotoHasil ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
+                  {item.hasilMaintenance.fotoHasil.url ? (
+                    <a
+                      href={item.hasilMaintenance.fotoHasil.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg transition hover:opacity-80"
+                      title="Lihat foto hasil pemeliharaan"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
+                        <IconPhoto size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-medium text-gray-800 dark:text-slate-100">
+                          {item.hasilMaintenance.fotoHasil.namaFile}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {item.hasilMaintenance.fotoHasil.ukuranFile}
+                        </p>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#003178] dark:bg-slate-700 dark:text-blue-300">
+                        <IconPhoto size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-medium text-gray-800 dark:text-slate-100">
+                          {item.hasilMaintenance.fotoHasil.namaFile}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {item.hasilMaintenance.fotoHasil.ukuranFile}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-gray-800 dark:text-slate-100">
-                        {item.hasilMaintenance.fotoHasil.namaFile}
-                      </p>
-                      <p className="text-[10px] text-gray-400">
-                        {item.hasilMaintenance.fotoHasil.ukuranFile}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200"
-                    title="Download"
-                  >
-                    <IconDownload size={16} />
-                  </button>
+                  )}
+
+                  {item.hasilMaintenance.fotoHasil.url ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDownloadFoto(
+                          item.hasilMaintenance!.fotoHasil!.url!,
+                          item.hasilMaintenance!.fotoHasil!.namaFile,
+                        );
+                      }}
+                      className="shrink-0 p-1.5 text-gray-400 transition hover:text-[#003178] dark:hover:text-slate-200 cursor-pointer"
+                      title="Download"
+                    >
+                      <IconDownload size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="shrink-0 p-1.5 text-gray-300 dark:text-slate-600 cursor-not-allowed"
+                      title="File tidak tersedia"
+                    >
+                      <IconDownload size={16} />
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <p className="text-xs text-gray-400">-</p>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* CONFIRMATION MODAL: Nonaktifkan jadwal? (Screenshot 5) */}
       {showDeactivateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="w-full max-w-sm sm:max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl transition">

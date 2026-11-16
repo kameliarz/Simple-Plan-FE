@@ -67,7 +67,7 @@ export const conditionOptions = [
 }[];
 
 export const initialForm: FormState = {
-  classification: "alat-it",
+  classification: "",
   roomLocation: "",
   location: "",
   itemName: "",
