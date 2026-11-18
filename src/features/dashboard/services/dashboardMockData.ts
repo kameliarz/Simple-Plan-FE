@@ -1,0 +1,168 @@
+import type { SuperAdminDashboardData } from "../types/dashboard.types";
+
+export const MOCK_SUPER_ADMIN_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-baru",
+      title: "Tiket Baru",
+      value: 12,
+      subtext: "Menunggu verifikasi",
+      link: "/helpdesk/tik",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses",
+      title: "Tiket Diproses",
+      value: 18,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "request-desain",
+      title: "Request Desain Baru",
+      value: 3,
+      subtext: "Dalam antrean pengerjaan",
+      link: "/design-graphic/manage-requests",
+    },
+    {
+      id: "aset-rusak",
+      title: "Aset Rusak",
+      value: 7,
+      subtext: "Menunggu perbaikan",
+      link: "/inventaris/tik",
+    },
+    {
+      id: "maintenance-minggu-ini",
+      title: "Jadwal Maintenance Minggu Ini",
+      value: 5,
+      subtext: "Agenda rutin TIK dan Sarpras",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [
+    { month: "Mei", fullMonth: "Mei 2026", year: 2026, count: 24 },
+    { month: "Jun", fullMonth: "Juni 2026", year: 2026, count: 38 },
+    { month: "Jul", fullMonth: "Juli 2026", year: 2026, count: 32 },
+    { month: "Agu", fullMonth: "Agustus 2026", year: 2026, count: 42 },
+    { month: "Sep", fullMonth: "September 2026", year: 2026, count: 36 },
+    { month: "Okt", fullMonth: "Oktober 2026", year: 2026, count: 46 },
+  ],
+  assetStatuses: [
+    { key: "digunakan", label: "Digunakan", count: 312, color: "#1d4ed8" },
+    { key: "tidak_digunakan", label: "Tidak Digunakan", count: 41, color: "#60a5fa" },
+    { key: "rusak", label: "Rusak", count: 7, color: "#ef4444" },
+    { key: "dipinjam", label: "Dipinjam", count: 18, color: "#f97316" },
+  ],
+  maintenanceSchedules: [
+    {
+      id: "sch-1",
+      assetName: "Server SIMRS Dell PowerEdge R740",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-17",
+    },
+    {
+      id: "sch-2",
+      assetName: "Switch Cisco Catalyst 2960 Lantai 1",
+      officerName: "Haris Arifin",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-2b",
+      assetName: "PC Kasir IGD Unit 02",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-3",
+      assetName: "UPS APC Smart-UPS 3000VA Ruang Server",
+      officerName: "Abdul Mufid Efendi",
+      status: "Terjadwal",
+      date: "2026-11-20",
+    },
+    {
+      id: "sch-4",
+      assetName: "Access Point UniFi U6-Pro Lantai 2",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-21",
+    },
+    {
+      id: "sch-5",
+      assetName: "Genset Utama Rumah Sakit 250kVA",
+      officerName: "Sarpras Team",
+      status: "Terjadwal",
+      date: "2026-11-25",
+    },
+  ],
+  reminders: [
+    {
+      id: "rem-1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "2 jam lalu",
+      isRead: false,
+      link: "/maintenance",
+    },
+    {
+      id: "rem-2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "rem-3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/design-graphic/manage-requests",
+    },
+  ],
+};
+
+export const EMPTY_SUPER_ADMIN_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-baru",
+      title: "Tiket Baru",
+      value: 0,
+      subtext: "Menunggu verifikasi",
+      link: "/helpdesk/tik",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses",
+      title: "Tiket Diproses",
+      value: 0,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "request-desain",
+      title: "Request Desain Baru",
+      value: 0,
+      subtext: "Dalam antrean pengerjaan",
+      link: "/design-graphic/manage-requests",
+    },
+    {
+      id: "aset-rusak",
+      title: "Aset Rusak",
+      value: 0,
+      subtext: "Menunggu perbaikan",
+      link: "/inventaris/tik",
+    },
+    {
+      id: "maintenance-minggu-ini",
+      title: "Jadwal Maintenance Minggu Ini",
+      value: 0,
+      subtext: "Agenda rutin TIK dan Sarpras",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [],
+  assetStatuses: [],
+  maintenanceSchedules: [],
+  reminders: [],
+};

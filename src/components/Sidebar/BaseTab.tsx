@@ -49,7 +49,22 @@ export default function BaseTab({
   if (to) {
     return (
       <NavLink to={to} className={({ isActive }) => getClassName(isActive)}>
-        {content}
+        {({ isActive }) => (
+          <>
+            <div className="flex items-center gap-3">
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </div>
+
+            {typeof badge === "number" && badge > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                {badge}
+              </span>
+            ) : isActive ? (
+              <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>
+            ) : null}
+          </>
+        )}
       </NavLink>
     );
   }
