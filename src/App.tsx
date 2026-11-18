@@ -7,7 +7,7 @@ import LoginPage from "@/features/auth-login/pages/LoginPage";
 import { useAuth } from "@/features/auth-login/context/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
-import { BACKUP_ROLES } from "@/types/auth";
+import { BACKUP_ROLES, MAINTENANCE_ROLES, MASTER_DATA_ROLES } from "@/types/auth";
 
 import HelpdeskListPage from "@/features/helpdesk-list-detail/pages/HelpdeskListPage";
 import HelpdeskDetailPage from "@/features/helpdesk-list-detail/pages/HelpdeskDetailPage";
@@ -143,9 +143,11 @@ function App() {
           <Route path="/helpdesk/inventory-detail" element={<HelpdeskInventoryDetailPage />} />
 
           {/* Master Data */}
-          <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
-          <Route path="/master-data/users" element={<UserListPage />} />
-          <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
+          <Route element={<ProtectedRoute allowedRoles={MASTER_DATA_ROLES} />}>
+            <Route path="/master-data" element={<Navigate to="/master-data/users" replace />} />
+            <Route path="/master-data/users" element={<UserListPage />} />
+            <Route path="/master-data/users/:userId" element={<UserDetailPage />} />
+          </Route>
 
           {/* Inventaris Aset */}
           <Route path="/inventaris/tik" element={<InventarisTikListPage />} />
@@ -182,11 +184,13 @@ function App() {
           />
 
           {/* Maintenance */}
-          <Route path="/maintenance" element={<DaftarMaintenancePage />} />
-          <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
-          <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
-          <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
-          <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
+          <Route element={<ProtectedRoute allowedRoles={MAINTENANCE_ROLES} />}>
+            <Route path="/maintenance" element={<DaftarMaintenancePage />} />
+            <Route path="/maintenance/create" element={<TambahJadwalMaintenancePage />} />
+            <Route path="/maintenance/:id" element={<DetailJadwalMaintenancePage />} />
+            <Route path="/maintenance/:id/edit" element={<UbahJadwalMaintenancePage />} />
+            <Route path="/maintenance/:id/catat-hasil" element={<CatatHasilMaintenancePage />} />
+          </Route>
 
           {/* Desain Grafis */}
           <Route
