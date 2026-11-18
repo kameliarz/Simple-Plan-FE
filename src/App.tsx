@@ -42,6 +42,8 @@ import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage
 import TugasDesainPage from "@/features/design-graphic/pages/TugasDesainPage";
 import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
 
+import ReportPage from "@/features/report/pages/ReportPage";
+
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -200,6 +202,9 @@ function App() {
           <Route path="/design-graphic/assigned-tasks" element={<TugasDesainPage />} />
           <Route path="/design-graphic/:designId" element={<GraphicDesignDetailPage />} />
           <Route path="/graphic-design/:designId" element={<GraphicDesignDetailPage />} />
+
+          {/* Laporan */}
+          <Route path="/report" element={<ReportPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
