@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
+      allowedHosts: ["useable-celibacy-underrate.ngrok-free.dev"],
       proxy: {
         "/api": {
           target: BACKEND_BASE_URL,

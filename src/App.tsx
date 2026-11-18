@@ -41,6 +41,8 @@ import BuatRequestDesainPage from "@/features/design-graphic/pages/BuatRequestDe
 import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage";
 import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
 
+import ReportPage from "@/features/report/pages/ReportPage";
+
 function ResponsiveNotificationRoute() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -197,6 +199,9 @@ function App() {
           <Route path="/design-graphic/create" element={<BuatRequestDesainPage />} />
           <Route path="/design-graphic/manage-requests" element={<KelolaRequestPage />} />
           <Route path="/design-graphic/:designId" element={<GraphicDesignDetailPage />} />
+
+          {/* Laporan */}
+          <Route path="/report" element={<ReportPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
