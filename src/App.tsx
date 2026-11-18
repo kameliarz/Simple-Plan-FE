@@ -41,6 +41,7 @@ import BuatRequestDesainPage from "@/features/design-graphic/pages/BuatRequestDe
 import KelolaRequestPage from "@/features/design-graphic/pages/KelolaRequestPage";
 import TugasDesainPage from "@/features/design-graphic/pages/TugasDesainPage";
 import GraphicDesignDetailPage from "@/features/grapic-design-detail/pages/GraphicDesignDetailPage";
+import DashboardPage from "@/features/dashboard/pages/DashboardPage";
 
 import ReportPage from "@/features/report/pages/ReportPage";
 
@@ -126,12 +127,8 @@ function App() {
     <ProtectedRoute>
       <MainLayout>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
-            }
-          />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
           {/* Helpdesk */}
           <Route path="/helpdesk" element={<RoleAwareHelpdeskList />} />
