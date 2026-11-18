@@ -641,6 +641,14 @@ export default function MainLayout({
         return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
       }
 
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
+      }
+
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
     }
 

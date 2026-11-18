@@ -48,6 +48,7 @@ export default function BuatRequestDesainPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +126,7 @@ export default function BuatRequestDesainPage() {
       return;
     }
 
+    setApiError(null);
     try {
       setIsSubmitting(true);
       await designGraphicService.createRequest({
@@ -146,8 +148,13 @@ export default function BuatRequestDesainPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+
+      setTimeout(() => {
+        navigate("/design-graphic/my-requests");
+      }, 1200);
     } catch (err) {
       console.error("Gagal mengirim request desain:", err);
+      setApiError(err instanceof Error ? err.message : "Gagal membuat request desain.");
     } finally {
       setIsSubmitting(false);
     }
@@ -192,7 +199,9 @@ export default function BuatRequestDesainPage() {
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-200/70 text-success-700 dark:bg-emerald-800 dark:text-emerald-200">
               <IconCheck size={13} strokeWidth={2.5} />
             </span>
-            <span className="whitespace-nowrap">Request desain berhasil dikirim</span>
+            <span className="whitespace-nowrap">
+              Request desain berhasil dikirim! Mengalihkan...
+            </span>
             <button
               type="button"
               onClick={() => setShowSuccessAlert(false)}
@@ -204,6 +213,23 @@ export default function BuatRequestDesainPage() {
           </div>
         )}
       </div>
+
+      {/* Error Alert Banner */}
+      {apiError && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/60 dark:text-rose-300">
+          <div className="flex items-center gap-2">
+            <IconAlertCircle size={16} className="shrink-0 text-rose-600" />
+            <span>{apiError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setApiError(null)}
+            className="text-rose-600 hover:text-rose-800 cursor-pointer"
+          >
+            <IconX size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Form Card */}
       <form

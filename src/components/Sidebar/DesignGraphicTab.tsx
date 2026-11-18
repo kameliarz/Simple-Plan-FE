@@ -6,14 +6,18 @@ import BaseTab from "./BaseTab";
 
 export default function DesignGraphicTab() {
   const location = useLocation();
-  const isActive = location.pathname.startsWith("/design-graphic");
+  const isActive =
+    location.pathname.startsWith("/design-graphic") ||
+    location.pathname.startsWith("/graphic-design");
   const [isOpen, setIsOpen] = useState(isActive);
 
   const user = getUser();
   const role = user?.role || "";
 
-  // Role yang memiliki sub-menu (Request Saya & Kelola Request)
-  const hasSubMenus = role === "super-admin";
+  // Role yang memiliki sub-menu
+  const isSuperAdmin = role === "super-admin";
+  const isPetugasTik = role === "petugas-tik";
+  const hasSubMenus = isSuperAdmin || isPetugasTik;
 
   // Jika role tidak memiliki sub-menu, langsung arahkan ke Request Saya
   if (!hasSubMenus) {
@@ -26,6 +30,7 @@ export default function DesignGraphicTab() {
     location.pathname.startsWith("/design-graphic/create");
 
   const isManageRequestsActive = location.pathname.startsWith("/design-graphic/manage-requests");
+  const isAssignedTasksActive = location.pathname.startsWith("/design-graphic/assigned-tasks");
 
   const renderSubNavLink = (
     to: string,
@@ -81,12 +86,20 @@ export default function DesignGraphicTab() {
             SquarePlus,
             isMyRequestsActive,
           )}
-          {renderSubNavLink(
-            "/design-graphic/manage-requests",
-            "Kelola Request",
-            FolderInput,
-            isManageRequestsActive,
-          )}
+          {isSuperAdmin &&
+            renderSubNavLink(
+              "/design-graphic/manage-requests",
+              "Kelola Request",
+              FolderInput,
+              isManageRequestsActive,
+            )}
+          {isPetugasTik &&
+            renderSubNavLink(
+              "/design-graphic/assigned-tasks",
+              "Tugas Desain",
+              FolderInput,
+              isAssignedTasksActive,
+            )}
         </div>
       )}
     </div>
