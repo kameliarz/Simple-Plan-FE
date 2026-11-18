@@ -248,21 +248,6 @@ export default function TambahJadwalForm() {
         onSubmit={handleSubmit}
         className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm transition-colors space-y-5"
       >
-        {/* NOMOR INVENTARIS (Readonly / Auto-filled) */}
-        <div>
-          <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
-            NOMOR INVENTARIS
-          </label>
-          <input
-            type="text"
-            readOnly
-            disabled
-            value={form.nomorInventaris || selectedAsset?.fullCode || ""}
-            placeholder="Terisi otomatis dari inventaris"
-            className="h-11 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-700 placeholder-gray-400 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-          />
-        </div>
-
         {/* 1. ASET * */}
         <div className="relative">
           <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
@@ -354,6 +339,21 @@ export default function TambahJadwalForm() {
               <span>{errors.assetId}</span>
             </div>
           )}
+        </div>
+
+        {/* NOMOR INVENTARIS (Readonly / Auto-filled) */}
+        <div>
+          <label className="block text-xs font-bold tracking-wider text-text-title uppercase mb-1.5">
+            NOMOR INVENTARIS
+          </label>
+          <input
+            type="text"
+            readOnly
+            disabled
+            value={form.nomorInventaris || selectedAsset?.fullCode || ""}
+            placeholder="Terisi otomatis dari inventaris"
+            className="h-11 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-700 placeholder-gray-400 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          />
         </div>
 
         {/* 2. NAMA BARANG (Readonly / Auto-filled) */}
