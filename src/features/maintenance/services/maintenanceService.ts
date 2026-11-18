@@ -1,4 +1,5 @@
 import { BACKEND_URL } from "@/config/api";
+import { apiFetch } from "@/lib/apiFetch";
 import { getAssetClassifications, getAssets } from "@/features/inventaris/services/inventarisApi";
 import { clearAuth, getToken, getUser } from "@/features/auth-login/services/authStorage";
 import type { ApiAsset } from "@/features/inventaris/types/inventaris";
@@ -39,7 +40,6 @@ export function formatPeriod(raw?: string): string {
   if (!raw) return "-";
   const found = periodOptions.find((p) => p.value.toLowerCase() === raw.toLowerCase());
   if (found) return found.label;
-  // Fallback if already Indonesian label
   return raw;
 }
 
@@ -681,18 +681,7 @@ export const maintenanceService = {
     const defaultOfficers = domainParam === "sarpras" ? realSarprasOfficers : realTikOfficers;
 
     try {
-      // Coba ambil daftar user via endpoint standar /users
-      const response = await fetch(`${API_BASE_URL}/users?per_page=100`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        return defaultOfficers;
-      }
-
-      const resJson = await response.json();
-      let rawUsers: Array<{
+      const allUsers: Array<{
         id: number;
         name?: string;
         nama?: string;
@@ -702,15 +691,39 @@ export const maintenanceService = {
         status_user?: string;
       }> = [];
 
-      if (Array.isArray(resJson.data)) {
-        rawUsers = resJson.data;
-      } else if (resJson.data && Array.isArray(resJson.data.data)) {
-        rawUsers = resJson.data.data;
-      }
+      let page = 1;
+      let lastPage = 1;
+
+      do {
+        const response = await apiFetch(`${API_BASE_URL}/users?page=${page}`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          if (response.status === 403) {
+            console.warn(
+              "GET /api/v1/users mengembalikan 403 Forbidden untuk role ini (memerlukan permission users-access di backend). Menggunakan fallback daftar petugas valid.",
+            );
+          }
+          break;
+        }
+
+        const resJson = await response.json();
+        const pageData = Array.isArray(resJson.data)
+          ? resJson.data
+          : Array.isArray(resJson.data?.data)
+            ? resJson.data.data
+            : [];
+
+        allUsers.push(...pageData);
+        lastPage = resJson.data?.meta?.last_page || resJson.meta?.last_page || 1;
+        page++;
+      } while (page <= lastPage && page <= 10);
 
       const targetRoleKey = domainParam === "sarpras" ? "sarpras" : "tik";
 
-      const filtered = rawUsers.filter((u) => {
+      const filtered = allUsers.filter((u) => {
         if (u.status_user && u.status_user.toLowerCase() !== "aktif") return false;
         const roleStr = (u.role || "").toLowerCase();
         const jabatanStr = (u.jabatan || "").toLowerCase();
