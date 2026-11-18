@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
 
 import BottomNav, { type MobileNavTab } from "@/components/layout/BottomNav";
+
 import MobileHeader from "@/components/layout/MobileHeader";
 import NavbarHeader from "@/components/layout/NavbarHeader";
 import MobileSidebar from "@/components/layout/MobileSidebar";
@@ -10,8 +12,14 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 import NotificationDrawer from "@/features/notification/components/NotificationDrawer";
+
 import { notificationService } from "@/features/notification/services/notificationService";
+
 import { NOTIFICATION_UPDATED_EVENT } from "@/features/notification/utils/notificationEvents";
+
+// ==========================================
+// TYPES
+// ==========================================
 
 interface BreadcrumbItem {
   label: string;
@@ -23,6 +31,20 @@ interface MainLayoutProps {
   breadcrumbs?: BreadcrumbItem[];
   notificationCount?: number;
 }
+
+// ==========================================
+// NOTIFICATION BREAKPOINT
+// ==========================================
+
+// Di bawah 768px: halaman notifikasi.
+// Mulai 768px: notification slide-over.
+//
+// Mengikuti breakpoint "md" Tailwind.
+const NOTIFICATION_DRAWER_BREAKPOINT = "(min-width: 768px)";
+
+// ==========================================
+// MAIN LAYOUT
+// ==========================================
 
 export default function MainLayout({
   children,
@@ -37,8 +59,11 @@ export default function MainLayout({
   // ==========================================
 
   const [isDarkMode, setIsDarkMode] = useState(false);
+
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+
   const [unreadCount, setUnreadCount] = useState(notificationCount);
+
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // ==========================================
@@ -59,9 +84,14 @@ export default function MainLayout({
     if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
       return "inventaris";
     }
-    if (location.pathname.startsWith("/design-graphic")) {
+
+    if (
+      location.pathname.startsWith("/design-graphic") ||
+      location.pathname.startsWith("/graphic-design")
+    ) {
       return "design-graphic";
     }
+
     if (location.pathname.startsWith("/helpdesk")) {
       return "helpdesk";
     }
@@ -172,15 +202,17 @@ export default function MainLayout({
           return;
         }
 
-        // Periksa notifikasi yang belum pernah terdeteksi.
-        // Hanya notifikasi belum dibaca yang memicu suara.
+        // Periksa notifikasi yang belum pernah
+        // terdeteksi. Hanya notifikasi belum
+        // dibaca yang memicu suara.
         const hasNewNotification = response.data.some(
           (notification) =>
             !notification.is_read && !knownNotificationIds.current?.has(String(notification.id)),
         );
 
-        // Simpan ID yang sudah diketahui.
-        // Jangan hapus ID lama agar tidak berbunyi ulang.
+        // Simpan seluruh ID yang sudah diketahui.
+        // Jangan hapus ID lama agar tidak
+        // berbunyi ulang.
         const updatedIds = new Set([...knownNotificationIds.current, ...currentIds]);
 
         knownNotificationIds.current = updatedIds;
@@ -274,11 +306,33 @@ export default function MainLayout({
   }, []);
 
   // ==========================================
-  // NOTIFIKASI MOBILE
+  // RESPONSIVE NOTIFICATION HANDLER
   // ==========================================
 
+  // Digunakan oleh MobileHeader.
+  //
+  // Mobile < 768px:
+  // Navigasi ke halaman /notification.
+  //
+  // Tablet >= 768px:
+  // Membuka NotificationDrawer.
+  //
+  // Breakpoint notifikasi tidak bergantung
+  // pada breakpoint pergantian header.
+
   const handleMobileNotificationClick = () => {
-    if (location.pathname === "/notification") return;
+    const isTabletOrLarger = window.matchMedia(NOTIFICATION_DRAWER_BREAKPOINT).matches;
+
+    // TABLET: OPEN SLIDE-OVER
+    if (isTabletOrLarger) {
+      setShowNotificationDrawer(true);
+      return;
+    }
+
+    // MOBILE: OPEN NOTIFICATION PAGE
+    if (location.pathname === "/notification") {
+      return;
+    }
 
     navigate("/notification", {
       state: {
@@ -288,25 +342,59 @@ export default function MainLayout({
   };
 
   // ==========================================
-  // NOTIFIKASI DESKTOP
+  // DESKTOP NOTIFICATION HANDLER
   // ==========================================
 
   const handleNotificationClick = () => {
     setShowNotificationDrawer(true);
   };
 
+  // ==========================================
+  // CLOSE NOTIFICATION DRAWER
+  // ==========================================
+
   const handleCloseNotification = () => {
     setShowNotificationDrawer(false);
   };
+
+  // ==========================================
+  // RESPONSIVE DRAWER CLEANUP
+  // ==========================================
+
+  // Jika drawer sedang terbuka dan layar
+  // berubah menjadi mobile (< 768px),
+  // tutup drawer agar tidak mengganggu
+  // tampilan halaman mobile.
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(NOTIFICATION_DRAWER_BREAKPOINT);
+
+    const handleBreakpointChange = () => {
+      if (!mediaQuery.matches) {
+        setShowNotificationDrawer(false);
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleBreakpointChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleBreakpointChange);
+    };
+  }, []);
 
   // ==========================================
   // BREADCRUMBS
   // ==========================================
 
   const getCurrentBreadcrumbs = (): BreadcrumbItem[] => {
-    if (breadcrumbs.length > 0) return breadcrumbs;
+    if (breadcrumbs.length > 0) {
+      return breadcrumbs;
+    }
 
     const path = location.pathname;
+
+    // ======================================
+    // HELPDESK SARPRAS
+    // ======================================
 
     if (path.startsWith("/helpdesk/sarpras")) {
       const user = getUser();
@@ -314,10 +402,21 @@ export default function MainLayout({
 
       let label = "Koordinator Sarpras";
 
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "super-admin") label = "Super Admin";
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "super-admin") {
+        label = "Super Admin";
+      }
 
       const base = [{ label }, { label: "Helpdesk" }];
 
@@ -328,14 +427,23 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // HELPDESK TIK
+    // ======================================
+
     if (path.startsWith("/helpdesk/tik")) {
       const user = getUser();
       const role = user?.role;
 
       let label = "Super Admin";
 
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
 
       const base = [{ label }, { label: "Helpdesk" }];
 
@@ -345,6 +453,10 @@ export default function MainLayout({
 
       return [...base, { label: "Detail Tiket" }];
     }
+
+    // ======================================
+    // MANAJEMEN HELPDESK TIK
+    // ======================================
 
     if (path.startsWith("/manajemen/helpdesk/tik")) {
       const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
@@ -356,6 +468,10 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // MANAJEMEN HELPDESK SARPRAS
+    // ======================================
+
     if (path.startsWith("/manajemen/helpdesk/sarpras")) {
       const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
 
@@ -366,9 +482,17 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // CREATE HELPDESK
+    // ======================================
+
     if (path === "/helpdesk/create") {
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
+
+    // ======================================
+    // INVENTARIS TIK
+    // ======================================
 
     if (path.startsWith("/inventaris/tik")) {
       const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
@@ -380,6 +504,10 @@ export default function MainLayout({
       return [...base, { label: "Detail Inventaris TIK" }];
     }
 
+    // ======================================
+    // INVENTARIS SARPRAS
+    // ======================================
+
     if (path.startsWith("/inventaris/sarpras")) {
       const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
 
@@ -390,9 +518,17 @@ export default function MainLayout({
       return [...base, { label: "Detail Inventaris Sarpras" }];
     }
 
+    // ======================================
+    // MASTER DATA
+    // ======================================
+
     if (path.startsWith("/master-data")) {
       return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
+
+    // ======================================
+    // MAINTENANCE
+    // ======================================
 
     if (path.startsWith("/maintenance")) {
       const user = getUser();
@@ -415,16 +551,35 @@ export default function MainLayout({
       return [{ label }, { label: "Maintenance" }];
     }
 
+    // ======================================
+    // DESIGN GRAPHIC
+    // ======================================
+
     if (path.startsWith("/design-graphic")) {
       const user = getUser();
       const role = user?.role;
 
       let label = "Super Admin";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "user") label = user?.jabatan || "User";
+
+      if (role === "koordinator-sarpras") {
+        label = "Koordinator Sarpras";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "user") {
+        label = user?.jabatan || "User";
+      }
 
       if (path.startsWith("/design-graphic/manage-requests")) {
         return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
@@ -433,18 +588,57 @@ export default function MainLayout({
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
     }
 
-    if (path.startsWith("/design-graphic")) {
+    // ======================================
+    // GRAPHIC DESIGN DETAIL / FALLBACK
+    // ======================================
+
+    if (path.startsWith("/design-graphic") || path.startsWith("/graphic-design")) {
       const user = getUser();
       const role = user?.role;
+
       let label = "Super Admin";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "user") label = user?.jabatan || "User";
+
+      if (role === "koordinator-sarpras") {
+        label = "Koordinator Sarpras";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "user") {
+        label = user?.jabatan || "User";
+      }
+
+      if (
+        path.startsWith("/graphic-design/") ||
+        (path.startsWith("/design-graphic/") &&
+          path !== "/design-graphic/my-requests" &&
+          path !== "/design-graphic/manage-requests" &&
+          path !== "/design-graphic/assigned-tasks" &&
+          path !== "/design-graphic/create")
+      ) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Detail Request Desain" }];
+      }
 
       if (path.startsWith("/design-graphic/manage-requests")) {
         return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
+      }
+
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
       }
 
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
@@ -463,14 +657,29 @@ export default function MainLayout({
     <>
       <div className="min-h-screen bg-background text-text transition-colors">
         <div className="flex h-screen overflow-hidden">
+          {/* ====================================== */}
           {/* SIDEBAR DESKTOP */}
+          {/* ====================================== */}
+
           <div className="hidden shrink-0 lg:flex">
             <Sidebar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           </div>
 
+          {/* ====================================== */}
           {/* MAIN AREA */}
-          <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            {/* HEADER MOBILE */}
+          {/* ====================================== */}
+
+          <div
+            className="
+              flex h-screen min-w-0
+              flex-1 flex-col overflow-hidden
+              bg-background
+            "
+          >
+            {/* ====================================== */}
+            {/* HEADER MOBILE + TABLET */}
+            {/* ====================================== */}
+
             <div className="shrink-0 lg:hidden">
               <MobileHeader
                 isDarkMode={isDarkMode}
@@ -481,7 +690,10 @@ export default function MainLayout({
               />
             </div>
 
+            {/* ====================================== */}
             {/* HEADER DESKTOP */}
+            {/* ====================================== */}
+
             <div className="hidden shrink-0 lg:block">
               <NavbarHeader
                 breadcrumbs={currentBreadcrumbs}
@@ -490,12 +702,24 @@ export default function MainLayout({
               />
             </div>
 
+            {/* ====================================== */}
             {/* PAGE CONTENT */}
-            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-20 lg:pb-0">
+            {/* ====================================== */}
+
+            <main
+              className="
+                min-h-0 min-w-0 flex-1
+                overflow-y-auto bg-background
+                pb-20 lg:pb-0
+              "
+            >
               {children}
             </main>
 
-            {/* BOTTOM NAVIGATION MOBILE */}
+            {/* ====================================== */}
+            {/* BOTTOM NAVIGATION MOBILE + TABLET */}
+            {/* ====================================== */}
+
             <div className="shrink-0 lg:hidden">
               <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
@@ -503,10 +727,16 @@ export default function MainLayout({
         </div>
       </div>
 
-      {/* NOTIFICATION DRAWER DESKTOP */}
+      {/* ====================================== */}
+      {/* NOTIFICATION DRAWER TABLET + DESKTOP */}
+      {/* ====================================== */}
+
       <NotificationDrawer show={showNotificationDrawer} onClose={handleCloseNotification} />
 
+      {/* ====================================== */}
       {/* MOBILE SIDEBAR */}
+      {/* ====================================== */}
+
       <MobileSidebar
         show={showMobileSidebar}
         onClose={() => setShowMobileSidebar(false)}
