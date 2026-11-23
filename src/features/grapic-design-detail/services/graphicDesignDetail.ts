@@ -74,14 +74,45 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 const path = (id: string) => `/design-requests/${encodeURIComponent(id)}`;
-const date = (value: string) =>
-  value
-    ? new Intl.DateTimeFormat("id-ID", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(new Date(value))
-    : "-";
+const date = (value: string) => {
+  if (!value) return "-";
+  try {
+    const cleanStr = value.includes("T") ? value.split("T")[0] : value.trim();
+    const parts = cleanStr.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const bulanPendek = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "Mei",
+        "Jun",
+        "Jul",
+        "Agu",
+        "Sep",
+        "Okt",
+        "Nov",
+        "Des",
+      ];
+      if (!isNaN(year) && !isNaN(monthIdx) && !isNaN(day) && bulanPendek[monthIdx]) {
+        return `${day} ${bulanPendek[monthIdx]} ${year}`;
+      }
+    }
+
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return value;
+  }
+};
 const file = (value: ApiFile): DesignFile => ({
   name: value.original_name,
   size:

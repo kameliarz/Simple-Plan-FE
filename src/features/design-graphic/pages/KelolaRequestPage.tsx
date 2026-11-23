@@ -10,12 +10,17 @@ import DesignRequestTable from "../components/DesignRequestTable";
 import DesignStatusBadge from "../components/DesignStatusBadge";
 import { DESIGN_STATUS_LIST, designGraphicService } from "../services/designGraphicService";
 import type { DesignRequestItem } from "../types/designGraphic.types";
+import { getUser } from "@/features/auth-login/services/authStorage";
 
 const DESKTOP_FILTER_OPTIONS = ["Semua status", ...DESIGN_STATUS_LIST];
 const ITEMS_PER_PAGE = 15;
 
 export default function KelolaRequestPage() {
   const navigate = useNavigate();
+  const user = getUser();
+  const isManagement = user?.role === "management" || user?.role === "manajemen";
+  const pageTitle = isManagement ? "Rekap Desain Grafis" : "Kelola Request";
+
   const [items, setItems] = useState<DesignRequestItem[]>([]);
   const [meta, setMeta] = useState<ApiMeta | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -129,7 +134,7 @@ export default function KelolaRequestPage() {
           </div>
         ) : (
           <div className="space-y-2.5">
-            <h1 className="font-poppins text-base font-semibold text-text-title">Kelola Request</h1>
+            <h1 className="font-poppins text-base font-semibold text-text-title">{pageTitle}</h1>
 
             {items.map((item) => (
               <div
@@ -263,7 +268,7 @@ export default function KelolaRequestPage() {
 
       {/*desktop */}
       <div className="hidden md:block space-y-5">
-        <h1 className="font-poppins text-xl font-semibold text-text-title">Kelola Request</h1>
+        <h1 className="font-poppins text-xl font-semibold text-text-title">{pageTitle}</h1>
 
         <div className="rounded-xl border border-med-border bg-table-card p-4 md:p-5">
           {/* Search & Status Dropdown Bar */}

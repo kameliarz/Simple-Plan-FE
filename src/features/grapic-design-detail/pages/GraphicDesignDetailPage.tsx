@@ -41,74 +41,36 @@ export default function GraphicDesignDetailPage() {
   const { showToast } = useToast();
 
   const isSuperAdmin = user?.role === "super-admin";
-  const graphicDesignListPath = isSuperAdmin
-    ? "/design-graphic/manage-requests"
-    : "/design-graphic/my-requests";
-
-  // ==========================================
-  // DETAIL STATE
-  // ==========================================
+  const isManagement = user?.role === "management" || user?.role === "manajemen";
+  const graphicDesignListPath =
+    isSuperAdmin || isManagement
+      ? "/design-graphic/manage-requests"
+      : "/design-graphic/my-requests";
 
   const [currentDesign, setCurrentDesign] = useState<GraphicDesignDetail | null>(null);
-
   const [loadedDesignId, setLoadedDesignId] = useState<string | null>(null);
-
   const isLoading = Boolean(designId) && loadedDesignId !== designId;
-
   const [error, setError] = useState<string | null>(null);
 
-  // ==========================================
-  // ASSIGNMENT STATE
-  // ==========================================
-
   const [isAssignmentMode, setIsAssignmentMode] = useState(false);
-
   const [priority, setPriority] = useState<DesignPriority | "">("");
-
   const [selectedOfficer, setSelectedOfficer] = useState<DesignOfficer | null>(null);
-
   const [priorityError, setPriorityError] = useState("");
   const [officerError, setOfficerError] = useState("");
-
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
 
-  // ==========================================
-  // REJECTION STATE
-  // ==========================================
-
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-
   const [isRejecting, setIsRejecting] = useState(false);
 
-  // ==========================================
-  // UPLOAD DRAFT STATE
-  // ==========================================
-
   const [isUploadDraftModalOpen, setIsUploadDraftModalOpen] = useState(false);
-
   const [isUploadingDraft, setIsUploadingDraft] = useState(false);
 
-  // ==========================================
-  // APPROVAL STATE
-  // ==========================================
-
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
-
   const [isApproving, setIsApproving] = useState(false);
 
-  // ==========================================
-  // REVISION STATE
-  // ==========================================
-
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
-
   const [isSendingRevision, setIsSendingRevision] = useState(false);
-
-  // ==========================================
-  // NAVIGATION
-  // ==========================================
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -117,10 +79,6 @@ export default function GraphicDesignDetailPage() {
       navigate(graphicDesignListPath);
     }
   };
-
-  // ==========================================
-  // FETCH DETAIL
-  // ==========================================
 
   useEffect(() => {
     if (!designId) return;
@@ -174,10 +132,6 @@ export default function GraphicDesignDetailPage() {
     };
   }, [designId]);
 
-  // ==========================================
-  // CLEANUP OBJECT URL
-  // ==========================================
-
   const draftFileUrl = currentDesign?.draft?.file?.url;
 
   useEffect(() => {
@@ -187,10 +141,6 @@ export default function GraphicDesignDetailPage() {
       }
     };
   }, [draftFileUrl]);
-
-  // ==========================================
-  // ROLE PERMISSIONS
-  // ==========================================
 
   const isAssignedOfficer =
     !!user && !!currentDesign?.assignee && String(user.id) === String(currentDesign.assignee.id);
@@ -220,10 +170,6 @@ export default function GraphicDesignDetailPage() {
 
   const isCompleted = currentDesign?.status === "Selesai";
 
-  // ==========================================
-  // OPEN ASSIGNMENT
-  // ==========================================
-
   const handleOpenAssignment = () => {
     if (!canManageRequest) return;
 
@@ -244,10 +190,6 @@ export default function GraphicDesignDetailPage() {
     setOfficerError("");
     setIsAssignModalOpen(false);
   };
-
-  // ==========================================
-  // SAVE ASSIGNMENT
-  // ==========================================
 
   const handleSaveAssignment = async () => {
     if (!canManageRequest || !designId || isSavingAssignment) {
@@ -299,10 +241,6 @@ export default function GraphicDesignDetailPage() {
     }
   };
 
-  // ==========================================
-  // REJECT REQUEST
-  // ==========================================
-
   const handleRejectRequest = async (reason: string) => {
     if (!canManageRequest || !designId || isRejecting) {
       return;
@@ -324,10 +262,6 @@ export default function GraphicDesignDetailPage() {
       setIsRejecting(false);
     }
   };
-
-  // ==========================================
-  // UPLOAD DRAFT
-  // ==========================================
 
   const handleUploadDraft = async (file: File, notes: string) => {
     if (!designId || !canUploadDraft || !user || isUploadingDraft) {
@@ -355,10 +289,6 @@ export default function GraphicDesignDetailPage() {
     }
   };
 
-  // ==========================================
-  // APPROVE DRAFT
-  // ==========================================
-
   const handleApproveDraft = async () => {
     if (!designId || !canReviewDraft || !user || isApproving) {
       return;
@@ -369,7 +299,6 @@ export default function GraphicDesignDetailPage() {
 
       await approveGraphicDesignDraft(designId);
 
-      // Muat ulang detail dan riwayat dari server.
       const updatedDesign = await getGraphicDesignDetail(designId);
 
       setCurrentDesign(updatedDesign);
@@ -385,10 +314,6 @@ export default function GraphicDesignDetailPage() {
     }
   };
 
-  // ==========================================
-  // REQUEST REVISION
-  // ==========================================
-
   const handleRequestRevision = async (notes: string) => {
     if (!designId || !canReviewDraft || !user || isSendingRevision) {
       return;
@@ -401,7 +326,6 @@ export default function GraphicDesignDetailPage() {
         notes,
       });
 
-      // Muat ulang URL draft.
       const updatedDesign = await getGraphicDesignDetail(designId);
 
       setCurrentDesign(updatedDesign);
@@ -416,10 +340,6 @@ export default function GraphicDesignDetailPage() {
       setIsSendingRevision(false);
     }
   };
-
-  // ==========================================
-  // DOWNLOAD FINAL
-  // ==========================================
 
   const [isDownloadingFinal, setIsDownloadingFinal] = useState(false);
 
@@ -447,10 +367,6 @@ export default function GraphicDesignDetailPage() {
     }
   };
 
-  // ==========================================
-  // NO DESIGN ID
-  // ==========================================
-
   if (!designId) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
@@ -474,10 +390,6 @@ export default function GraphicDesignDetailPage() {
     );
   }
 
-  // ==========================================
-  // LOADING
-  // ==========================================
-
   if (isLoading) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background p-6">
@@ -489,10 +401,6 @@ export default function GraphicDesignDetailPage() {
       </div>
     );
   }
-
-  // ==========================================
-  // ERROR / NOT FOUND
-  // ==========================================
 
   if (!currentDesign) {
     return (
@@ -515,14 +423,9 @@ export default function GraphicDesignDetailPage() {
     );
   }
 
-  // ==========================================
-  // UI
-  // ==========================================
-
   return (
     <div className="min-h-full bg-background p-4 pb-10 lg:p-5">
       <div className="mx-auto max-w-350">
-        {/* HEADER */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
@@ -534,7 +437,6 @@ export default function GraphicDesignDetailPage() {
             <span>Detail Request Desain</span>
           </button>
 
-          {/* DOWNLOAD FINAL */}
           {isCompleted && (
             <Button
               type="button"
@@ -549,7 +451,6 @@ export default function GraphicDesignDetailPage() {
         </div>
 
         <div className="space-y-5">
-          {/* REQUEST INFORMATION */}
           <DetailSection
             title={currentDesign.title}
             actions={
@@ -593,7 +494,6 @@ export default function GraphicDesignDetailPage() {
             </dl>
           </DetailSection>
 
-          {/* SUPER ADMIN - REQUEST BARU */}
           {canManageRequest && !isAssignmentMode && (
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
@@ -612,7 +512,6 @@ export default function GraphicDesignDetailPage() {
             </div>
           )}
 
-          {/* SUPER ADMIN - ASSIGNMENT */}
           {canManageRequest && isAssignmentMode && (
             <AssignmentCard
               priority={priority}
@@ -626,9 +525,7 @@ export default function GraphicDesignDetailPage() {
             />
           )}
 
-          {/* ======================================
-              DRAFT DESAIN - UPDATED DESIGN
-          ====================================== */}
+          {/* Draft Desain */}
           {isAssigned && (
             <DetailSection title="Draft Desain">
               {currentDesign.draft ? (
@@ -650,7 +547,6 @@ export default function GraphicDesignDetailPage() {
             </DetailSection>
           )}
 
-          {/* ASSIGNED OFFICER - UPLOAD DRAFT */}
           {canUploadDraft && (
             <Button
               label="Unggah Draft"
@@ -660,7 +556,6 @@ export default function GraphicDesignDetailPage() {
             />
           )}
 
-          {/* REQUESTER - REVIEW ACTIONS */}
           {canReviewDraft && (
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
@@ -679,7 +574,6 @@ export default function GraphicDesignDetailPage() {
             </div>
           )}
 
-          {/* REJECTION NOTE */}
           {isRejected && (
             <DetailSection title="Catatan Penolakan">
               <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-text-title">
@@ -690,11 +584,7 @@ export default function GraphicDesignDetailPage() {
         </div>
       </div>
 
-      {/* ======================================
-          MODALS
-      ====================================== */}
-
-      {/* ASSIGN OFFICER MODAL */}
+      {/* Modals */}
       {canManageRequest && isAssignModalOpen && (
         <AssignDesignOfficerModal
           isOpen={isAssignModalOpen}
@@ -704,7 +594,6 @@ export default function GraphicDesignDetailPage() {
         />
       )}
 
-      {/* REJECT REQUEST MODAL */}
       {canManageRequest && isRejectModalOpen && (
         <RejectDesignModal
           isOpen={isRejectModalOpen}
@@ -714,7 +603,6 @@ export default function GraphicDesignDetailPage() {
         />
       )}
 
-      {/* UPLOAD DRAFT MODAL */}
       {canUploadDraft && isUploadDraftModalOpen && (
         <UploadDraftModal
           isOpen={isUploadDraftModalOpen}
@@ -724,7 +612,6 @@ export default function GraphicDesignDetailPage() {
         />
       )}
 
-      {/* APPROVE DRAFT MODAL */}
       {canReviewDraft && (
         <ApproveDraftModal
           isOpen={isApproveModalOpen}
@@ -734,7 +621,6 @@ export default function GraphicDesignDetailPage() {
         />
       )}
 
-      {/* REQUEST REVISION MODAL */}
       {canReviewDraft && isRevisionModalOpen && (
         <RequestRevisionModal
           isOpen={isRevisionModalOpen}

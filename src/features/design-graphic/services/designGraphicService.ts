@@ -26,7 +26,19 @@ const BULAN_PENDEK = [
 
 export function formatTanggalIndoPendek(isoDate: string): string {
   if (!isoDate) return "-";
-  const parsed = new Date(`${isoDate}T00:00:00`);
+
+  const cleanDateStr = isoDate.includes("T") ? isoDate.split("T")[0] : isoDate.trim();
+  const parts = cleanDateStr.split("-");
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(year) && !isNaN(monthIdx) && !isNaN(day) && BULAN_PENDEK[monthIdx]) {
+      return `${day} ${BULAN_PENDEK[monthIdx]} ${year}`;
+    }
+  }
+
+  const parsed = new Date(isoDate);
   if (Number.isNaN(parsed.getTime())) {
     return isoDate;
   }
