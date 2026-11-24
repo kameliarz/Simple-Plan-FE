@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
 
 import BottomNav, { type MobileNavTab } from "@/components/layout/BottomNav";
+
 import MobileHeader from "@/components/layout/MobileHeader";
 import NavbarHeader from "@/components/layout/NavbarHeader";
 import MobileSidebar from "@/components/layout/MobileSidebar";
@@ -10,8 +12,14 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import { getUser } from "@/features/auth-login/services/authStorage";
 
 import NotificationDrawer from "@/features/notification/components/NotificationDrawer";
+
 import { notificationService } from "@/features/notification/services/notificationService";
+
 import { NOTIFICATION_UPDATED_EVENT } from "@/features/notification/utils/notificationEvents";
+
+// ==========================================
+// TYPES
+// ==========================================
 
 interface BreadcrumbItem {
   label: string;
@@ -24,6 +32,20 @@ interface MainLayoutProps {
   notificationCount?: number;
 }
 
+// ==========================================
+// NOTIFICATION BREAKPOINT
+// ==========================================
+
+// Di bawah 768px: halaman notifikasi.
+// Mulai 768px: notification slide-over.
+//
+// Mengikuti breakpoint "md" Tailwind.
+const NOTIFICATION_DRAWER_BREAKPOINT = "(min-width: 768px)";
+
+// ==========================================
+// MAIN LAYOUT
+// ==========================================
+
 export default function MainLayout({
   children,
   breadcrumbs = [],
@@ -33,8 +55,11 @@ export default function MainLayout({
   const location = useLocation();
 
   const [isDarkMode, setIsDarkMode] = useState(false);
+
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+
   const [unreadCount, setUnreadCount] = useState(notificationCount);
+
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   const knownNotificationIds = useRef<Set<string> | null>(null);
@@ -44,12 +69,14 @@ export default function MainLayout({
     if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
       return "inventaris";
     }
+
     if (
       location.pathname.startsWith("/design-graphic") ||
       location.pathname.startsWith("/graphic-design")
     ) {
       return "design-graphic";
     }
+
     if (location.pathname.startsWith("/helpdesk")) {
       return "helpdesk";
     }
@@ -194,7 +221,18 @@ export default function MainLayout({
   }, []);
 
   const handleMobileNotificationClick = () => {
-    if (location.pathname === "/notification") return;
+    const isTabletOrLarger = window.matchMedia(NOTIFICATION_DRAWER_BREAKPOINT).matches;
+
+    // TABLET: OPEN SLIDE-OVER
+    if (isTabletOrLarger) {
+      setShowNotificationDrawer(true);
+      return;
+    }
+
+    // MOBILE: OPEN NOTIFICATION PAGE
+    if (location.pathname === "/notification") {
+      return;
+    }
 
     navigate("/notification", {
       state: {
@@ -207,15 +245,24 @@ export default function MainLayout({
     setShowNotificationDrawer(true);
   };
 
+  // ==========================================
+  // CLOSE NOTIFICATION DRAWER
+  // ==========================================
+
   const handleCloseNotification = () => {
     setShowNotificationDrawer(false);
   };
 
   const getCurrentBreadcrumbs = (): BreadcrumbItem[] => {
-    if (breadcrumbs.length > 0) return breadcrumbs;
+    if (breadcrumbs.length > 0) {
+      return breadcrumbs;
+    }
 
     const path = location.pathname;
 
+    // ======================================
+    // HELPDESK SARPRAS
+    // ======================================
     if (path === "/" || path === "/dashboard") {
       const user = getUser();
       const role = user?.role;
@@ -235,10 +282,21 @@ export default function MainLayout({
 
       let label = "Koordinator Sarpras";
 
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "super-admin") label = "Super Admin";
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "super-admin") {
+        label = "Super Admin";
+      }
 
       const base = [{ label }, { label: "Helpdesk" }];
 
@@ -249,14 +307,23 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // HELPDESK TIK
+    // ======================================
+
     if (path.startsWith("/helpdesk/tik")) {
       const user = getUser();
       const role = user?.role;
 
       let label = "Super Admin";
 
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
 
       const base = [{ label }, { label: "Helpdesk" }];
 
@@ -266,6 +333,10 @@ export default function MainLayout({
 
       return [...base, { label: "Detail Tiket" }];
     }
+
+    // ======================================
+    // MANAJEMEN HELPDESK TIK
+    // ======================================
 
     if (path.startsWith("/manajemen/helpdesk/tik")) {
       const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
@@ -277,6 +348,10 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // MANAJEMEN HELPDESK SARPRAS
+    // ======================================
+
     if (path.startsWith("/manajemen/helpdesk/sarpras")) {
       const base = [{ label: "Manajemen" }, { label: "Helpdesk" }];
 
@@ -287,9 +362,17 @@ export default function MainLayout({
       return [...base, { label: "Detail Tiket" }];
     }
 
+    // ======================================
+    // CREATE HELPDESK
+    // ======================================
+
     if (path === "/helpdesk/create") {
       return [{ label: "Helpdesk" }, { label: "Buat Tiket" }];
     }
+
+    // ======================================
+    // INVENTARIS TIK
+    // ======================================
 
     if (path.startsWith("/inventaris/tik")) {
       const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
@@ -301,6 +384,10 @@ export default function MainLayout({
       return [...base, { label: "Detail Inventaris TIK" }];
     }
 
+    // ======================================
+    // INVENTARIS SARPRAS
+    // ======================================
+
     if (path.startsWith("/inventaris/sarpras")) {
       const base = [{ label: "Super Admin" }, { label: "Inventaris Aset" }];
 
@@ -311,9 +398,17 @@ export default function MainLayout({
       return [...base, { label: "Detail Inventaris Sarpras" }];
     }
 
+    // ======================================
+    // MASTER DATA
+    // ======================================
+
     if (path.startsWith("/master-data")) {
       return [{ label: "Super Admin" }, { label: "Master Data" }];
     }
+
+    // ======================================
+    // MAINTENANCE
+    // ======================================
 
     if (path.startsWith("/maintenance")) {
       const user = getUser();
@@ -336,16 +431,35 @@ export default function MainLayout({
       return [{ label }, { label: "Maintenance" }];
     }
 
+    // ======================================
+    // DESIGN GRAPHIC
+    // ======================================
+
     if (path.startsWith("/design-graphic")) {
       const user = getUser();
       const role = user?.role;
 
       let label = "Super Admin";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "user") label = user?.jabatan || "User";
+
+      if (role === "koordinator-sarpras") {
+        label = "Koordinator Sarpras";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "user") {
+        label = user?.jabatan || "User";
+      }
 
       if (path.startsWith("/design-graphic/manage-requests")) {
         const subLabel =
@@ -356,15 +470,35 @@ export default function MainLayout({
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
     }
 
+    // ======================================
+    // GRAPHIC DESIGN DETAIL / FALLBACK
+    // ======================================
+
     if (path.startsWith("/design-graphic") || path.startsWith("/graphic-design")) {
       const user = getUser();
       const role = user?.role;
+
       let label = "Super Admin";
-      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
-      if (role === "petugas-tik") label = "Petugas TIK";
-      if (role === "petugas-sarpras") label = "Petugas Sarpras";
-      if (role === "manajemen" || role === "management") label = "Manajemen";
-      if (role === "user") label = user?.jabatan || "User";
+
+      if (role === "koordinator-sarpras") {
+        label = "Koordinator Sarpras";
+      }
+
+      if (role === "petugas-tik") {
+        label = "Petugas TIK";
+      }
+
+      if (role === "petugas-sarpras") {
+        label = "Petugas Sarpras";
+      }
+
+      if (role === "manajemen" || role === "management") {
+        label = "Manajemen";
+      }
+
+      if (role === "user") {
+        label = user?.jabatan || "User";
+      }
 
       if (
         path.startsWith("/graphic-design/") ||
@@ -381,6 +515,22 @@ export default function MainLayout({
         const subLabel =
           role === "manajemen" || role === "management" ? "Rekap Desain" : "Kelola Request";
         return [{ label }, { label: "Desain Grafis" }, { label: subLabel }];
+      }
+
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
+      }
+
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
       }
 
       if (path.startsWith("/design-graphic/assigned-tasks")) {
@@ -438,6 +588,10 @@ export default function MainLayout({
       </div>
 
       <NotificationDrawer show={showNotificationDrawer} onClose={handleCloseNotification} />
+
+      {/* ====================================== */}
+      {/* MOBILE SIDEBAR */}
+      {/* ====================================== */}
 
       <MobileSidebar
         show={showMobileSidebar}
