@@ -395,6 +395,18 @@ export default function MainLayout({
     // ======================================
     // HELPDESK SARPRAS
     // ======================================
+    if (path === "/" || path === "/dashboard") {
+      const user = getUser();
+      const role = user?.role;
+      let label = "Super Admin";
+      if (role === "koordinator-sarpras") label = "Koordinator Sarpras";
+      if (role === "petugas-tik") label = "Petugas TIK";
+      if (role === "petugas-sarpras") label = "Petugas Sarpras";
+      if (role === "manajemen" || role === "management") label = "Manajemen";
+      if (role === "user") label = user?.jabatan || "User";
+
+      return [{ label }, { label: "Dashboard" }];
+    }
 
     if (path.startsWith("/helpdesk/sarpras")) {
       const user = getUser();
