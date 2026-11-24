@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import ReportFilters from "../components/ReportFilters";
 
@@ -16,19 +16,26 @@ import {
   DesignDashboard,
 } from "../components/OtherReportDashboard";
 
-import { getOtherReportRows } from "../services/otherReport.service";
+import { downloadReport, getReport, reportTabs, type ReportData } from "../services/report.service";
 
-import { downloadReportCsv, getReport, reportTabs } from "../services/report.service";
-
-import type { ReportFilters as Filters, ReportModule } from "../types/report.types";
+import type {
+  ReportFilters as Filters,
+  ReportModule,
+  ReportSummary,
+  TicketStatus,
+} from "../types/report.types";
 
 // =====================================
 // INITIAL FILTERS
 // =====================================
 
+const now = new Date();
+const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+const month = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 const initialFilters: Filters = {
-  startDate: "",
-  endDate: "",
+  startDate: month(start),
+  endDate: month(now),
   service: "all",
   module: "helpdesk",
 
@@ -90,44 +97,45 @@ function MetricCard({ label, value, suffix }: MetricCardProps) {
   );
 }
 
-// =====================================
-// CSV HELPER
-// =====================================
-
-function escapeCsv(value: string | number) {
-  const raw = String(value ?? "");
-
-  const safeValue = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
-
-  return `"${safeValue.replace(/"/g, '""')}"`;
-}
-
-function downloadOtherReportCsv(rows: Record<string, string | number>[], filename: string) {
-  if (rows.length === 0) {
-    return;
-  }
-
-  const headers = Object.keys(rows[0]);
-
-  const csvRows = [headers, ...rows.map((row) => headers.map((header) => row[header] ?? ""))];
-
-  const csvContent = "\uFEFF" + csvRows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
-
-  const blob = new Blob([csvContent], {
-    type: "text/csv;charset=utf-8;",
-  });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  URL.revokeObjectURL(url);
+function helpdeskSummary(data: ReportData | null): ReportSummary {
+  const summary = data?.summary ?? {};
+  const charts = data?.charts ?? {};
+  const statusKeys: [string, TicketStatus, string][] = [
+    ["baru", "Baru", "#D0D1D3"],
+    ["diklasifikasi", "Diklasisfikasikan", "#F59E0B"],
+    ["diproses", "Diproses", "#0D47A1"],
+    ["eskalasi", "Eskalasi", "#C2410C"],
+    ["terselesaikan", "Terselesaikan", "#10B981"],
+    ["ditutup", "Selesai", "#747782"],
+    ["ditolak", "Ditolak", "#DC2626"],
+  ];
+  const statuses = (charts.status_tiket ?? {}) as Record<string, number>;
+  const sla = (charts.sla ?? {}) as Record<string, number>;
+  const categories = (charts.tiket_per_kategori ?? {}) as Record<
+    string,
+    { kategori: string; jumlah: number }[]
+  >;
+  return {
+    total: summary.jumlah_tiket_masuk ?? 0,
+    resolved: summary.jumlah_tiket_selesai ?? 0,
+    rejected: summary.jumlah_tiket_ditolak ?? 0,
+    averageResolutionHours: summary.rata_rata_waktu_penyelesaian ?? 0,
+    slaPercent: summary.persentase_sla_tercapai ?? 0,
+    slaMet: sla.tercapai ?? 0,
+    slaLate: sla.terlambat ?? 0,
+    monthly: ((charts.tiket_per_bulan ?? []) as { bulan: string; jumlah: number }[]).map(
+      (item) => ({ label: item.bulan, count: item.jumlah }),
+    ),
+    statuses: statusKeys.map(([key, label, color]) => ({
+      label,
+      color,
+      count: statuses[key] ?? 0,
+    })),
+    categories: ["sarpras", "tik"].map((key) => ({
+      group: `Kategori ${key === "tik" ? "TIK" : "Sarpras"}`,
+      items: (categories[key] ?? []).map((item) => ({ label: item.kategori, count: item.jumlah })),
+    })),
+  };
 }
 
 // =====================================
@@ -151,9 +159,29 @@ export default function ReportPage() {
   // GET HELPDESK DATA
   // =====================================
 
-  const { tickets, summary } = useMemo(() => getReport(applied), [applied]);
-
-  const hasData = summary.total > 0;
+  const [data, setData] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController();
+    getReport(applied, controller.signal)
+      .then(setData)
+      .catch((err) => {
+        if (!controller.signal.aborted)
+          setError(err instanceof Error ? err.message : "Gagal memuat laporan.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [applied]);
+  const summary = helpdeskSummary(data);
+  const totalKey = {
+    helpdesk: "jumlah_tiket_masuk",
+    inventaris: "total_aset",
+    maintenance: "jumlah_jadwal",
+    "desain-grafis": "jumlah_request_masuk",
+  }[applied.module];
+  const hasData = !!data && (data.summary[totalKey] ?? 0) > 0;
 
   // =====================================
   // FORMAT NUMBER
@@ -187,7 +215,16 @@ export default function ReportPage() {
       return;
     }
 
+    if (
+      (draft.module === "helpdesk" || draft.module === "desain-grafis") &&
+      (!draft.startDate || !draft.endDate)
+    ) {
+      setError("Periode awal dan akhir wajib diisi.");
+      return;
+    }
     setError("");
+    setLoading(true);
+    setData(null);
     setApplied({ ...draft });
     setShowAllCategories(false);
   }
@@ -202,9 +239,16 @@ export default function ReportPage() {
     const nextFilters = {
       ...applied,
       module,
+      startDate: applied.startDate || initialFilters.startDate,
+      endDate: applied.endDate || initialFilters.endDate,
+      classification: "all",
+      status: "all",
+      location: "all",
     };
 
     setDraft(nextFilters);
+    setLoading(true);
+    setData(null);
     setApplied(nextFilters);
 
     setShowAllCategories(false);
@@ -214,38 +258,12 @@ export default function ReportPage() {
   // DOWNLOAD CSV
   // =====================================
 
-  function handleDownload() {
-    if (isInvalidPeriod) {
-      setError("Periode akhir tidak boleh lebih awal dari periode awal.");
-      return;
+  async function handleDownload(format: "pdf" | "excel") {
+    try {
+      await downloadReport(applied, format === "excel" ? "xlsx" : "pdf");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengunduh laporan.");
     }
-
-    // HELPDESK
-    if (applied.module === "helpdesk") {
-      downloadReportCsv(
-        tickets,
-        `laporan-helpdesk-${applied.startDate || "semua"}-${applied.endDate || "semua"}.csv`,
-      );
-
-      return;
-    }
-
-    // OTHER REPORTS
-    const rows = getOtherReportRows(applied);
-
-    if (rows.length === 0) {
-      setError("Tidak ada data laporan yang dapat diunduh.");
-      return;
-    }
-
-    setError("");
-
-    const filename =
-      applied.module === "inventaris"
-        ? "laporan-inventaris.csv"
-        : `laporan-${applied.module}-${applied.startDate || "semua"}-${applied.endDate || "semua"}.csv`;
-
-    downloadOtherReportCsv(rows, filename);
   }
 
   // =====================================
@@ -340,6 +358,7 @@ export default function ReportPage() {
           }}
           onApply={handleApply}
           onDownload={handleDownload}
+          hasData={hasData}
           error={error}
         />
 
@@ -347,7 +366,9 @@ export default function ReportPage() {
         {/* HELPDESK DASHBOARD */}
         {/* ========================== */}
 
-        {applied.module === "helpdesk" && (
+        {loading && <p className="text-sm text-slate-500">Memuat laporan...</p>}
+
+        {data && applied.module === "helpdesk" && (
           <>
             {/* SUMMARY CARDS */}
 
@@ -405,7 +426,7 @@ export default function ReportPage() {
               <ChartCard title="Ketercapaian SLA">
                 {hasData ? (
                   <DonutChart
-                    total={summary.total}
+                    total={summary.slaMet + summary.slaLate}
                     centerLabel="Tiket"
                     segments={[
                       {
@@ -462,9 +483,9 @@ export default function ReportPage() {
         {/* INVENTORY DASHBOARD */}
         {/* ========================== */}
 
-        {applied.module === "inventaris" && (
+        {data && applied.module === "inventaris" && (
           <InventoryDashboard
-            filters={applied}
+            data={data}
             showAll={showAllCategories}
             onToggle={handleToggleCategories}
           />
@@ -474,9 +495,9 @@ export default function ReportPage() {
         {/* MAINTENANCE DASHBOARD */}
         {/* ========================== */}
 
-        {applied.module === "maintenance" && (
+        {data && applied.module === "maintenance" && (
           <MaintenanceDashboard
-            filters={applied}
+            data={data}
             showAll={showAllCategories}
             onToggle={handleToggleCategories}
           />
@@ -486,9 +507,9 @@ export default function ReportPage() {
         {/* DESIGN DASHBOARD */}
         {/* ========================== */}
 
-        {applied.module === "desain-grafis" && (
+        {data && applied.module === "desain-grafis" && (
           <DesignDashboard
-            filters={applied}
+            data={data}
             showAll={showAllCategories}
             onToggle={handleToggleCategories}
           />

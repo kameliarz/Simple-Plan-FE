@@ -2,24 +2,23 @@ import type { ReactNode } from "react";
 
 import { ChartCard, DonutChart, MonthlyChart, NoData } from "./ReportCharts";
 
-import {
-  assetColors,
-  designItems,
-  designStatusColors,
-  getInventoryAssets,
-  getWorkItems,
-  maintenanceItems,
-} from "../services/otherReport.service";
+import { assetColors, designStatusColors } from "../services/otherReport.service";
+import type { ReportData } from "../services/report.service";
 
-import type { WorkItem } from "../services/otherReport.service";
-
-import type { ReportFilters } from "../types/report.types";
+function chartItems(value: unknown, key: string) {
+  if (Array.isArray(value))
+    return value.map((item: Record<string, string | number>) => ({
+      label: String(item[key]),
+      count: Number(item.jumlah),
+    }));
+  if (value && typeof value === "object")
+    return Object.entries(value).map(([label, count]) => ({ label, count: Number(count) }));
+  return [];
+}
 
 // =====================================
 // CONSTANTS
 // =====================================
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
 const BLUE = "#06469b";
 
@@ -92,23 +91,6 @@ function StatGrid({ children, columns }: StatGridProps) {
 // =====================================
 // COUNT HELPER
 // =====================================
-
-function getCounts<T>(items: T[], key: (item: T) => string) {
-  const counter = new Map<string, number>();
-
-  for (const item of items) {
-    const label = key(item);
-
-    counter.set(label, (counter.get(label) ?? 0) + 1);
-  }
-
-  return [...counter.entries()]
-    .map(([label, count]) => ({
-      label,
-      count,
-    }))
-    .sort((a, b) => b.count - a.count);
-}
 
 // =====================================
 // HORIZONTAL CHART
@@ -282,41 +264,23 @@ function ConditionChart({ items }: ConditionChartProps) {
 // MONTHLY DATA HELPER
 // =====================================
 
-function monthlyData(items: WorkItem[]) {
-  return MONTHS.map((label, index) => ({
-    label,
-
-    count: items.filter((item) => Number(item.month.slice(5, 7)) === index + 1).length,
-  }));
-}
-
 // =====================================
 // INVENTORY DASHBOARD
 // =====================================
 
 interface DashboardProps {
-  filters: ReportFilters;
+  data: ReportData;
   showAll: boolean;
   onToggle: () => void;
 }
 
-export function InventoryDashboard({ filters, showAll, onToggle }: DashboardProps) {
-  // FILTERED DATA
-  const data = getInventoryAssets(filters);
-
-  const total = data.length;
-
-  // SUMMARY
-  const damaged = data.filter((asset) => asset.status === "Rusak").length;
-
-  const borrowed = data.filter((asset) => asset.status === "Dipinjam").length;
-
-  // CHART DATA
-  const classification = getCounts(data, (asset) => asset.classification);
-
-  const condition = getCounts(data, (asset) => asset.condition);
-
-  const locations = getCounts(data, (asset) => asset.location);
+export function InventoryDashboard({ data, showAll, onToggle }: DashboardProps) {
+  const total = data.summary.total_aset;
+  const damaged = data.summary.total_rusak;
+  const borrowed = data.summary.total_dipinjam;
+  const classification = chartItems(data.charts.per_klasifikasi, "klasifikasi");
+  const condition = chartItems(data.charts.per_kondisi, "");
+  const locations = chartItems(data.charts.per_lokasi, "lokasi");
 
   return (
     <>
@@ -380,24 +344,12 @@ export function InventoryDashboard({ filters, showAll, onToggle }: DashboardProp
 // MAINTENANCE DASHBOARD
 // =====================================
 
-export function MaintenanceDashboard({ filters, showAll, onToggle }: DashboardProps) {
-  // FILTERED DATA
-  const data = getWorkItems(maintenanceItems, filters);
-
-  const total = data.length;
-
-  // COMPLETED MAINTENANCE
-  const completedItems = data.filter((item) => item.status === "Selesai");
-
-  const completed = completedItems.length;
-
-  const percentage = total > 0 ? (completed / total) * 100 : 0;
-
-  // CHART DATA
-  const conditions = getCounts(completedItems, (item) => item.condition);
-
-  const staff = getCounts(completedItems, (item) => item.group);
-
+export function MaintenanceDashboard({ data, showAll, onToggle }: DashboardProps) {
+  const total = data.summary.jumlah_jadwal;
+  const completed = data.summary.jadwal_selesai;
+  const percentage = data.summary.presentase_jadwal_selesai;
+  const conditions = chartItems(data.charts.kondisi_pasca_pemeliharaan, "");
+  const staff = chartItems(data.charts.per_petugas, "petugas");
   // CONDITION COLORS
   const conditionColors: Record<string, string> = {
     Baik: "#10b981",
@@ -430,7 +382,11 @@ export function MaintenanceDashboard({ filters, showAll, onToggle }: DashboardPr
       {/* ========================== */}
 
       <ChartCard title="Jadwal Maintenance per Bulan">
-        {total > 0 ? <MonthlyChart data={monthlyData(data)} /> : <NoData className="min-h-52" />}
+        {total > 0 ? (
+          <MonthlyChart data={chartItems(data.charts.per_bulan, "bulan")} />
+        ) : (
+          <NoData className="min-h-52" />
+        )}
       </ChartCard>
 
       {/* ========================== */}
@@ -473,23 +429,16 @@ export function MaintenanceDashboard({ filters, showAll, onToggle }: DashboardPr
 // GRAPHIC DESIGN DASHBOARD
 // =====================================
 
-export function DesignDashboard({ filters, showAll, onToggle }: DashboardProps) {
-  // FILTERED DATA
-  const data = getWorkItems(designItems, filters);
-
-  const total = data.length;
-
-  // SUMMARY
-  const completed = data.filter((item) => item.status === "Selesai").length;
-
-  const rejected = data.filter((item) => item.status === "Ditolak").length;
-
-  const average = total > 0 ? data.reduce((sum, item) => sum + item.duration, 0) / total : 0;
-
-  // CHART DATA
-  const statuses = getCounts(data, (item) => item.status);
-
-  const categories = getCounts(data, (item) => item.group);
+export function DesignDashboard({ data, showAll, onToggle }: DashboardProps) {
+  const total = data.summary.jumlah_request_masuk;
+  const completed = data.summary.jumlah_request_selesai;
+  const rejected = data.summary.jumlah_request_ditolak;
+  const average = data.summary.rata_rata_waktu_penyelesaian;
+  const statuses = chartItems(data.charts.status_request, "").map((item) => ({
+    ...item,
+    label: item.label.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  }));
+  const categories = chartItems(data.charts.request_per_jenis_desain, "jenis_desain");
 
   return (
     <>
@@ -518,7 +467,11 @@ export function DesignDashboard({ filters, showAll, onToggle }: DashboardProps) 
       {/* ========================== */}
 
       <ChartCard title="Request per Bulan">
-        {total > 0 ? <MonthlyChart data={monthlyData(data)} /> : <NoData className="min-h-52" />}
+        {total > 0 ? (
+          <MonthlyChart data={chartItems(data.charts.request_per_bulan, "bulan")} />
+        ) : (
+          <NoData className="min-h-52" />
+        )}
       </ChartCard>
 
       {/* ========================== */}
