@@ -80,7 +80,6 @@ async function getAllPages<T>(
 
 // ==========================================
 // SEARCH USERS
-// Dipertahankan untuk ReporterSection.
 // ==========================================
 
 export interface SearchedUser {
@@ -101,12 +100,6 @@ export async function searchUsersByName(name: string): Promise<SearchedUser[]> {
 
   return Array.isArray(result.data) ? result.data : [];
 }
-
-// ==========================================
-// API SEARCH LAMA
-// Tetap diekspor demi kompatibilitas.
-// Tidak dipakai oleh InventorySection.
-// ==========================================
 
 export interface SearchedAsset {
   id: number;
@@ -166,9 +159,8 @@ export async function searchUnits(searchKeyword = ""): Promise<SearchedUnit[]> {
 }
 
 // ==========================================
-// LOKASI INVENTARIS - API BARU
+// LOKASI INVENTARIS
 // GET /api/v1/asset-locations
-// Mengambil seluruh halaman.
 // ==========================================
 
 export interface AssetLocation {
@@ -180,10 +172,6 @@ export interface AssetLocation {
 export async function getAssetLocations(signal?: AbortSignal): Promise<AssetLocation[]> {
   return getAllPages<AssetLocation>("/api/v1/asset-locations", undefined, signal);
 }
-
-// Alias lama untuk kompatibilitas.
-// Menggunakan type alias agar tidak memicu
-// @typescript-eslint/no-empty-object-type.
 
 export type SearchedAssetLocation = AssetLocation;
 
@@ -198,14 +186,7 @@ export async function searchAssetLocations(searchKeyword = ""): Promise<Searched
 }
 
 // ==========================================
-// ASET FISIK - API BARU
-//
 // GET /api/v1/assets
-// ?asset_location_id=...
-// &asset_item_id=...
-//
-// Mengambil seluruh halaman agar opsi
-// dropdown inventaris lengkap.
 // ==========================================
 
 export interface AssetReference {
@@ -263,7 +244,6 @@ export async function getAssets(
 
 // ==========================================
 // SCAN QR / UID
-// Dipertahankan.
 // ==========================================
 
 export interface AssetByUid {
@@ -278,6 +258,7 @@ export interface AssetByUid {
 interface AssetByUidResponse {
   id: number;
   uid: string;
+  classification: string;
   asset_code?: string | null;
   code?: string | null;
   name?: string | null;
@@ -340,7 +321,6 @@ export async function getAssetByUid(uid: string): Promise<AssetByUid> {
 
 // ==========================================
 // CREATE HELPDESK TICKET
-// Dipertahankan.
 // ==========================================
 
 export type TicketService = "tik" | "sarpras";
