@@ -54,10 +54,6 @@ export default function MainLayout({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ==========================================
-  // STATE
-  // ==========================================
-
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
@@ -66,19 +62,8 @@ export default function MainLayout({
 
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-  // ==========================================
-  // NOTIFICATION SOUND STATE
-  // ==========================================
-
-  // ID notifikasi yang sudah terdeteksi
   const knownNotificationIds = useRef<Set<string> | null>(null);
-
-  // Instance audio agar tidak dibuat berulang
   const notificationAudio = useRef<HTMLAudioElement | null>(null);
-
-  // ==========================================
-  // ACTIVE MOBILE TAB
-  // ==========================================
 
   const activeTab: MobileNavTab = (() => {
     if (location.pathname.startsWith("/inventaris") || location.pathname.startsWith("/inventory")) {
@@ -107,10 +92,6 @@ export default function MainLayout({
     return "helpdesk";
   })();
 
-  // ==========================================
-  // MOBILE TAB NAVIGATION
-  // ==========================================
-
   const handleTabChange = (tab: MobileNavTab) => {
     if (tab === "dashboard") {
       navigate("/");
@@ -125,10 +106,6 @@ export default function MainLayout({
     }
   };
 
-  // ==========================================
-  // DARK MODE
-  // ==========================================
-
   const toggleDarkMode = () => {
     setIsDarkMode((prev) => !prev);
   };
@@ -140,10 +117,6 @@ export default function MainLayout({
       document.documentElement.classList.remove("dark");
     };
   }, [isDarkMode]);
-
-  // ==========================================
-  // INITIALIZE NOTIFICATION AUDIO
-  // ==========================================
 
   useEffect(() => {
     const audio = new Audio("/sounds/notification.mp3");
@@ -164,70 +137,40 @@ export default function MainLayout({
     };
   }, []);
 
-  // ==========================================
-  // AUTO UPDATE NOTIFICATION + SOUND
-  // ==========================================
-
   useEffect(() => {
     let active = true;
     let isFetching = false;
 
     const fetchNotifications = async () => {
-      // Hindari request yang berjalan bersamaan
       if (isFetching) return;
-
       isFetching = true;
 
       try {
         const response = await notificationService.getNotifications();
-
         if (!active) return;
-
-        // ======================================
-        // UPDATE TITIK MERAH NOTIFIKASI
-        // ======================================
 
         setUnreadCount(response.unread_count);
 
-        // ======================================
-        // DETEKSI NOTIFIKASI BARU
-        // ======================================
-
         const currentIds = new Set(response.data.map((notification) => String(notification.id)));
 
-        // Fetch pertama hanya menyimpan ID.
-        // Notifikasi lama tidak memicu suara.
         if (knownNotificationIds.current === null) {
           knownNotificationIds.current = currentIds;
           return;
         }
 
-        // Periksa notifikasi yang belum pernah
-        // terdeteksi. Hanya notifikasi belum
-        // dibaca yang memicu suara.
         const hasNewNotification = response.data.some(
           (notification) =>
             !notification.is_read && !knownNotificationIds.current?.has(String(notification.id)),
         );
 
-        // Simpan seluruh ID yang sudah diketahui.
-        // Jangan hapus ID lama agar tidak
-        // berbunyi ulang.
         const updatedIds = new Set([...knownNotificationIds.current, ...currentIds]);
-
         knownNotificationIds.current = updatedIds;
-
-        // ======================================
-        // PLAY NOTIFICATION SOUND
-        // ======================================
 
         if (hasNewNotification) {
           const audio = notificationAudio.current;
-
           if (audio) {
             audio.pause();
             audio.currentTime = 0;
-
             void audio.play().catch((error) => {
               console.warn("Suara notifikasi diblokir browser atau gagal diputar:", error);
             });
@@ -242,33 +185,17 @@ export default function MainLayout({
       }
     };
 
-    // ======================================
-    // INITIAL FETCH
-    // ======================================
-
     void fetchNotifications();
-
-    // ======================================
-    // POLLING SETIAP 10 DETIK
-    // ======================================
 
     const interval = window.setInterval(() => {
       void fetchNotifications();
     }, 10000);
-
-    // ======================================
-    // EVENT UPDATE NOTIFIKASI
-    // ======================================
 
     const handleNotificationUpdated = () => {
       void fetchNotifications();
     };
 
     window.addEventListener(NOTIFICATION_UPDATED_EVENT, handleNotificationUpdated);
-
-    // ======================================
-    // TAB BROWSER KEMBALI AKTIF
-    // ======================================
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -278,47 +205,20 @@ export default function MainLayout({
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // ======================================
-    // KONEKSI INTERNET KEMBALI
-    // ======================================
-
     const handleOnline = () => {
       void fetchNotifications();
     };
 
     window.addEventListener("online", handleOnline);
 
-    // ======================================
-    // CLEANUP
-    // ======================================
-
     return () => {
       active = false;
-
       window.clearInterval(interval);
-
       window.removeEventListener(NOTIFICATION_UPDATED_EVENT, handleNotificationUpdated);
-
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-
       window.removeEventListener("online", handleOnline);
     };
   }, []);
-
-  // ==========================================
-  // RESPONSIVE NOTIFICATION HANDLER
-  // ==========================================
-
-  // Digunakan oleh MobileHeader.
-  //
-  // Mobile < 768px:
-  // Navigasi ke halaman /notification.
-  //
-  // Tablet >= 768px:
-  // Membuka NotificationDrawer.
-  //
-  // Breakpoint notifikasi tidak bergantung
-  // pada breakpoint pergantian header.
 
   const handleMobileNotificationClick = () => {
     const isTabletOrLarger = window.matchMedia(NOTIFICATION_DRAWER_BREAKPOINT).matches;
@@ -341,10 +241,6 @@ export default function MainLayout({
     });
   };
 
-  // ==========================================
-  // DESKTOP NOTIFICATION HANDLER
-  // ==========================================
-
   const handleNotificationClick = () => {
     setShowNotificationDrawer(true);
   };
@@ -356,34 +252,6 @@ export default function MainLayout({
   const handleCloseNotification = () => {
     setShowNotificationDrawer(false);
   };
-
-  // ==========================================
-  // RESPONSIVE DRAWER CLEANUP
-  // ==========================================
-
-  // Jika drawer sedang terbuka dan layar
-  // berubah menjadi mobile (< 768px),
-  // tutup drawer agar tidak mengganggu
-  // tampilan halaman mobile.
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(NOTIFICATION_DRAWER_BREAKPOINT);
-
-    const handleBreakpointChange = () => {
-      if (!mediaQuery.matches) {
-        setShowNotificationDrawer(false);
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleBreakpointChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleBreakpointChange);
-    };
-  }, []);
-
-  // ==========================================
-  // BREADCRUMBS
-  // ==========================================
 
   const getCurrentBreadcrumbs = (): BreadcrumbItem[] => {
     if (breadcrumbs.length > 0) {
@@ -594,7 +462,9 @@ export default function MainLayout({
       }
 
       if (path.startsWith("/design-graphic/manage-requests")) {
-        return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
+        const subLabel =
+          role === "manajemen" || role === "management" ? "Rekap Desain" : "Kelola Request";
+        return [{ label }, { label: "Desain Grafis" }, { label: subLabel }];
       }
 
       return [{ label }, { label: "Desain Grafis" }, { label: "Request Saya" }];
@@ -642,7 +512,17 @@ export default function MainLayout({
       }
 
       if (path.startsWith("/design-graphic/manage-requests")) {
-        return [{ label }, { label: "Desain Grafis" }, { label: "Kelola Request" }];
+        const subLabel =
+          role === "manajemen" || role === "management" ? "Rekap Desain" : "Kelola Request";
+        return [{ label }, { label: "Desain Grafis" }, { label: subLabel }];
+      }
+
+      if (path.startsWith("/design-graphic/assigned-tasks")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Tugas Desain" }];
+      }
+
+      if (path.startsWith("/design-graphic/create")) {
+        return [{ label }, { label: "Desain Grafis" }, { label: "Buat Request" }];
       }
 
       if (path.startsWith("/design-graphic/assigned-tasks")) {
@@ -669,37 +549,15 @@ export default function MainLayout({
 
   const currentBreadcrumbs = getCurrentBreadcrumbs();
 
-  // ==========================================
-  // UI
-  // ==========================================
-
   return (
     <>
       <div className="min-h-screen bg-background text-text transition-colors">
         <div className="flex h-screen overflow-hidden">
-          {/* ====================================== */}
-          {/* SIDEBAR DESKTOP */}
-          {/* ====================================== */}
-
           <div className="hidden shrink-0 lg:flex">
             <Sidebar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           </div>
 
-          {/* ====================================== */}
-          {/* MAIN AREA */}
-          {/* ====================================== */}
-
-          <div
-            className="
-              flex h-screen min-w-0
-              flex-1 flex-col overflow-hidden
-              bg-background
-            "
-          >
-            {/* ====================================== */}
-            {/* HEADER MOBILE + TABLET */}
-            {/* ====================================== */}
-
+          <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background">
             <div className="shrink-0 lg:hidden">
               <MobileHeader
                 isDarkMode={isDarkMode}
@@ -710,10 +568,6 @@ export default function MainLayout({
               />
             </div>
 
-            {/* ====================================== */}
-            {/* HEADER DESKTOP */}
-            {/* ====================================== */}
-
             <div className="hidden shrink-0 lg:block">
               <NavbarHeader
                 breadcrumbs={currentBreadcrumbs}
@@ -722,23 +576,9 @@ export default function MainLayout({
               />
             </div>
 
-            {/* ====================================== */}
-            {/* PAGE CONTENT */}
-            {/* ====================================== */}
-
-            <main
-              className="
-                min-h-0 min-w-0 flex-1
-                overflow-y-auto bg-background
-                pb-20 lg:pb-0
-              "
-            >
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-20 lg:pb-0">
               {children}
             </main>
-
-            {/* ====================================== */}
-            {/* BOTTOM NAVIGATION MOBILE + TABLET */}
-            {/* ====================================== */}
 
             <div className="shrink-0 lg:hidden">
               <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
@@ -746,10 +586,6 @@ export default function MainLayout({
           </div>
         </div>
       </div>
-
-      {/* ====================================== */}
-      {/* NOTIFICATION DRAWER TABLET + DESKTOP */}
-      {/* ====================================== */}
 
       <NotificationDrawer show={showNotificationDrawer} onClose={handleCloseNotification} />
 

@@ -17,7 +17,8 @@ export default function DesignGraphicTab() {
   // Role yang memiliki sub-menu
   const isSuperAdmin = role === "super-admin";
   const isPetugasTik = role === "petugas-tik";
-  const hasSubMenus = isSuperAdmin || isPetugasTik;
+  const isManagement = role === "management" || role === "manajemen";
+  const hasSubMenus = isSuperAdmin || isPetugasTik || isManagement;
 
   // Jika role tidak memiliki sub-menu, langsung arahkan ke Request Saya
   if (!hasSubMenus) {
@@ -90,6 +91,13 @@ export default function DesignGraphicTab() {
             renderSubNavLink(
               "/design-graphic/manage-requests",
               "Kelola Request",
+              FolderInput,
+              isManageRequestsActive,
+            )}
+          {isManagement &&
+            renderSubNavLink(
+              "/design-graphic/manage-requests",
+              "Rekap Desain",
               FolderInput,
               isManageRequestsActive,
             )}

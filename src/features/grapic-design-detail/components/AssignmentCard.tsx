@@ -29,9 +29,6 @@ export default function AssignmentCard({
 }: AssignmentCardProps) {
   return (
     <div className="space-y-5">
-      {/* ==================================
-          CARD PRIORITAS
-      ================================== */}
       <section className="rounded-xl border border-slate-100 bg-white px-5 py-5 shadow-sm dark:border-slate-700 dark:bg-table-card">
         <h2 className="mb-3 text-sm font-medium text-text-title">
           Prioritas <span className="text-red-500">*</span>
@@ -84,9 +81,6 @@ export default function AssignmentCard({
         )}
       </section>
 
-      {/* ==================================
-          CARD PETUGAS
-      ================================== */}
       <section className="rounded-xl border border-slate-100 bg-white px-5 py-5 shadow-sm dark:border-slate-700 dark:bg-table-card">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-text-title">
           <IconUsersGroup size={18} strokeWidth={1.7} />
@@ -130,9 +124,6 @@ export default function AssignmentCard({
         )}
       </section>
 
-      {/* ==================================
-          SIMPAN DAN TUGASKAN
-      ================================== */}
       <div className="flex justify-end">
         <Button
           type="button"
