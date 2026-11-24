@@ -1,4 +1,8 @@
-import { IconAlertCircle, IconDownload } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { getAssetClassifications } from "@/features/inventaris/services/inventarisApi";
+import { getAssetLocations } from "@/features/helpdesk-create/services/searchApi";
+import DownloadReport from "./DownloadOptions";
+import { IconAlertCircle } from "@tabler/icons-react";
 
 import Button from "@/components/ui/ui-template/Button";
 import DateInput from "@/components/ui/ui-template/DateInput";
@@ -16,7 +20,8 @@ interface Props {
   value: Filters;
   onChange: (next: Filters) => void;
   onApply: () => void;
-  onDownload: () => void;
+  onDownload: (format: "pdf" | "excel") => void;
+  hasData: boolean;
   error?: string;
 }
 
@@ -24,32 +29,12 @@ interface Props {
 // DROPDOWN OPTIONS
 // =====================================
 
-const classificationOptions = [
-  { label: "Semua", value: "all" },
-  { label: "Alat IT", value: "Alat IT" },
-  { label: "Alat Sarpras", value: "Alat Sarpras" },
-  { label: "Alat Medis", value: "Alat Medis" },
-  { label: "Alat Elektronik", value: "Alat Elektronik" },
-  { label: "Bangunan", value: "Bangunan" },
-  { label: "Kendaraan", value: "Kendaraan" },
-  { label: "Tanah", value: "Tanah" },
-];
-
 const statusOptions = [
   { label: "Semua", value: "all" },
-  { label: "Tersedia", value: "Tersedia" },
-  { label: "Dipinjam", value: "Dipinjam" },
-  { label: "Rusak", value: "Rusak" },
-];
-
-const locationOptions = [
-  { label: "Semua", value: "all" },
-  { label: "IGD", value: "IGD" },
-  { label: "Rawat Jalan", value: "Rawat Jalan" },
-  { label: "Farmasi", value: "Farmasi" },
-  { label: "Radiologi", value: "Radiologi" },
-  { label: "Laboratorium", value: "Laboratorium" },
-  { label: "Ruang Server", value: "Ruang Server" },
+  ...["Digunakan", "Tidak Digunakan", "Dipinjam", "Rusak"].map((value) => ({
+    label: value,
+    value,
+  })),
 ];
 
 // =====================================
@@ -62,10 +47,53 @@ const fieldLabel = "mb-1.5 block text-xs font-medium text-slate-600 dark:text-sl
 // MAIN COMPONENT
 // =====================================
 
-export default function ReportFilters({ value, onChange, onApply, onDownload, error }: Props) {
+export default function ReportFilters({
+  value,
+  onChange,
+  onApply,
+  onDownload,
+  hasData,
+  error,
+}: Props) {
   // =====================================
   // ACTIVE MODULE
   // =====================================
+
+  const [classificationOptions, setClassificationOptions] = useState([
+    { label: "Semua", value: "all" },
+  ]);
+  const [locationOptions, setLocationOptions] = useState([{ label: "Semua", value: "all" }]);
+  const [lookupError, setLookupError] = useState("");
+  useEffect(() => {
+    if (value.module !== "inventaris" && value.module !== "maintenance") return;
+    let active = true;
+    getAssetClassifications()
+      .then((items) => {
+        if (active)
+          setClassificationOptions([
+            { label: "Semua", value: "all" },
+            ...items.map((item) => ({ label: item.name, value: String(item.id) })),
+          ]);
+      })
+      .catch(() => {
+        if (active) setLookupError("Gagal memuat klasifikasi.");
+      });
+    if (value.module === "inventaris")
+      getAssetLocations()
+        .then((items) => {
+          if (active)
+            setLocationOptions([
+              { label: "Semua", value: "all" },
+              ...items.map((item) => ({ label: item.name, value: String(item.id) })),
+            ]);
+        })
+        .catch(() => {
+          if (active) setLookupError("Gagal memuat lokasi.");
+        });
+    return () => {
+      active = false;
+    };
+  }, [value.module]);
 
   const isInventory = value.module === "inventaris";
   const isMaintenance = value.module === "maintenance";
@@ -95,7 +123,7 @@ export default function ReportFilters({ value, onChange, onApply, onDownload, er
     ? "Periode akhir tidak boleh lebih awal dari periode awal."
     : "";
 
-  const displayError = periodError || error;
+  const displayError = periodError || error || lookupError;
 
   // =====================================
   // UPDATE FILTER
@@ -289,20 +317,7 @@ export default function ReportFilters({ value, onChange, onApply, onDownload, er
             onClick={onApply}
           />
 
-          <Button
-            className="
-              min-w-28 flex-1
-              border-primary-600
-              text-primary-600
-              lg:flex-none
-            "
-            variant="secondary"
-            size="sm"
-            label="Unduh"
-            icon={<IconDownload size={16} />}
-            disabled={isInvalidPeriod}
-            onClick={onDownload}
-          />
+          <DownloadReport hasData={hasData} onDownload={onDownload} />
         </div>
       </div>
 
