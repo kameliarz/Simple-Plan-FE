@@ -5,19 +5,48 @@ interface MaintenanceCalendarWidgetProps {
   schedules: DashboardMaintenanceItem[];
 }
 
-export default function MaintenanceCalendarWidget({ schedules }: MaintenanceCalendarWidgetProps) {
-  const [selectedDay, setSelectedDay] = useState<number>(17);
+const MONTH_NAMES_ID = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
-  const monthName = "November 2026";
-  const daysInMonth = 30;
-  const firstDayOffset = 6;
+export default function MaintenanceCalendarWidget({ schedules }: MaintenanceCalendarWidgetProps) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonthNum = today.getMonth() + 1;
+  const currentMonthStr = String(currentMonthNum).padStart(2, "0");
+  const todayDate = today.getDate();
+
+  const [selectedDay, setSelectedDay] = useState<number>(todayDate);
+
+  const monthName = `${MONTH_NAMES_ID[today.getMonth()]} ${currentYear}`;
+  const daysInMonth = new Date(currentYear, currentMonthNum, 0).getDate();
+  const firstDayOffset = (new Date(currentYear, today.getMonth(), 1).getDay() + 6) % 7;
 
   const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
-  const formattedSelectedDay = `2026-11-${String(selectedDay).padStart(2, "0")}`;
-  const daySchedules = schedules.filter((s) => s.date === formattedSelectedDay);
+  const formattedSelectedDay = `${currentYear}-${currentMonthStr}-${String(selectedDay).padStart(2, "0")}`;
+  const daySchedules = schedules.filter((s) => s.date.startsWith(formattedSelectedDay));
 
-  const daysWithSchedule = new Set(schedules.map((s) => parseInt(s.date.split("-")[2], 10)));
+  const daysWithSchedule = new Set(
+    schedules
+      .filter((s) => s.date.startsWith(`${currentYear}-${currentMonthStr}`))
+      .map((s) => {
+        const parts = s.date.split("-");
+        return parseInt(parts[2], 10);
+      })
+      .filter((n) => !Number.isNaN(n)),
+  );
 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-5 md:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
@@ -27,7 +56,9 @@ export default function MaintenanceCalendarWidget({ schedules }: MaintenanceCale
         <div className="md:col-span-6 lg:col-span-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-gray-800 dark:text-slate-200">{monthName}</span>
-            <span className="text-[11px] text-gray-400 dark:text-slate-500">Hari ini: 17</span>
+            <span className="text-[11px] text-gray-400 dark:text-slate-500">
+              Hari ini: {todayDate}
+            </span>
           </div>
 
           <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-gray-400 dark:text-slate-500 mb-1">
@@ -47,8 +78,10 @@ export default function MaintenanceCalendarWidget({ schedules }: MaintenanceCale
               const day = i + 1;
               const isSelected = day === selectedDay;
               const hasDot = daysWithSchedule.has(day);
-              const dayScheduleCount = schedules.filter(
-                (s) => s.date === `2026-11-${String(day).padStart(2, "0")}`,
+              const dayScheduleCount = schedules.filter((s) =>
+                s.date.startsWith(
+                  `${currentYear}-${currentMonthStr}-${String(day).padStart(2, "0")}`,
+                ),
               ).length;
 
               return (
@@ -59,7 +92,7 @@ export default function MaintenanceCalendarWidget({ schedules }: MaintenanceCale
                   title={
                     hasDot
                       ? `${dayScheduleCount} jadwal maintenance`
-                      : `Tanggal ${day} November 2026`
+                      : `Tanggal ${day} ${monthName}`
                   }
                   className="group relative flex h-8 w-8 mx-auto flex-col items-center justify-center rounded-lg text-xs transition-colors cursor-pointer"
                 >
