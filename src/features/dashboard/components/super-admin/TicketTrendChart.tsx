@@ -6,15 +6,19 @@ interface TicketTrendChartProps {
 }
 
 export default function TicketTrendChart({ data }: TicketTrendChartProps) {
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(() => {
-    return data.length > 0 ? data.length - 1 : 0;
-  });
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const isEmpty = !data || data.length === 0;
   const maxCount = isEmpty ? 1 : Math.max(...data.map((d) => d.count), 1);
 
-  const activeIndex = hoveredIndex !== null ? hoveredIndex : selectedMonthIndex;
+  const defaultIndex = data.length > 0 ? data.length - 1 : 0;
+  const currentIndex =
+    selectedMonthIndex !== null && selectedMonthIndex >= 0 && selectedMonthIndex < data.length
+      ? selectedMonthIndex
+      : defaultIndex;
+
+  const activeIndex = hoveredIndex !== null ? hoveredIndex : currentIndex;
   const activeItem = data[activeIndex] ?? data[data.length - 1];
 
   return (

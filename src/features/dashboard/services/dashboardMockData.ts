@@ -122,6 +122,425 @@ export const MOCK_SUPER_ADMIN_DASHBOARD_DATA: SuperAdminDashboardData = {
   ],
 };
 
+export const MOCK_KOORDINATOR_SARPRAS_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-baru-sarpras",
+      title: "Tiket Baru",
+      value: 12,
+      subtext: "Menunggu verifikasi",
+      link: "/helpdesk/sarpras",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses-sarpras",
+      title: "Tiket Diproses",
+      value: 18,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/helpdesk/sarpras",
+    },
+    {
+      id: "aset-rusak-sarpras",
+      title: "Aset Rusak",
+      value: 7,
+      subtext: "Menunggu perbaikan",
+      link: "/inventaris/sarpras",
+    },
+    {
+      id: "maintenance-minggu-ini-sarpras",
+      title: "Jadwal Maintenance Minggu Ini",
+      value: 5,
+      subtext: "Agenda rutin Sarpras",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [
+    { month: "Mei", fullMonth: "Mei 2026", year: 2026, count: 24 },
+    { month: "Jun", fullMonth: "Juni 2026", year: 2026, count: 38 },
+    { month: "Jul", fullMonth: "Juli 2026", year: 2026, count: 32 },
+    { month: "Agu", fullMonth: "Agustus 2026", year: 2026, count: 42 },
+    { month: "Sep", fullMonth: "September 2026", year: 2026, count: 36 },
+    { month: "Okt", fullMonth: "Oktober 2026", year: 2026, count: 46 },
+  ],
+  assetStatuses: [
+    { key: "digunakan", label: "Digunakan", count: 312, color: "#1d4ed8" },
+    { key: "tidak_digunakan", label: "Tidak Digunakan", count: 41, color: "#60a5fa" },
+    { key: "rusak", label: "Rusak", count: 7, color: "#ef4444" },
+    { key: "dipinjam", label: "Dipinjam", count: 18, color: "#f97316" },
+  ],
+  maintenanceSchedules: [
+    {
+      id: "sch-s1",
+      assetName: "Server SIMRS Dell PowerEdge R740",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-17",
+    },
+    {
+      id: "sch-s2",
+      assetName: "Genset Utama Rumah Sakit 250kVA",
+      officerName: "Abdul Wahab",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-s3",
+      assetName: "Pompa Air Distribusi Gedung A",
+      officerName: "Nanang Wulid",
+      status: "Terjadwal",
+      date: "2026-11-20",
+    },
+    {
+      id: "sch-s4",
+      assetName: "Lift Pasien Gedung Utama",
+      officerName: "Afandi",
+      status: "Terjadwal",
+      date: "2026-11-21",
+    },
+  ],
+  reminders: [
+    {
+      id: "rem-s1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "1 jam lalu",
+      isRead: false,
+      link: "/maintenance",
+    },
+    {
+      id: "rem-s2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/helpdesk/sarpras",
+    },
+    {
+      id: "rem-s3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/maintenance",
+    },
+  ],
+};
+
+export const MOCK_MANAJEMEN_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-baru-mgt",
+      title: "Tiket Baru",
+      value: 12,
+      subtext: "Menunggu verifikasi",
+      link: "/manajemen/helpdesk/tik",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses-mgt",
+      title: "Tiket Diproses",
+      value: 18,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/manajemen/helpdesk/tik",
+    },
+    {
+      id: "request-desain-mgt",
+      title: "Request Desain Baru",
+      value: 3,
+      subtext: "Dalam antrean pengerjaan",
+      link: "/design-graphic/manage-requests",
+    },
+    {
+      id: "aset-rusak-mgt",
+      title: "Aset Rusak",
+      value: 7,
+      subtext: "Menunggu perbaikan",
+      link: "/inventaris/tik",
+    },
+    {
+      id: "maintenance-minggu-ini-mgt",
+      title: "Jadwal Maintenance Minggu Ini",
+      value: 5,
+      subtext: "Agenda rutin TIK dan Sarpras",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [
+    { month: "Mei", fullMonth: "Mei 2026", year: 2026, count: 24 },
+    { month: "Jun", fullMonth: "Juni 2026", year: 2026, count: 38 },
+    { month: "Jul", fullMonth: "Juli 2026", year: 2026, count: 32 },
+    { month: "Agu", fullMonth: "Agustus 2026", year: 2026, count: 42 },
+    { month: "Sep", fullMonth: "September 2026", year: 2026, count: 36 },
+    { month: "Okt", fullMonth: "Oktober 2026", year: 2026, count: 46 },
+  ],
+  assetStatuses: [
+    { key: "digunakan", label: "Digunakan", count: 312, color: "#1d4ed8" },
+    { key: "tidak_digunakan", label: "Tidak Digunakan", count: 41, color: "#60a5fa" },
+    { key: "rusak", label: "Rusak", count: 7, color: "#ef4444" },
+    { key: "dipinjam", label: "Dipinjam", count: 18, color: "#f97316" },
+  ],
+  maintenanceSchedules: [
+    {
+      id: "sch-m1",
+      assetName: "Server SIMRS Dell PowerEdge R740",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-17",
+    },
+    {
+      id: "sch-m2",
+      assetName: "Switch Cisco Catalyst 2960 Lantai 1",
+      officerName: "Haris Arifin",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-m3",
+      assetName: "UPS APC Smart-UPS 3000VA Ruang Server",
+      officerName: "Abdul Mufid Efendi",
+      status: "Terjadwal",
+      date: "2026-11-20",
+    },
+  ],
+  reminders: [
+    {
+      id: "rem-m1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "2 jam lalu",
+      isRead: false,
+      link: "/maintenance",
+    },
+    {
+      id: "rem-m2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/manajemen/helpdesk/tik",
+    },
+    {
+      id: "rem-m3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/design-graphic/manage-requests",
+    },
+  ],
+};
+
+export const MOCK_PETUGAS_TIK_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-ditugaskan-tik",
+      title: "Tiket Ditugaskan",
+      value: 12,
+      subtext: "Menunggu diselesaikan",
+      link: "/helpdesk/tik",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses-tik",
+      title: "Tiket Diproses",
+      value: 18,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "request-desain-aktif-tik",
+      title: "Request Desain Aktif",
+      value: 3,
+      subtext: "Dalam antrean pengerjaan",
+      link: "/design-graphic/assigned-tasks",
+    },
+    {
+      id: "maintenance-mendatang-tik",
+      title: "Jadwal Maintenance Mendatang",
+      value: 5,
+      subtext: "Agenda rutin TIK",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [],
+  assetStatuses: [],
+  maintenanceSchedules: [
+    {
+      id: "sch-pt1",
+      assetName: "Server SIMRS Dell PowerEdge R740",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-17",
+    },
+    {
+      id: "sch-pt2",
+      assetName: "Switch Cisco Catalyst 2960 Lantai 1",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-pt3",
+      assetName: "PC Kasir IGD Unit 02",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+  ],
+  reminders: [
+    {
+      id: "rem-pt1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "2 jam lalu",
+      isRead: false,
+      link: "/maintenance",
+    },
+    {
+      id: "rem-pt2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "rem-pt3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/design-graphic/assigned-tasks",
+    },
+  ],
+};
+
+export const MOCK_PETUGAS_SARPRAS_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-ditugaskan-sarpras",
+      title: "Tiket Ditugaskan",
+      value: 12,
+      subtext: "Menunggu diselesaikan",
+      link: "/helpdesk/sarpras",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-diproses-sarpras",
+      title: "Tiket Diproses",
+      value: 18,
+      subtext: "Sedang dikerjakan petugas",
+      link: "/helpdesk/sarpras",
+    },
+    {
+      id: "maintenance-mendatang-sarpras",
+      title: "Jadwal Maintenance Mendatang",
+      value: 5,
+      subtext: "Agenda rutin Sarpras",
+      link: "/maintenance",
+    },
+  ],
+  ticketTrends: [],
+  assetStatuses: [],
+  maintenanceSchedules: [
+    {
+      id: "sch-ps1",
+      assetName: "Server SIMRS Dell PowerEdge R740",
+      officerName: "Hendra Wijaya",
+      status: "Terjadwal",
+      date: "2026-11-17",
+    },
+    {
+      id: "sch-ps2",
+      assetName: "Genset Utama Rumah Sakit 250kVA",
+      officerName: "Abdul Wahab",
+      status: "Terjadwal",
+      date: "2026-11-18",
+    },
+    {
+      id: "sch-ps3",
+      assetName: "Pompa Air Distribusi Gedung A",
+      officerName: "Nanang Wulid",
+      status: "Terjadwal",
+      date: "2026-11-20",
+    },
+  ],
+  reminders: [
+    {
+      id: "rem-ps1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "2 jam lalu",
+      isRead: false,
+      link: "/maintenance",
+    },
+    {
+      id: "rem-ps2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/helpdesk/sarpras",
+    },
+    {
+      id: "rem-ps3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/maintenance",
+    },
+  ],
+};
+
+export const MOCK_USER_DASHBOARD_DATA: SuperAdminDashboardData = {
+  stats: [
+    {
+      id: "tiket-saya-aktif-user",
+      title: "Tiket Saya Aktif",
+      value: 12,
+      subtext: "Menunggu diselesaikan",
+      link: "/helpdesk/tik",
+      isPrimary: true,
+    },
+    {
+      id: "tiket-menunggu-verifikasi-user",
+      title: "Tiket Menunggu Verifikasi Saya",
+      value: 18,
+      subtext: "Menunggu verifikasi",
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "request-desain-persetujuan-user",
+      title: "Request Desain Menunggu Persetujuan",
+      value: 3,
+      subtext: "Menunggu persetujuan",
+      link: "/design-graphic/my-requests",
+    },
+    {
+      id: "notifikasi-belum-dibaca-user",
+      title: "Notifikasi Belum Dibaca",
+      value: 5,
+      subtext: "Notifikasi menunggu dibuka",
+      link: "/notification",
+    },
+  ],
+  ticketTrends: [],
+  assetStatuses: [],
+  maintenanceSchedules: [],
+  reminders: [
+    {
+      id: "rem-u1",
+      title: "Jadwal maintenance Server SIMRS besok",
+      timeAgo: "2 jam lalu",
+      isRead: false,
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "rem-u2",
+      title: "Tiket TKT-0412 sudah diverifikasi",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/helpdesk/tik",
+    },
+    {
+      id: "rem-u3",
+      title: "Request DG-2026-0005 menunggu persetujuan",
+      timeAgo: "Kemarin",
+      isRead: false,
+      link: "/design-graphic/my-requests",
+    },
+  ],
+};
+
 export const EMPTY_SUPER_ADMIN_DASHBOARD_DATA: SuperAdminDashboardData = {
   stats: [
     {

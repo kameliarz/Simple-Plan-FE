@@ -3,10 +3,11 @@ import TicketTrendChart from "./TicketTrendChart";
 import AssetStatusDonutChart from "./AssetStatusDonutChart";
 import MaintenanceCalendarWidget from "./MaintenanceCalendarWidget";
 import ReminderWidget from "./ReminderWidget";
+import { useDashboardData } from "../../hooks/useDashboardData";
 import { MOCK_SUPER_ADMIN_DASHBOARD_DATA } from "../../services/dashboardMockData";
 
 export default function SuperAdminDashboard() {
-  const data = MOCK_SUPER_ADMIN_DASHBOARD_DATA;
+  const { data } = useDashboardData("super-admin", MOCK_SUPER_ADMIN_DASHBOARD_DATA);
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { DashboardReminderItem } from "../../types/dashboard.types";
 
@@ -8,13 +8,21 @@ interface ReminderWidgetProps {
 
 export default function ReminderWidget({ initialReminders }: ReminderWidgetProps) {
   const navigate = useNavigate();
-  const [reminders, setReminders] = useState<DashboardReminderItem[]>(initialReminders);
+  const [readItemIds, setReadItemIds] = useState<Set<string>>(new Set());
+
+  const reminders = useMemo(() => {
+    return initialReminders.map((r) => ({
+      ...r,
+      isRead: r.isRead || readItemIds.has(r.id),
+    }));
+  }, [initialReminders, readItemIds]);
 
   const handleMarkAllAsRead = () => {
-    setReminders((prev) => prev.map((r) => ({ ...r, isRead: true })));
+    setReadItemIds(new Set(initialReminders.map((r) => r.id)));
   };
 
   const handleItemClick = (item: DashboardReminderItem) => {
+    setReadItemIds((prev) => new Set([...prev, item.id]));
     if (item.link) {
       navigate(item.link);
     }
