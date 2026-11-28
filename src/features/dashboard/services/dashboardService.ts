@@ -2,8 +2,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { getToken } from "@/features/auth-login/services/authStorage";
 import type {
   SuperAdminDashboardData,
-  BackendDashboardData,
-  BackendLiveStats,
+  BackendDashboardApiResponse,
   DashboardStatCard,
   MonthlyTicketTrend,
   AssetStatusItem,
@@ -83,47 +82,6 @@ const FULL_MONTH_NAMES = [
   "Desember",
 ];
 
-function generateLast6MonthsTrends(tickets: Array<{ created_at?: string }>): MonthlyTicketTrend[] {
-  const now = new Date();
-  const months: Array<{
-    monthKey: string;
-    month: string;
-    fullMonth: string;
-    year: number;
-    count: number;
-  }> = [];
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const m = d.getMonth();
-    const y = d.getFullYear();
-    const monthKey = `${y}-${String(m + 1).padStart(2, "0")}`;
-    months.push({
-      monthKey,
-      month: MONTH_NAMES[m],
-      fullMonth: `${FULL_MONTH_NAMES[m]} ${y}`,
-      year: y,
-      count: 0,
-    });
-  }
-
-  for (const t of tickets) {
-    if (!t.created_at) continue;
-    const ticketMonth = t.created_at.slice(0, 7);
-    const target = months.find((m) => m.monthKey === ticketMonth);
-    if (target) {
-      target.count += 1;
-    }
-  }
-
-  return months.map(({ month, fullMonth, year, count }) => ({
-    month,
-    fullMonth,
-    year,
-    count,
-  }));
-}
-
 function formatRelativeTime(dateString?: string): string {
   if (!dateString) return "Baru saja";
   try {
@@ -143,185 +101,41 @@ function formatRelativeTime(dateString?: string): string {
 }
 
 /**
- * Service integrasi data Dashboard riil dari API backend.
- * Memanggil endpoint terkait (tickets, assets, maintenances, design-requests, notifications)
- * untuk menyajikan data aktual ke kartu metrik dan widget grafik sesuai mockup.
+ * Service integrasi data Dashboard dari endpoint resmi `GET /api/v1/dashboard`.
+ * Endpoint ini menyediakan:
+ * - summary (kartu statistik per-role)
+ * - charts.tren_tiket_per_bulan (grafik tren tiket 6 bulan terakhir)
+ * - charts.komposisi_status_aset (komposisi status aset untuk Donut Chart)
+ * Serta kalender & pengingat dari modul Maintenance dan Notifications.
  */
 export const dashboardService = {
   /**
-   * Mengambil data backend bawaan `/api/v1/dashboard`.
-   */
-  async getRawDashboard(): Promise<BackendDashboardData | null> {
-    try {
-      const response = await apiFetch("/api/v1/dashboard", {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) return null;
-      const json = await response.json();
-      return json?.data ?? null;
-    } catch {
-      return null;
-    }
-  },
-
-  /**
-   * Mengambil live-stats `/api/v1/dashboard/live-stats`.
-   */
-  async getLiveStats(): Promise<BackendLiveStats | null> {
-    try {
-      const response = await apiFetch("/api/v1/dashboard/live-stats", {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) return null;
-      const json = await response.json();
-      return json?.data ?? null;
-    } catch {
-      return null;
-    }
-  },
-
-  /**
-   * Mengambil data dashboard riil per-role.
+   * Mengambil data dashboard riil dari endpoint resmi backend `GET /api/v1/dashboard`.
    */
   async getDashboardData(role: string): Promise<SuperAdminDashboardData> {
     const baseMock = this.getDefaultMockByRole(role);
 
     try {
-      const isSarpras = role === "koordinator-sarpras" || role === "petugas-sarpras";
-      const isTik = role === "petugas-tik";
-      const isUser = role === "user";
-      const serviceQuery = isSarpras ? "&service=sarpras" : isTik ? "&service=tik" : "";
-
-      // 1. Ambil data tiket secara riil per status
-      const [
-        resTiketBaru,
-        resTiketDiproses,
-        resTiketSelesai,
-        resAllTickets,
-        resAssetDigunakan,
-        resAssetTidakDigunakan,
-        resAssetRusak,
-        resAssetDipinjam,
-        resAllAssets,
-        resDesignBaru,
-        resDesignUser,
-        resMaintenances,
-        resNotifications,
-      ] = await Promise.allSettled([
-        apiFetch(`/api/v1/tickets?status=baru&per_page=1${serviceQuery}`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/tickets?status=diproses&per_page=1${serviceQuery}`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/tickets?status=terselesaikan&per_page=1${serviceQuery}`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/tickets?per_page=100${serviceQuery}`, { headers: getAuthHeaders() }),
-        apiFetch(`/api/v1/assets?status=${encodeURIComponent("Digunakan")}&per_page=1`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/assets?status=${encodeURIComponent("Tidak Digunakan")}&per_page=1`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/assets?status=${encodeURIComponent("Rusak")}&per_page=1`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch(`/api/v1/assets?status=${encodeURIComponent("Dipinjam")}&per_page=1`, {
-          headers: getAuthHeaders(),
-        }),
-        apiFetch("/api/v1/assets?per_page=1", { headers: getAuthHeaders() }),
-        apiFetch("/api/v1/design-requests?status=baru&per_page=1", { headers: getAuthHeaders() }),
-        apiFetch("/api/v1/design-requests?scope=mine&status=menunggu_persetujuan&per_page=1", {
-          headers: getAuthHeaders(),
-        }),
+      // Panggil endpoint utama /api/v1/dashboard bersamaan dengan maintenance & notifikasi
+      const [resDashboard, resMaintenances, resNotifications] = await Promise.allSettled([
+        apiFetch("/api/v1/dashboard", { headers: getAuthHeaders() }),
         apiFetch("/api/v1/asset-maintenances?per_page=10", { headers: getAuthHeaders() }),
         apiFetch("/api/v1/notifications?per_page=10", { headers: getAuthHeaders() }),
       ]);
 
-      // Ekstraksi hasil riil tiket
-      let countTiketBaru: number | null = null;
-      let countTiketDiproses: number | null = null;
-      let countTiketSelesai: number | null = null;
-      let recentTicketsList: Array<{ created_at?: string }> = [];
-
-      if (resTiketBaru.status === "fulfilled" && resTiketBaru.value.ok) {
-        const j = await resTiketBaru.value.json();
-        if (typeof j?.meta?.total === "number") countTiketBaru = j.meta.total;
-      }
-      if (resTiketDiproses.status === "fulfilled" && resTiketDiproses.value.ok) {
-        const j = await resTiketDiproses.value.json();
-        if (typeof j?.meta?.total === "number") countTiketDiproses = j.meta.total;
-      }
-      if (resTiketSelesai.status === "fulfilled" && resTiketSelesai.value.ok) {
-        const j = await resTiketSelesai.value.json();
-        if (typeof j?.meta?.total === "number") countTiketSelesai = j.meta.total;
-      }
-      if (resAllTickets.status === "fulfilled" && resAllTickets.value.ok) {
-        const j = await resAllTickets.value.json();
-        if (Array.isArray(j?.data)) recentTicketsList = j.data;
+      let dashboardData: BackendDashboardApiResponse | null = null;
+      if (resDashboard.status === "fulfilled" && resDashboard.value.ok) {
+        const json = await resDashboard.value.json();
+        dashboardData = (json?.data ?? null) as BackendDashboardApiResponse | null;
       }
 
-      // Ekstraksi hasil riil aset
-      let countDigunakan: number | null = null;
-      let countTidakDigunakan: number | null = null;
-      let countRusak: number | null = null;
-      let countDipinjam: number | null = null;
-      let countTotalAset: number | null = null;
-
-      if (resAssetDigunakan.status === "fulfilled" && resAssetDigunakan.value.ok) {
-        const j = await resAssetDigunakan.value.json();
-        if (typeof j?.meta?.total === "number") countDigunakan = j.meta.total;
-      }
-      if (resAssetTidakDigunakan.status === "fulfilled" && resAssetTidakDigunakan.value.ok) {
-        const j = await resAssetTidakDigunakan.value.json();
-        if (typeof j?.meta?.total === "number") countTidakDigunakan = j.meta.total;
-      }
-      if (resAssetRusak.status === "fulfilled" && resAssetRusak.value.ok) {
-        const j = await resAssetRusak.value.json();
-        if (typeof j?.meta?.total === "number") countRusak = j.meta.total;
-      }
-      if (resAssetDipinjam.status === "fulfilled" && resAssetDipinjam.value.ok) {
-        const j = await resAssetDipinjam.value.json();
-        if (typeof j?.meta?.total === "number") countDipinjam = j.meta.total;
-      }
-      if (resAllAssets.status === "fulfilled" && resAllAssets.value.ok) {
-        const j = await resAllAssets.value.json();
-        if (typeof j?.meta?.total === "number") countTotalAset = j.meta.total;
-      }
-
-      // Ekstraksi hasil riil request desain
-      let countDesignBaru: number | null = null;
-      let countDesignUserMenunggu: number | null = null;
-
-      if (resDesignBaru.status === "fulfilled" && resDesignBaru.value.ok) {
-        const j = await resDesignBaru.value.json();
-        if (typeof j?.meta?.total === "number") countDesignBaru = j.meta.total;
-      }
-      if (resDesignUser.status === "fulfilled" && resDesignUser.value.ok) {
-        const j = await resDesignUser.value.json();
-        if (typeof j?.meta?.total === "number") countDesignUserMenunggu = j.meta.total;
-      }
-
-      // Ekstraksi jadwal pemeliharaan
+      // 1. Olah Jadwal Maintenance untuk Kalender
       let realSchedules: DashboardMaintenanceItem[] = [];
-      let totalMaintenanceCount: number | null = null;
-
       if (resMaintenances.status === "fulfilled" && resMaintenances.value.ok) {
         const j = await resMaintenances.value.json();
         const items = (
           Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : []
         ) as ApiMaintenanceRawItem[];
-        if (typeof j?.total === "number") {
-          totalMaintenanceCount = j.total;
-        } else if (typeof j?.meta?.total === "number") {
-          totalMaintenanceCount = j.meta.total;
-        } else if (items.length > 0) {
-          totalMaintenanceCount = items.length;
-        }
-
         if (items.length > 0) {
           realSchedules = items.map(
             (item: ApiMaintenanceRawItem, idx: number): DashboardMaintenanceItem => ({
@@ -344,10 +158,9 @@ export const dashboardService = {
         }
       }
 
-      // Ekstraksi notifikasi riil
+      // 2. Olah Notifikasi untuk Widget Pengingat
       let realReminders: DashboardReminderItem[] = [];
-      let unreadNotificationsCount: number | null = null;
-
+      let unreadNotifCount = 0;
       if (resNotifications.status === "fulfilled" && resNotifications.value.ok) {
         const j = await resNotifications.value.json();
         const notifList = (
@@ -363,103 +176,165 @@ export const dashboardService = {
               link: n.action_url || n.link || undefined,
             }),
           );
-          unreadNotificationsCount = notifList.filter(
-            (n: ApiNotificationRawItem) => !n.read_at,
-          ).length;
+          unreadNotifCount = notifList.filter((n: ApiNotificationRawItem) => !n.read_at).length;
         }
       }
 
-      // Salin base data
-      const result: SuperAdminDashboardData = {
-        ...baseMock,
-        stats: baseMock.stats.map((stat) => ({ ...stat })),
-        ticketTrends:
-          recentTicketsList.length > 0
-            ? generateLast6MonthsTrends(recentTicketsList)
-            : [...baseMock.ticketTrends],
-        assetStatuses: [...baseMock.assetStatuses],
-        maintenanceSchedules:
-          realSchedules.length > 0 ? realSchedules : [...baseMock.maintenanceSchedules],
-        reminders: realReminders.length > 0 ? realReminders : [...baseMock.reminders],
-      };
+      // Jika response /api/v1/dashboard tidak berhasil didapat, fallback ke baseMock
+      if (!dashboardData) {
+        return {
+          ...baseMock,
+          maintenanceSchedules:
+            realSchedules.length > 0 ? realSchedules : baseMock.maintenanceSchedules,
+          reminders: realReminders.length > 0 ? realReminders : baseMock.reminders,
+        };
+      }
 
-      // Sinkronisasi Stat Cards dengan data riil API
-      result.stats = result.stats.map((stat): DashboardStatCard => {
-        // Tiket Baru
+      const summary = dashboardData.summary || {};
+      const charts = dashboardData.charts;
+
+      // 3. Olah Tren Tiket 6 Bulan dari charts.tren_tiket_per_bulan
+      let realTicketTrends: MonthlyTicketTrend[] = baseMock.ticketTrends;
+      if (charts?.tren_tiket_per_bulan && typeof charts.tren_tiket_per_bulan === "object") {
+        const entries = Object.entries(charts.tren_tiket_per_bulan);
+        if (entries.length > 0) {
+          realTicketTrends = entries.map(([yearMonth, count]): MonthlyTicketTrend => {
+            const [yStr, mStr] = yearMonth.split("-");
+            const y = parseInt(yStr, 10) || new Date().getFullYear();
+            const m = (parseInt(mStr, 10) || 1) - 1;
+            return {
+              month: MONTH_NAMES[m] || mStr,
+              fullMonth: `${FULL_MONTH_NAMES[m] || mStr} ${y}`,
+              year: y,
+              count: typeof count === "number" ? count : 0,
+            };
+          });
+        }
+      }
+
+      // 4. Olah Komposisi Status Aset untuk Donut Chart
+      let realAssetStatuses: AssetStatusItem[] = baseMock.assetStatuses;
+      if (charts?.komposisi_status_aset && typeof charts.komposisi_status_aset === "object") {
+        const k = charts.komposisi_status_aset;
+        realAssetStatuses = [
+          { key: "digunakan", label: "Digunakan", count: k["Digunakan"] ?? 0, color: "#1d4ed8" },
+          {
+            key: "tidak_digunakan",
+            label: "Tidak Digunakan",
+            count: k["Tidak Digunakan"] ?? 0,
+            color: "#60a5fa",
+          },
+          { key: "rusak", label: "Rusak", count: k["Rusak"] ?? 0, color: "#ef4444" },
+          { key: "dipinjam", label: "Dipinjam", count: k["Dipinjam"] ?? 0, color: "#f97316" },
+        ];
+      }
+
+      // 5. Petakan Nilai Kartu Statistik (Summary) Berdasarkan Role Pengguna
+      const mappedStats = baseMock.stats.map((stat): DashboardStatCard => {
+        // Super Admin & Manajemen
+        if (summary.jumlah_tiket_baru !== undefined && stat.id.includes("tiket-baru")) {
+          return { ...stat, value: summary.jumlah_tiket_baru };
+        }
+        if (summary.jumlah_tiket_diproses !== undefined && stat.id.includes("tiket-diproses")) {
+          return { ...stat, value: summary.jumlah_tiket_diproses };
+        }
         if (
-          stat.id.includes("tiket-baru") ||
-          stat.id === "tiket-saya" ||
-          (isUser && stat.id === "tiket-aktif")
+          summary.jumlah_request_desain_baru !== undefined &&
+          stat.id.includes("request-desain")
         ) {
-          if (countTiketBaru !== null) return { ...stat, value: countTiketBaru };
+          return { ...stat, value: summary.jumlah_request_desain_baru };
         }
-        // Tiket Diproses
-        if (stat.id.includes("tiket-diproses") || stat.id.includes("tiket-dikerjakan")) {
-          if (countTiketDiproses !== null) return { ...stat, value: countTiketDiproses };
+        if (summary.jumlah_aset_rusak !== undefined && stat.id.includes("aset-rusak")) {
+          return { ...stat, value: summary.jumlah_aset_rusak };
         }
-        // Tiket Selesai
-        if (stat.id.includes("tiket-selesai")) {
-          if (countTiketSelesai !== null) return { ...stat, value: countTiketSelesai };
+        if (
+          summary.jumlah_jadwal_maintenance_minggu_ini !== undefined &&
+          stat.id.includes("maintenance")
+        ) {
+          return { ...stat, value: summary.jumlah_jadwal_maintenance_minggu_ini };
         }
-        // Tiket Menunggu Verifikasi Saya (User)
-        if (isUser && stat.id.includes("verifikasi")) {
-          if (countTiketBaru !== null) return { ...stat, value: countTiketBaru };
+
+        // Koordinator Sarpras
+        if (summary.jumlah_tiket_sarpras_baru !== undefined && stat.id === "tiket-baru-sarpras") {
+          return { ...stat, value: summary.jumlah_tiket_sarpras_baru };
         }
-        // Request Desain Baru (Admin / Petugas TIK / Manajemen)
-        if (stat.id.includes("request-desain") || stat.id.includes("tugas-desain")) {
-          if (isUser && countDesignUserMenunggu !== null) {
-            return { ...stat, value: countDesignUserMenunggu };
-          }
-          if (countDesignBaru !== null) return { ...stat, value: countDesignBaru };
+        if (
+          summary.jumlah_tiket_sarpras_diproses !== undefined &&
+          stat.id === "tiket-diproses-sarpras"
+        ) {
+          return { ...stat, value: summary.jumlah_tiket_sarpras_diproses };
         }
-        // Aset Rusak
-        if (stat.id.includes("aset-rusak")) {
-          if (countRusak !== null) return { ...stat, value: countRusak };
+        if (summary.jumlah_aset_sarpras_rusak !== undefined && stat.id === "aset-rusak-sarpras") {
+          return { ...stat, value: summary.jumlah_aset_sarpras_rusak };
         }
-        // Total Aset
-        if (stat.id.includes("total-aset")) {
-          if (countTotalAset !== null) return { ...stat, value: countTotalAset };
+
+        // Petugas TIK & Petugas Sarpras
+        if (
+          summary.jumlah_tiket_ditugaskan !== undefined &&
+          (stat.id === "tiket-tik-saya" || stat.id === "tiket-sarpras-saya")
+        ) {
+          return { ...stat, value: summary.jumlah_tiket_ditugaskan };
         }
-        // Jadwal Maintenance
-        if (stat.id.includes("maintenance")) {
-          if (totalMaintenanceCount !== null) return { ...stat, value: totalMaintenanceCount };
+        if (summary.jumlah_tiket_diproses !== undefined && stat.id.includes("tiket-dikerjakan")) {
+          return { ...stat, value: summary.jumlah_tiket_diproses };
         }
-        // Notifikasi Belum Dibaca (User)
-        if (isUser && stat.id.includes("notifikasi")) {
-          if (unreadNotificationsCount !== null)
-            return { ...stat, value: unreadNotificationsCount };
+        if (summary.jumlah_tugas_desain_aktif !== undefined && stat.id === "tugas-desain-aktif") {
+          return { ...stat, value: summary.jumlah_tugas_desain_aktif };
+        }
+        if (
+          summary.jumlah_jadwal_maintenance_mendatang !== undefined &&
+          stat.id.includes("jadwal-maintenance")
+        ) {
+          return { ...stat, value: summary.jumlah_jadwal_maintenance_mendatang };
+        }
+
+        // Role User
+        if (summary.jumlah_tiket_aktif !== undefined && stat.id === "tiket-saya-aktif") {
+          return { ...stat, value: summary.jumlah_tiket_aktif };
+        }
+        if (
+          summary.jumlah_tiket_menunggu_verifikasi !== undefined &&
+          stat.id === "tiket-menunggu-verifikasi"
+        ) {
+          return { ...stat, value: summary.jumlah_tiket_menunggu_verifikasi };
+        }
+        if (
+          summary.jumlah_request_menunggu_persetujuan !== undefined &&
+          stat.id === "request-desain-menunggu"
+        ) {
+          return { ...stat, value: summary.jumlah_request_menunggu_persetujuan };
+        }
+        if (stat.id === "notifikasi-belum-dibaca") {
+          return { ...stat, value: unreadNotifCount };
+        }
+
+        // Khusus Manajemen (Total Aset Terdaftar)
+        if (stat.id === "total-aset-terdaftar" && charts?.komposisi_status_aset) {
+          const total = Object.values(charts.komposisi_status_aset).reduce<number>(
+            (a, b) => a + (b ?? 0),
+            0,
+          );
+          return { ...stat, value: total };
         }
 
         return stat;
       });
 
-      // Sinkronisasi Donut Chart Komposisi Status Aset
-      if (
-        countDigunakan !== null ||
-        countTidakDigunakan !== null ||
-        countRusak !== null ||
-        countDipinjam !== null
-      ) {
-        result.assetStatuses = result.assetStatuses.map((item): AssetStatusItem => {
-          if (item.key === "digunakan" && countDigunakan !== null)
-            return { ...item, count: countDigunakan };
-          if (item.key === "tidak_digunakan" && countTidakDigunakan !== null)
-            return { ...item, count: countTidakDigunakan };
-          if (item.key === "rusak" && countRusak !== null) return { ...item, count: countRusak };
-          if (item.key === "dipinjam" && countDipinjam !== null)
-            return { ...item, count: countDipinjam };
-          return item;
-        });
-      }
-
-      return result;
+      return {
+        stats: mappedStats,
+        ticketTrends: realTicketTrends,
+        assetStatuses: realAssetStatuses,
+        maintenanceSchedules:
+          realSchedules.length > 0 ? realSchedules : baseMock.maintenanceSchedules,
+        reminders: realReminders.length > 0 ? realReminders : baseMock.reminders,
+      };
     } catch {
       return baseMock;
     }
   },
 
   /**
-   * Mengembalikan default mock data sesuai role yang diminta.
+   * Mengembalikan default baseline mock data sesuai role yang diminta.
    */
   getDefaultMockByRole(role: string): SuperAdminDashboardData {
     switch (role) {

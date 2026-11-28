@@ -49,44 +49,50 @@ export type KoordinatorSarprasDashboardData = SuperAdminDashboardData;
 export type ManajemenDashboardData = SuperAdminDashboardData;
 export type DashboardData = SuperAdminDashboardData;
 
-// Backend API Raw Response Types (/api/v1/dashboard & /api/v1/dashboard/live-stats)
-export interface BackendDashboardSummary {
-  total_users: number;
-  total_roles: number;
-  total_units: number;
-  total_permissions: number;
-}
+// Backend API Response Types (/api/v1/dashboard)
+export interface BackendDashboardApiResponse {
+  variant:
+    | "super-admin"
+    | "management"
+    | "koordinator-sarpras"
+    | "petugas-tik"
+    | "petugas-sarpras"
+    | "user"
+    | string;
+  summary: {
+    // Super Admin & Management
+    jumlah_tiket_baru?: number;
+    jumlah_tiket_diproses?: number;
+    jumlah_request_desain_baru?: number;
+    jumlah_aset_rusak?: number;
+    jumlah_jadwal_maintenance_minggu_ini?: number;
 
-export interface BackendDashboardData {
-  variant: string;
-  summary: BackendDashboardSummary;
-  current_user: {
-    roles: string[];
-    units: string[];
-    permissions_count: number;
+    // Koordinator Sarpras
+    jumlah_tiket_sarpras_baru?: number;
+    jumlah_tiket_sarpras_diproses?: number;
+    jumlah_aset_sarpras_rusak?: number;
+
+    // Petugas TIK & Sarpras
+    jumlah_tiket_ditugaskan?: number;
+    jumlah_tugas_desain_aktif?: number;
+    jumlah_jadwal_maintenance_mendatang?: number;
+
+    // User
+    jumlah_tiket_aktif?: number;
+    jumlah_tiket_menunggu_verifikasi?: number;
+    jumlah_request_menunggu_persetujuan?: number;
+
+    [key: string]: number | undefined;
   };
-  role_distribution: Array<{ name: string; users_count: number }>;
-  recent_users: Array<{
-    id: number;
-    name: string;
-    email: string;
-    avatar?: string | null;
-    nip?: string | null;
-    status: string;
-    roles: Array<{ id: number; name: string }>;
-    created_at: string;
-  }>;
-  owned_units: {
-    total_units: number;
-    unit_names: string[];
-    total_members: number;
-    units: Array<{ id: number; unit_name: string; users_count: number }>;
-    active_shifts: number;
-    present_today: number;
-  };
-  today: {
-    date: string;
-    timezone: string;
+  charts?: {
+    tren_tiket_per_bulan?: Record<string, number>;
+    komposisi_status_aset?: {
+      Digunakan?: number;
+      "Tidak Digunakan"?: number;
+      Rusak?: number;
+      Dipinjam?: number;
+      [key: string]: number | undefined;
+    };
   };
 }
 
