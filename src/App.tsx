@@ -113,7 +113,6 @@ function RoleAwareHelpdeskList() {
 
 function App() {
   const location = useLocation();
-  const { user } = useAuth();
 
   if (location.pathname === "/login") {
     return (
@@ -209,13 +208,8 @@ function App() {
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Fallback */}
-          <Route
-            path="*"
-            element={
-              <Navigate to={user?.role === "super-admin" ? "/helpdesk/tik" : "/helpdesk"} replace />
-            }
-          />
+          {/* Fallback jika route tidak ditemukan atau kepental */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>
     </ProtectedRoute>

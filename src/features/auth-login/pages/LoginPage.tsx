@@ -66,17 +66,8 @@ export default function LoginPage() {
 
       setAuth(result.token, result.user);
 
-      const userRole = result.user.role || "";
-
-      if (userRole === "petugas-sarpras") {
-        navigate("/helpdesk/sarpras", { replace: true });
-      } else if (userRole === "petugas-tik") {
-        navigate("/helpdesk/tik", { replace: true });
-      } else if (userRole === "koordinator-sarpras") {
-        navigate("/helpdesk/sarpras", { replace: true });
-      } else {
-        navigate("/helpdesk/tik", { replace: true });
-      }
+      // Setelah login, arahkan semua role langsung ke Dashboard
+      navigate("/", { replace: true });
     } catch (error: unknown) {
       const loginError = error as {
         status?: number;

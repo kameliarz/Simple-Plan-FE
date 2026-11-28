@@ -1,10 +1,14 @@
 import StatCard from "../super-admin/StatCard";
 import ReminderWidget from "../super-admin/ReminderWidget";
+import DashboardSkeleton from "../DashboardSkeleton";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { MOCK_USER_DASHBOARD_DATA } from "../../services/dashboardMockData";
 
 export default function UserDashboard() {
-  const { data } = useDashboardData("user", MOCK_USER_DASHBOARD_DATA);
+  const { data, isLoading } = useDashboardData("user");
+
+  if (isLoading) {
+    return <DashboardSkeleton statCount={4} hasCharts={false} hasCalendar={false} />;
+  }
 
   return (
     <div className="space-y-6">

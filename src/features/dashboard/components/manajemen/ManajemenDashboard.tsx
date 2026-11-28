@@ -3,11 +3,15 @@ import TicketTrendChart from "../super-admin/TicketTrendChart";
 import AssetStatusDonutChart from "../super-admin/AssetStatusDonutChart";
 import MaintenanceCalendarWidget from "../super-admin/MaintenanceCalendarWidget";
 import ReminderWidget from "../super-admin/ReminderWidget";
+import DashboardSkeleton from "../DashboardSkeleton";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { MOCK_MANAJEMEN_DASHBOARD_DATA } from "../../services/dashboardMockData";
 
 export default function ManajemenDashboard() {
-  const { data } = useDashboardData("manajemen", MOCK_MANAJEMEN_DASHBOARD_DATA);
+  const { data, isLoading } = useDashboardData("manajemen");
+
+  if (isLoading) {
+    return <DashboardSkeleton statCount={5} hasCharts hasCalendar />;
+  }
 
   return (
     <div className="space-y-6">

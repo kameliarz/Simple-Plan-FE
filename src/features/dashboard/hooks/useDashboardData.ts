@@ -2,10 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import type { SuperAdminDashboardData } from "../types/dashboard.types";
 import { dashboardService } from "../services/dashboardService";
 
-export function useDashboardData(role: string, initialData?: SuperAdminDashboardData) {
-  const [data, setData] = useState<SuperAdminDashboardData>(() => {
-    return initialData || dashboardService.getDefaultMockByRole(role);
-  });
+export function useDashboardData(role: string) {
+  const [data, setData] = useState<SuperAdminDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
 
@@ -17,6 +15,7 @@ export function useDashboardData(role: string, initialData?: SuperAdminDashboard
       setData(result);
     } catch {
       setIsError(true);
+      setData(dashboardService.getDefaultMockByRole(role));
     } finally {
       setIsLoading(false);
     }
@@ -36,6 +35,7 @@ export function useDashboardData(role: string, initialData?: SuperAdminDashboard
       .catch(() => {
         if (isMounted) {
           setIsError(true);
+          setData(dashboardService.getDefaultMockByRole(role));
           setIsLoading(false);
         }
       });
@@ -46,7 +46,7 @@ export function useDashboardData(role: string, initialData?: SuperAdminDashboard
   }, [role]);
 
   return {
-    data,
+    data: data ?? dashboardService.getDefaultMockByRole(role),
     isLoading,
     isError,
     refresh: fetchData,

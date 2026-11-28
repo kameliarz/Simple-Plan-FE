@@ -1,11 +1,15 @@
 import StatCard from "../super-admin/StatCard";
 import MaintenanceCalendarWidget from "../super-admin/MaintenanceCalendarWidget";
 import ReminderWidget from "../super-admin/ReminderWidget";
+import DashboardSkeleton from "../DashboardSkeleton";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { MOCK_PETUGAS_SARPRAS_DASHBOARD_DATA } from "../../services/dashboardMockData";
 
 export default function PetugasSarprasDashboard() {
-  const { data } = useDashboardData("petugas-sarpras", MOCK_PETUGAS_SARPRAS_DASHBOARD_DATA);
+  const { data, isLoading } = useDashboardData("petugas-sarpras");
+
+  if (isLoading) {
+    return <DashboardSkeleton statCount={3} hasCharts={false} hasCalendar />;
+  }
 
   return (
     <div className="space-y-6">
